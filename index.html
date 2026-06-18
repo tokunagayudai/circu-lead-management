@@ -1,0 +1,2236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>リード管理 | Circulation Enterprise</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👥</text></svg>">
+<style>
+<style>
+:root{--blue:#0079C0;--grn:#1a7f37;--grn-bg:#dafbe1;--org:#bf8700;--red:#cf222e;--purple:#7c3aed;
+--bg:#f6f8fa;--bg2:#fff;--bd:#d0d7de;--ink:#1f2328;--ink2:#656d76;--ink3:#8b949e;
+--mono:'SF Mono',Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13px}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:56px;background:#1a1f2e;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;z-index:100;overflow-y:auto}
+.ni{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8b949e;font-size:18px;transition:.15s;flex-direction:column;gap:1px}
+.ni .nl{font-size:7px;letter-spacing:.3px}
+.ni:hover,.ni.act{background:var(--blue);color:#fff}
+.logo-s{width:36px;height:36px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;margin-bottom:12px}
+#M{margin-left:0;min-height:100vh;padding-top:52px}
+/* Top navigation bar with 2 major categories */
+.topnav{position:fixed;top:0;left:0;right:0;height:52px;background:#1a1f2e;display:flex;align-items:stretch;z-index:200;padding:0;gap:0}
+.topnav .tn-logo{color:#fff;font-weight:900;font-size:14px;background:var(--blue);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin:8px 12px;flex-shrink:0}
+.tn-section{display:flex;flex-direction:column;padding:4px 16px;position:relative;min-width:0}
+.tn-section.biz{background:rgba(239,68,68,.08);border-right:1px solid rgba(255,255,255,.05)}
+.tn-section.ap{background:rgba(14,165,233,.06)}
+.tn-section.biz::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#ef4444}
+.tn-section.ap::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#0ea5e9}
+.tn-section .tn-label{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.8px;font-weight:700;margin-top:4px;margin-bottom:2px;text-transform:uppercase}
+.tn-section.biz .tn-label{color:#ef4444}.tn-section.ap .tn-label{color:#0ea5e9}
+.tn-section .tn-btns{display:flex;gap:4px}
+.topnav .tn-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.55);transition:.15s;border:none;background:none;white-space:nowrap}
+.topnav .tn-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.tn-section.biz .tn-btn.act{color:#fff;background:#ef4444}
+.tn-section.ap .tn-btn.act{color:#fff;background:#0ea5e9}
+.tn-section.ld{background:rgba(16,185,129,.06);border-left:1px solid rgba(255,255,255,.05)}.tn-section.ld::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#10b981}.tn-section.ld .tn-label{color:#10b981}.tn-section.ld .tn-btn.act{color:#fff;background:#10b981}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px 8px;flex-wrap:wrap;gap:8px}
+.title{font-size:18px;font-weight:700}.sub{font-size:11px;color:var(--ink3);margin-top:2px}
+.filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fl{padding:5px 10px;border:1px solid var(--bd);border-radius:6px;font-size:11px;background:var(--bg2);color:var(--ink);cursor:pointer}
+.fl:focus{outline:none;border-color:var(--blue)}
+
+/* === Rakuten-style KPI with cumulative + delta === */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:8px 24px}
+.kpi-card{background:var(--bg2);border-radius:10px;padding:14px 16px;cursor:pointer;border:1px solid transparent;transition:.15s}
+.kpi-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(0,121,192,.08)}
+.kpi-label{font-size:10px;color:var(--ink3);margin-bottom:4px;font-weight:500}
+.kpi-val{font-size:28px;font-weight:700;font-family:var(--mono);letter-spacing:-.5px;line-height:1.1}
+.kpi-delta{font-size:12px;font-weight:600;margin-top:3px;font-family:var(--mono)}
+.kpi-delta.up{color:var(--grn)}.kpi-delta.neutral{color:var(--ink3)}
+.kpi-sub{font-size:9px;color:var(--ink3);margin-top:2px}
+
+/* Delta switcher - Rakuten toggle style */
+.delta-sw{display:flex;gap:0;background:var(--bg);border-radius:6px;border:1px solid var(--bd);overflow:hidden;margin-left:auto}
+.delta-sw .ds{padding:4px 10px;font-size:9px;cursor:pointer;color:var(--ink3);border-right:1px solid var(--bd);transition:.1s;white-space:nowrap}
+.delta-sw .ds:last-child{border-right:none}
+.delta-sw .ds:hover{color:var(--ink)}
+.delta-sw .ds.act{background:var(--blue);color:#fff}
+
+/* Charts & drill */
+.rev-panel{background:var(--bg2);border-radius:10px;margin:8px 24px;padding:16px;border:1px solid rgba(0,0,0,.04)}
+.rev-panel .hd{font-size:12px;font-weight:700;margin-bottom:12px}
+.chart-area{display:flex;align-items:flex-end;gap:3px;height:120px;padding:0 4px}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;cursor:pointer}
+.bar-pair{display:flex;gap:1px;align-items:flex-end;width:100%}
+.bar-pair .b{flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:.2s}
+.bar-lbl2{font-size:8px;color:var(--ink3);text-align:center;margin-top:3px}
+.bar-val{font-size:7px;font-family:var(--mono);color:var(--ink2);text-align:center;margin-bottom:2px}
+.bar-margin{font-size:7px;color:var(--org);font-weight:600;text-align:center}
+.chart-legend{display:flex;gap:12px;margin-top:8px;font-size:10px;color:var(--ink2)}
+.chart-legend span{display:flex;align-items:center;gap:4px}
+.chart-legend .dot{width:8px;height:8px;border-radius:2px}
+.drill{max-height:0;overflow:hidden;transition:.2s;margin:0 24px}.drill.show{max-height:3000px;overflow-y:auto}
+.drill-hd{display:flex;gap:10px;font-size:9px;font-weight:600;color:var(--ink3);padding:8px 12px;border-bottom:1px solid var(--bd)}
+.drill-row{display:flex;gap:10px;align-items:center;padding:7px 12px;font-size:11px;border-bottom:1px solid rgba(0,0,0,.03);cursor:pointer;transition:.08s}
+.drill-row:hover{background:rgba(0,121,192,.04)}
+.drill-row .co{min-width:80px;font-weight:600;color:var(--ink2);font-size:10px}
+.drill-row .nm{min-width:70px;font-weight:600}.drill-row .th{color:var(--ink2);flex:1;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drill-row .dt{font-family:var(--mono);font-size:9px;color:var(--ink3)}.drill-row .sf{font-size:8px;color:var(--blue);font-weight:600}
+.pill{font-size:8px;padding:1px 6px;border-radius:8px;font-weight:600;white-space:nowrap}
+.pill-g{background:var(--grn-bg);color:var(--grn)}.pill-a{background:#e0f2fe;color:#0ea5e9}.pill-b{background:#ddf4ff;color:var(--blue)}.pill-o{background:#fff8c5;color:var(--org)}.pill-r{background:#ffebe9;color:var(--red)}.pill-ws{background:#f0e6ff;color:var(--purple)}
+.rev-drill{max-height:0;overflow:hidden;transition:.2s;margin-top:8px}.rev-drill.show{max-height:2000px;overflow-y:auto}
+
+/* Company grid - MF style */
+.co-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;padding:8px 24px}
+.co-card{background:var(--bg2);border-radius:10px;padding:14px 16px;cursor:pointer;border:1px solid transparent;transition:.15s}
+.co-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(0,121,192,.08)}
+.co-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.co-top img{width:28px;height:28px;border-radius:6px;object-fit:contain;background:var(--bg)}
+.co-top .name{font-weight:700;font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.co-top .fs{font-size:9px;color:var(--ink3)}
+.co-metrics{display:flex;gap:0;border-top:1px solid rgba(0,0,0,.04);padding-top:8px}
+.co-m{flex:1;text-align:center}.co-m .v{font-size:15px;font-weight:700;font-family:var(--mono);line-height:1.2}.co-m .l{font-size:8px;color:var(--ink3);margin-top:1px}
+.co-m+.co-m{border-left:1px solid rgba(0,0,0,.04)}
+
+/* Summary, Layer, Org */
+.sum-row{display:flex;gap:0;background:var(--bg2);border-radius:10px;margin:8px 24px;overflow:hidden;border:1px solid rgba(0,0,0,.04)}
+.sum-i{flex:1;text-align:center;padding:14px 8px;border-right:1px solid rgba(0,0,0,.04)}.sum-i:last-child{border-right:none}
+.sum-i .v{font-size:20px;font-weight:700;font-family:var(--mono);line-height:1.2}.sum-i .l{font-size:9px;color:var(--ink3);margin-top:3px}
+.layer-panel{background:var(--bg2);border-radius:10px;margin:8px 24px;padding:12px 16px;display:flex;align-items:center;gap:16px;border:1px solid rgba(0,0,0,.04)}
+.layer-panel .hd{font-size:11px;font-weight:700;color:var(--ink2)}
+.ly-i{text-align:center;padding:0 12px}.ly-i .v{font-size:18px;font-weight:700;font-family:var(--mono)}.ly-i .l{font-size:8px;color:var(--ink3)}
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:6px 24px;font-size:9px;color:var(--ink2)}
+.lg-i{display:flex;align-items:center;gap:3px}.lg-d{width:8px;height:8px;border-radius:2px}
+.dz{margin:8px 24px;padding:20px;text-align:center;border:2px dashed var(--bd);border-radius:10px;color:var(--ink3);cursor:pointer;transition:.15s;font-size:12px}
+.dz:hover{border-color:var(--blue);color:var(--blue)}
+.an{display:none;margin:8px 24px;padding:14px;background:var(--bg2);border-radius:10px;font-size:12px;line-height:1.6;border:1px solid rgba(0,0,0,.04)}.an.show{display:block}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:sp .6s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.ck-ring-anim{animation:ckRingPulse 2s ease-in-out infinite}@keyframes ckRingPulse{0%,100%{filter:drop-shadow(0 0 3px rgba(26,127,55,.3))}50%{filter:drop-shadow(0 0 10px rgba(26,127,55,.6))}}
+.hint{padding:4px 24px;font-size:9px;color:var(--ink3)}
+.drill-modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:9998;animation:fadeIn .15s}
+.drill-modal{position:fixed;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:9999;display:flex;flex-direction:column;animation:drillSlide .2s ease-out;resize:both;overflow:hidden;min-width:400px;min-height:300px}
+@keyframes drillSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.drill-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--bd);flex-shrink:0;cursor:move;user-select:none;background:#fafbfc}
+.drill-modal-body{overflow:auto;padding:0;flex:1}
+.side-panel{position:fixed;right:0;top:0;height:100%;width:45%;max-width:700px;background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.15);z-index:9999;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease-out}
+.side-panel.open{transform:translateX(0)}
+.side-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;background:#fafbfc}
+.side-panel-body{overflow:auto;padding:0;flex:1}
+.side-panel-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.2);z-index:9998;opacity:0;transition:opacity .2s}
+.side-panel-bg.open{opacity:1}
+.drill-close{font-size:20px;width:32px;height:32px;border:none;background:rgba(0,0,0,.06);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);transition:.15s}.drill-close:hover{background:rgba(0,0,0,.12)}
+
+/* Org chart */
+.org-toolbar{display:flex;gap:6px;padding:6px 24px;align-items:center;flex-wrap:wrap}
+.org-toolbar span{font-size:10px;color:var(--ink2);font-weight:700}
+.org-toolbar button{padding:3px 10px;font-size:9px;border:1px solid var(--bd);border-radius:6px;background:var(--bg2);cursor:pointer;color:var(--ink2)}
+.org-toolbar button:hover{border-color:var(--blue);color:var(--blue)}
+.org-toolbar .saved{font-size:9px;color:var(--grn);font-weight:600;opacity:0;transition:.3s}.org-toolbar .saved.show{opacity:1}
+.dept-filter{display:flex;gap:4px;padding:4px 24px;flex-wrap:wrap}
+.dept-btn{padding:3px 8px;font-size:9px;border:1px solid var(--bd);border-radius:12px;background:var(--bg2);cursor:pointer;color:var(--ink2);transition:.1s}
+.dept-btn:hover{border-color:var(--blue)}.dept-btn.act{background:var(--blue);color:#fff;border-color:var(--blue)}
+.org-canvas{padding:8px 24px 16px;overflow-x:auto;overflow-y:auto;max-height:70vh;-webkit-overflow-scrolling:touch}
+.org-root{display:flex;gap:16px;flex-wrap:nowrap;align-items:flex-start;min-width:max-content}
+.dc-wrap{display:flex;flex-direction:column;align-items:center;position:relative}
+.dc{background:var(--bg2);border-radius:10px;border:1px solid var(--bd);min-width:170px;max-width:420px;transition:.15s;cursor:grab;user-select:none}
+.dc:active{cursor:grabbing}
+.dc.drag-over-dc{border:2px dashed var(--blue);background:rgba(0,121,192,.03)}
+.dc.depth0{border-color:rgba(0,0,0,.08)}.dc.depth1{border-color:rgba(0,121,192,.2)}.dc.depth2{border-color:rgba(191,135,0,.2)}
+.dc.grp-co{border:2px solid var(--blue);background:rgba(0,121,192,.03)}
+.dc.grp-co>.dc-hd{background:rgba(0,121,192,.08);border-radius:9px 9px 0 0}
+.dc-hd{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,.04)}
+.dc-hd.has-won{background:var(--grn-bg);border-radius:9px 9px 0 0}
+.dc-nm{font-size:11px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-ct{font-size:9px;color:var(--ink3)}
+.dc-body{padding:6px}
+.dc-people{display:flex;flex-direction:column;gap:3px}
+.pc{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;transition:.08s;font-size:11px}
+.pc:hover{box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.pc[draggable=true]{cursor:grab}.pc[draggable=true]:active{cursor:grabbing}
+.pc.dragging{opacity:.3}
+.sw3{background:rgba(26,127,55,.06)}.sa3{background:rgba(14,165,233,.08)}.sm3{background:rgba(191,135,0,.06)}.sd3{background:rgba(0,121,192,.06)}.sp3{background:rgba(210,153,34,.06)}
+.sc3{background:rgba(139,148,158,.04)}.sx3{background:rgba(207,34,46,.04)}.sr3{background:transparent}
+.pa{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.pi{min-width:0;flex:1}.pi-n{font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi-r{font-size:8px;color:var(--ink2)}.pi-d{font-size:7px;color:var(--ink3);font-family:var(--mono)}
+.ps{flex-shrink:0}
+.dc-children{display:flex;gap:12px;justify-content:center;padding-top:20px;position:relative}
+.dc-children::before{content:'';position:absolute;top:0;left:50%;width:0;height:20px;border-left:2px solid var(--bd)}
+.dc-children>.dc-wrap{position:relative}
+.dc-children>.dc-wrap::before{content:'';position:absolute;top:-20px;left:0;right:0;height:20px;border-top:2px solid var(--bd)}
+.dc-children>.dc-wrap:first-child::before{left:50%;border-left:2px solid var(--bd)}
+.dc-children>.dc-wrap:last-child::before{right:50%;left:0;border-right:2px solid var(--bd)}
+.dc-children>.dc-wrap:only-child::before{left:50%;right:auto;width:0;border-left:2px solid var(--bd);border-top:none}
+.dc-children>.dc-wrap:not(:first-child):not(:last-child)::before{border-top:2px solid var(--bd)}
+.dc-drop{min-height:20px;border:1px dashed transparent;border-radius:6px;margin:4px 6px;transition:.15s}
+.dc-drop.active{border-color:var(--blue);background:rgba(0,121,192,.06)}
+
+/* Memo popup */
+.memo-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:1000;display:flex;align-items:center;justify-content:center}
+.memo-panel{background:#fff;border-radius:12px;width:400px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.15);padding:20px}
+.memo-panel h3{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.memo-field{margin-bottom:12px}.memo-field label{display:block;font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+.memo-field textarea{width:100%;border:1px solid var(--bd);border-radius:6px;padding:8px;font-size:12px;font-family:var(--sans);resize:vertical;min-height:60px}
+.memo-field select{width:100%;border:1px solid var(--bd);border-radius:6px;padding:6px 8px;font-size:12px;background:#fff}
+.memo-field input[type=text]{width:100%;border:1px solid var(--bd);border-radius:6px;padding:6px 8px;font-size:12px}
+.memo-btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.memo-btn{padding:6px 16px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:#fff;color:var(--ink)}
+.memo-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.memo-btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
+.memo-tag{font-size:7px;padding:1px 4px;border-radius:3px;cursor:pointer;margin-left:2px}
+.memo-tag.has{background:#e0f2fe;color:#0ea5e9}.memo-tag.empty{background:var(--bg);color:var(--ink3)}
+.memo-preview{position:absolute;z-index:999;background:#1a1f2e;color:#fff;font-size:10px;padding:8px 10px;border-radius:6px;max-width:220px;line-height:1.5;pointer-events:none;white-space:pre-wrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+/* List view */
+.list-view{padding:8px 24px}
+.list-table{width:100%;border-collapse:collapse;background:var(--bg2);border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,.04)}
+.list-table th{font-size:9px;font-weight:600;color:var(--ink3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);background:var(--bg)}
+.list-table td{font-size:11px;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.03)}
+.list-table tr:hover{background:rgba(0,121,192,.03)}
+.list-table .memo-cell{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--ink2)}
+.view-toggle{display:flex;gap:0;border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin-left:8px}
+.vt-btn{padding:4px 10px;font-size:9px;cursor:pointer;color:var(--ink3);border-right:1px solid var(--bd);transition:.1s}
+.vt-btn:last-child{border-right:none}
+.vt-btn:hover{color:var(--ink)}.vt-btn.act{background:var(--blue);color:#fff}
+/* === Enterprise Analytics === */
+.ent-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px 8px;flex-wrap:wrap;gap:8px}
+.ent-hdr h2{font-size:18px;font-weight:700}.ent-hdr .sub{font-size:11px;color:var(--ink3)}
+.ent-tabs{display:flex;gap:2px;padding:4px 24px 8px;flex-wrap:wrap}
+.ent-tab{padding:5px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);color:var(--ink2);transition:.15s}
+.ent-tab:hover{border-color:var(--blue);color:var(--blue)}.ent-tab.act{background:var(--blue);color:#fff;border-color:var(--blue)}
+.ent-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:8px 24px}
+.ent-kpi{background:var(--bg2);border-radius:10px;padding:14px 16px;border:1px solid transparent;transition:.15s}
+.ent-kpi .ek-label{font-size:9px;color:var(--ink3);font-weight:500;margin-bottom:4px}
+.ent-kpi .ek-val{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-.5px;line-height:1.1}
+.ent-kpi .ek-sub{font-size:10px;color:var(--ink3);margin-top:4px}.ent-kpi .ek-rate{font-size:11px;font-weight:600;margin-top:2px}
+.ent-kpi .ek-rate.up{color:var(--grn)}.ent-kpi .ek-rate.down{color:var(--red)}
+.ent-section{margin:8px 24px;background:var(--bg2);border-radius:10px;padding:16px;border:1px solid rgba(0,0,0,.04)}
+.ent-section .es-title{font-size:12px;font-weight:700;margin-bottom:10px}
+.ent-table{width:100%;border-collapse:collapse;font-size:11px}
+.ent-table th{text-align:left;padding:6px 8px;color:var(--ink3);font-size:9px;font-weight:600;border-bottom:1px solid var(--bd)}
+.ent-table td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.03)}.ent-table tr:hover{background:rgba(0,121,192,.03)}
+/* Recycle drawer */
+#rc-drawer{position:fixed;top:0;right:-105vw;width:min(900px,92vw);height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.15);z-index:9999;transition:right .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+#rc-drawer.open{right:0}
+#rc-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:9998}
+#rc-drawer-overlay.open{display:block}
+#rc-drawer-body{flex:1;overflow-y:auto;padding:0 16px 24px}
+.ent-heat{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;font-family:var(--mono);min-width:36px;text-align:center}
+.ent-heat.g{background:var(--grn-bg);color:var(--grn)}.ent-heat.y{background:#fff8c5;color:var(--org)}.ent-heat.r{background:#ffebe9;color:var(--red)}.ent-heat.x{background:var(--bg);color:var(--ink3)}
+.ent-funnel{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.ent-fb{display:flex;align-items:center;gap:8px}.ent-fb .ef-label{min-width:30px;font-size:10px;font-weight:600;color:var(--ink2);text-align:right}
+.ent-fb .ef-bar{height:24px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:700;color:#fff;min-width:24px;transition:.3s}
+.ent-fb .ef-rate{font-size:9px;color:var(--ink3);min-width:40px}
+.ent-pl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:8px 0}
+.ent-pl{background:var(--bg);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bd)}
+.ent-pl .ep-ph{font-size:9px;font-weight:600;color:var(--ink2)}.ent-pl .ep-n{font-size:22px;font-weight:700;font-family:var(--mono)}
+.ent-pl .ep-ck{font-size:9px;color:var(--ink3);margin-top:2px}
+.ent-sim{margin:8px 0}.ent-sim-row{display:flex;align-items:center;gap:12px;margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.03)}
+.ent-sim-row label{min-width:130px;font-size:11px;color:var(--ink2)}.ent-sim-row input[type=range]{flex:1;accent-color:var(--blue)}
+.ent-sim-row .es-v{min-width:50px;font-size:12px;font-weight:600;font-family:var(--mono);text-align:right}
+.ent-forecast{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+.ent-fc{background:var(--bg);border-radius:8px;padding:12px;border:1px solid var(--bd)}
+/* Morning briefing popup */
+.mbr-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.mbr-modal{background:#fff;border-radius:16px;width:90%;max-width:780px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mbr-hdr{background:linear-gradient(135deg,#1a1f2e,#2a3548);color:#fff;padding:20px 24px;border-radius:16px 16px 0 0;position:sticky;top:0;z-index:1}
+.mbr-hdr h2{font-size:16px;margin-bottom:4px}.mbr-hdr p{font-size:11px;opacity:.65}
+.mbr-close{position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px}
+.mbr-close:hover{background:rgba(255,255,255,.25)}
+.mbr-body{padding:16px 20px}
+.mbr-sect{margin-bottom:16px}
+.mbr-sect-hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:12px;font-weight:700}
+.mbr-sect-hdr.alert{background:#ffebe9;color:var(--red)}.mbr-sect-hdr.new{background:#dafbe1;color:var(--grn)}.mbr-sect-hdr.zombie{background:#fff8c5;color:var(--org)}
+.mbr-row{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid rgba(0,0,0,.04);font-size:11px;cursor:pointer;transition:.1s}
+.mbr-row:hover{background:rgba(0,121,192,.04)}
+.mbr-row .mr-member{min-width:60px;font-weight:600;color:var(--ink2);font-size:10px}
+.mbr-row .mr-name{flex:1;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbr-row .mr-ph{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.05);color:var(--ink2)}
+.mbr-row .mr-days{font-family:var(--mono);font-size:10px;min-width:40px;text-align:right}
+.mbr-row .mr-ck{font-family:var(--mono);font-size:10px;min-width:60px;text-align:right;color:var(--ink2)}
+.mbr-stat{display:flex;gap:12px;padding:8px 12px;flex-wrap:wrap}
+.mbr-stat-item{background:var(--bg);border-radius:8px;padding:10px 14px;flex:1;min-width:100px;text-align:center}
+.mbr-stat-item .ms-val{font-size:22px;font-weight:700;font-family:var(--mono)}.mbr-stat-item .ms-label{font-size:9px;color:var(--ink3);margin-top:2px}
+.mbr-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0 4px}
+.mbr-kpi{background:var(--bg);border-radius:8px;padding:10px 12px}
+.mbr-kpi .mk-label{font-size:9px;color:var(--ink3);font-weight:600;margin-bottom:4px}
+.mbr-kpi .mk-val{font-size:20px;font-weight:700;font-family:var(--mono);line-height:1}
+.mbr-kpi .mk-val .mk-target{font-size:10px;color:var(--ink3);font-weight:400;margin-left:2px}
+.mbr-kpi .mk-bar{height:5px;background:rgba(0,0,0,.08);border-radius:3px;margin:6px 0 3px;overflow:hidden}
+.mbr-kpi .mk-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.mbr-kpi .mk-pct{font-size:9px;font-weight:600;font-family:var(--mono)}
+.mbr-fcst-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 4px}
+.mbr-fcst-item{background:var(--bg);border-radius:8px;padding:10px 12px;text-align:center}
+@media(max-width:640px){.mbr-kpi-row{grid-template-columns:repeat(2,1fr)}.mbr-fcst-row{grid-template-columns:1fr}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+/* Mascot assistant */
+.mascot-wrap{position:fixed;bottom:24px;right:24px;z-index:8000;display:flex;flex-direction:column;align-items:flex-end;gap:0}
+.mascot-bubble{display:none;width:380px;max-height:75vh;overflow-y:auto;background:#fff;border-radius:16px 16px 4px 16px;box-shadow:0 8px 32px rgba(0,0,0,.18);margin-bottom:10px;animation:bubbleIn .2s ease-out}
+.mascot-bubble.open{display:block}
+.mascot-bubble-hdr{background:linear-gradient(135deg,#1a1f2e,#2a3548);color:#fff;padding:14px 16px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between}
+.mascot-bubble-hdr h3{font-size:13px;margin:0}.mascot-bubble-hdr span{font-size:10px;opacity:.6}
+.mascot-bubble-body{padding:12px 14px;font-size:11px;line-height:1.6}
+.mascot-btn{width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:linear-gradient(135deg,#0079C0,#00a5e0);box-shadow:0 4px 16px rgba(0,121,192,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;position:relative}
+.mascot-btn:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(0,121,192,.45)}
+.mascot-btn:active{transform:scale(.95)}
+.mascot-badge{position:absolute;top:-4px;right:-4px;background:#cf222e;color:#fff;font-size:9px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+@keyframes bubbleIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.m-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.m-kpi{background:var(--bg);border-radius:8px;padding:8px 10px}
+.m-kpi .mk-l{font-size:9px;color:var(--ink3);font-weight:500}.m-kpi .mk-v{font-family:var(--mono);font-size:18px;font-weight:700;line-height:1.2}.m-kpi .mk-s{font-size:9px;color:var(--ink3)}
+.ent-fc .efc-label{font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+.ent-fc .efc-val{font-size:20px;font-weight:700;font-family:var(--mono)}
+.ent-fc .efc-sub{font-size:9px;color:var(--ink3);margin-top:2px}
+.ent-mgr{opacity:.5;background:rgba(0,0,0,.02)}
+/* Forecast chart */
+.fc-chart{display:flex;align-items:flex-end;gap:4px;height:180px;padding:20px 4px 0;position:relative}
+.fc-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}.fc-stack{width:100%;display:flex;flex-direction:column-reverse}
+.fc-base{background:var(--blue);border-radius:2px 2px 0 0;min-height:1px;transition:.4s}.fc-pipe{min-height:0;transition:.3s}
+.fc-pipe-h{background:rgba(26,127,55,.35)}.fc-pipe-m{background:rgba(234,88,12,.28)}.fc-pipe-l{background:rgba(99,102,241,.22)}
+.fc-val{font-size:7px;font-weight:600;color:var(--ink2);text-align:center;margin-bottom:2px;font-family:var(--mono)}
+.fc-lbl{font-size:9px;color:var(--ink3);text-align:center;margin-top:4px}.fc-lbl.cur{color:var(--blue);font-weight:700}
+.fc-cur{outline:2px solid var(--blue);outline-offset:1px;border-radius:3px}
+.fc-legend{display:flex;gap:12px;margin-top:8px;font-size:9px;flex-wrap:wrap}
+.fc-leg{display:flex;align-items:center;gap:4px}.fc-leg .dot{width:10px;height:10px;border-radius:2px}
+/* Drill overlay */
+.ent-drill{max-height:0;overflow:hidden;transition:.2s;margin:0 24px}.ent-drill.show{max-height:none;overflow-y:auto}
+/* Tree org chart */
+.tree-wrap{padding:16px 24px;overflow:auto;max-height:70vh}
+.tree-node{display:flex;flex-direction:column;align-items:center;position:relative}
+.tree-box{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;text-align:center;min-width:100px;max-width:200px;position:relative;z-index:1}
+.tree-box.has-won{border-color:var(--grn);background:var(--grn-bg)}
+.tree-box .tb-name{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-box .tb-count{font-size:9px;color:var(--ink3)}
+.tree-box .tb-lead{font-size:9px;color:var(--ink2);margin-top:2px;cursor:pointer}
+.tree-box .tb-lead:hover{color:var(--blue)}
+.tree-person{display:flex;flex-direction:column;align-items:center;margin-bottom:4px}
+.tree-person .tp-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid var(--bd)}
+.tree-person .tp-nm{font-size:9px;font-weight:600;margin-top:2px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-person .tp-role{font-size:7px;color:var(--ink3)}
+.tree-children{display:flex;justify-content:center;gap:8px;position:relative;padding-top:20px}
+.tree-children::before{content:'';position:absolute;top:0;left:50%;width:0;height:20px;border-left:1px solid var(--bd)}
+.tree-children>*{position:relative}
+.tree-children>*::before{content:'';position:absolute;top:-20px;left:50%;width:50%;height:20px;border-top:1px solid var(--bd)}
+.tree-children>*:first-child::before{left:50%;width:50%;border-left:1px solid var(--bd);border-top:1px solid var(--bd)}
+.tree-children>*:last-child::before{right:50%;left:auto;width:50%;border-right:1px solid var(--bd);border-top:1px solid var(--bd)}
+.tree-children>*:only-child::before{left:50%;width:0;border-left:1px solid var(--bd);border-top:none}
+
+/* Commerce (Funnel) view */
+.funnel-wrap{display:flex;gap:16px;padding:8px 24px;flex-wrap:wrap}
+.funnel-bar-area{flex:1;min-width:300px;background:var(--bg2);border-radius:10px;padding:16px;border:1px solid rgba(0,0,0,.04)}
+.fb{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.fb-label{width:70px;font-size:11px;font-weight:600;text-align:right}
+.fb-bar{height:28px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;font-family:var(--mono);color:#fff;min-width:30px;transition:.3s}
+.fb-rate{font-size:9px;color:var(--ink3);font-family:var(--mono)}
+.heatmap{flex:1;min-width:400px;background:var(--bg2);border-radius:10px;padding:16px;border:1px solid rgba(0,0,0,.04);overflow-x:auto}
+.hm-table{width:100%;border-collapse:collapse;font-size:10px}
+.hm-table th{padding:5px 6px;font-weight:600;color:var(--ink3);text-align:center;border-bottom:1px solid var(--bd);white-space:nowrap}
+.hm-table td{padding:5px 6px;text-align:center;font-family:var(--mono);font-weight:600}
+.hm-table tr:hover{background:rgba(0,121,192,.03)}
+.hm-name{text-align:left!important;font-weight:700!important;font-family:var(--sans)!important}
+.stacked-chart{background:var(--bg2);border-radius:10px;margin:8px 24px;padding:16px;border:1px solid rgba(0,0,0,.04)}
+.stacked-area{display:flex;align-items:flex-end;gap:2px;height:140px;padding:0 4px}
+.st-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.st-bar{width:100%;border-radius:2px 2px 0 0;cursor:pointer;transition:.2s}
+.st-bar:hover{opacity:.8}
+.st-lbl{font-size:8px;color:var(--ink3);margin-top:3px;text-align:center}
+.st-val{font-size:7px;font-family:var(--mono);color:var(--ink2);text-align:center;margin-bottom:2px}
+.loading-msg{padding:40px;text-align:center;color:var(--ink3);font-size:14px}
+</style>
+/* Standalone overrides */
+#M{margin-left:0;min-height:100vh;padding-top:52px}
+.topnav{position:fixed;top:0;left:0;right:0;height:52px;background:#1a1f2e;display:flex;align-items:center;z-index:200;padding:0 16px;gap:12px}
+.topnav .tn-logo{color:#fff;font-weight:900;font-size:14px;background:var(--blue);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="tn-logo">C</div>
+  <span style="color:#fff;font-weight:700;font-size:14px">リード管理</span>
+  <span style="color:rgba(255,255,255,.4);font-size:11px">Enterprise Lead Management</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <span id="nav-sync-badge"></span>
+  </div>
+</nav>
+<div id="M"><div style="padding:60px;text-align:center;color:var(--ink3)"><div class="spinner" style="width:32px;height:32px;margin:0 auto 16px"></div>読み込み中...</div></div>
+
+<script>
+var GAS_URL='https://script.google.com/macros/s/AKfycbwuB-bko02MczlRorWD0qQ7Ch80fLoZd5Gmtwb2BWKDfOLOlOBokjiBNjodupe-r2VF/exec';
+var SYNC_STATUS='syncing';
+var SF_BASE='https://circulation.lightning.force.com/lightning/r/';
+var SFO='https://circulation.lightning.force.com/lightning/r/Opportunity/';
+var E_ROWS=[],E_COL={},E_PN2=[];
+var E_MEMBER_ORDER=['栫 英輝','中村 春香','岡部 瑛美','福本 悠太','飯田 知美','木曽 嘉己','徳永 雄大'];
+var E_MEMBER_COLORS={'栫 英輝':'#7c3aed','中村 春香':'#1a7f37','岡部 瑛美':'#bf8700','福本 悠太':'#ea580c','飯田 知美':'#db2777','木曽 嘉己':'#0891b2','徳永 雄大':'#0079C0'};
+
+function updateSyncBadge(){
+  var el=document.getElementById('nav-sync-badge');if(!el)return;
+  if(SYNC_STATUS==='syncing'){el.innerHTML='<span style="display:inline-flex;align-items:center;gap:4px;background:var(--blue);color:#fff;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600">🔄 同期中...</span>';}
+  else if(SYNC_STATUS==='live'){el.innerHTML='<span style="display:inline-flex;align-items:center;gap:4px;background:var(--grn);color:#fff;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600">✅ LIVE</span>';}
+  else{el.innerHTML='<span style="display:inline-flex;align-items:center;gap:4px;background:var(--org);color:#fff;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600">📦 オフライン</span>';}
+}
+
+function pCSV(t){
+  var rows=[],row=[],c='',q=false,i=0;
+  while(i<t.length){
+    var ch=t[i];
+    if(ch==='"'){
+      // doubled-quote inside quoted field = literal "
+      if(q&&i+1<t.length&&t[i+1]==='"'){c+='"';i+=2;continue;}
+      q=!q;i++;continue;
+    }
+    if(ch===','&&!q){row.push(c);c='';i++;continue;}
+    if(!q&&(ch==='\n'||(ch==='\r'&&(i+1>=t.length||t[i+1]!=='\n')))){
+      row.push(c);c='';
+      if(row.some(function(x){return x.trim();}))rows.push(row);
+      row=[];i++;continue;
+    }
+    if(!q&&ch==='\r'){i++;continue;}
+    // inside quoted field: replace literal newlines with space to keep cell in one value
+    if(q&&(ch==='\n'||ch==='\r')){c+=' ';if(ch==='\r'&&i+1<t.length&&t[i+1]==='\n')i++;i++;continue;}
+    c+=ch;i++;
+  }
+  if(c||row.length>0){row.push(c);if(row.some(function(x){return x.trim();}))rows.push(row);}
+  if(rows.length===0)return{h:[],r:[]};
+  var h=rows[0].map(function(x){return x.trim();});
+  var rs=rows.slice(1).filter(function(r){return r.length>=3;}).map(function(r){return r.map(function(x){return x.trim();});});
+  return{h:h,r:rs};
+}
+function pLine(l){var cs=[],c='',q=false;for(var i=0;i<l.length;i++){if(l[i]==='"')q=!q;else if(l[i]===','&&!q){cs.push(c.trim());c='';}else c+=l[i];}cs.push(c.trim());return cs;}
+
+function ePh(s){if(!s)return 0;if(s.indexOf('08')>=0)return 8;if(s.indexOf('07')>=0)return 7;if(s.indexOf('06')>=0)return 5;if(s.indexOf('05')>=0)return 5;if(s.indexOf('04')>=0)return 4;if(s.indexOf('03')>=0)return 3;if(s.indexOf('02')>=0)return 2;if(s.indexOf('01')>=0)return 1;if(s.indexOf('DEAD')>=0)return -1;return 0;}
+// Column finder for enterprise CSV
+function eDetect(h){var m={};var kw={member:['^主担当者$'],name:['^案件名$'],lastPh:['^最終到達'],apDate:['^初回アポ'],mendanDate:['^面談日$'],firstMendanDate:['^初回面談設定日','初回面談'],closeDate:['^受注予定日'],dealType:['^新規[/／]継続'],channel:['^施策区分[_]?[23]','^施策区分'],ck:['^#?\\s*CK$','^CK$','^#\\s*CK$'],deadReason:['^DEAD理由$'],startDate:['^契約開始'],endDate:['^契約終了'],billM:['月額.*顧客請求','月額.*請求'],payM:['月額.*専門家','月額.*支払'],cancel:['^解約日$'],oppId:['^案件\\s?ID$','Opportunity ID'],mfj:['^Manager Forecast Judge$','^Manager Forecast'],recycle:['^リサイクル選択','ISリサイクル','FSリサイクル','リサイクル.*判定','リサイクル.*種別'],recycleDate:['^リサイクル希望日','リサイクル希望','リサイクル予定日','リサイクル日付','リサイクル.*日'],custContact:['^顧客担当者$','^顧客担当者氏名$','顧客担当者'],account:['^取引先名$'],createDate:['^作成日$'],proposalDate:['人選結果メール初回送付日','人選結果メール','提案実施日','提案日'],jinsen:['^人選$','^人選ステータス'],nextAct:['^ネクストアクション$'],nextDate:['^ネクストアクション実施日'],mutual:['Mutual Close'],copyCancel:['^コピー元案件解約チェック','コピー元.*解約'],cancelStatus:['^解約承認ステータス'],cancelMinusCK:['^解約時.*CK','解約時マイナス'],focus:['^注力案件$'],contractClass:['^契約クラス$'],proposalClass:['^提案クラス$'],theme:['^テーマ$','^案件テーマ'],themePartner:['^テーマパートナー']};for(var k in kw){m[k]=-1;for(var w=0;w<kw[k].length;w++){for(var i=0;i<h.length;i++){var hvs=(h[i]||'').toString().trim();if(hvs.match(new RegExp(kw[k][w]))){m[k]=i;break;}}if(m[k]>=0)break;}}
+  // curPh: 「フェーズ」単体（「最終到達フェーズ」は除外）
+  m.curPh=-1;for(var i=0;i<h.length;i++){var hv=h[i].trim();if(hv==='フェーズ'||(hv.indexOf('フェーズ')>=0&&hv.indexOf('最終')<0&&hv.indexOf('到達')<0)){m.curPh=i;break;}}
+  console.log('COL_MAP:',JSON.stringify({ck:m.ck,mfj:m.mfj,curPh:m.curPh,cancel:m.cancel,cancelStatus:m.cancelStatus,recycle:m.recycle,recycleDate:m.recycleDate,custContact:m.custContact}));
+  console.log('ALL_HEADERS:',h.map(function(v,i){return i+':'+v;}).join(' | '));
+  return m;}
+function eGet(r,k){var i=E_COL[k];return i>=0&&i<r.length?r[i].trim():'';}
+function eGetN(r,k){var v=parseFloat(eGet(r,k).replace(/[,¥\s]/g,''));return isNaN(v)?0:v;}
+function eYM(d){return d?d.substring(0,7):'';}
+function eFmt(v){if(!v||v===0)return '0';var k=Math.round(v/1000);var neg=k<0;k=Math.abs(k);return (neg?'-':'')+k.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function eFmtFull(v){if(!v||v===0)return '0';var n=Math.round(v);var neg=n<0;n=Math.abs(n);return (neg?'-':'')+n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function eHeat(v,lo,hi){return '<span class="ent-heat '+(v>=hi?'g':v>=lo?'y':'r')+'">'+v+'%</span>';}
+// 解約→再計上の二重計上を防ぐフィルタ
+// ルール: 解約日が過去 かつ 解約承認ステータス=「承認済」のみ → 再計上案件に置き換わってるので非表示
+//       （「マネージャ承認待」「承認前」は解約申請中だが確定していないので残す）
+function eIsActiveCase(r){
+  var cancelDate=eGet(r,'cancel');
+  if(!cancelDate)return true;// 解約日なし=生きてる
+  var cs=eGet(r,'cancelStatus');
+  // 解約承認済 AND 解約日が今日以前 → 非表示（再計上側でカウント済み）
+  if(cs&&cs.indexOf('承認済')>=0){
+    var cd=new Date(cancelDate.replace(/\//g,'-'));
+    var today=new Date();today.setHours(0,0,0,0);
+    if(!isNaN(cd)&&cd<=today)return false;
+  }
+  return true;
+}
+
+function ePct(a,b){return b>0?Math.round(a/b*100):0;}
+
+function pnRow(r){
+  var c=window.E_PN_COL||{};
+  function gf(f){var i=c[f];return(i!==undefined&&i>=0&&i<r.length)?(r[i]||'').toString():'';}
+  var bill=parseInt((gf('bill')||'0').replace(/[,\s¥円]/g,''))||0;
+  var pay=parseInt((gf('pay')||'0').replace(/[,\s¥円]/g,''))||0;
+  return{member:gf('member'),name:gf('name'),oppId:gf('oppId').trim(),phase:gf('phase'),
+    bill:bill,pay:pay,start:gf('startDate').trim(),end:gf('endDate').trim(),cancel:gf('cancel').trim()};
+}
+// pn_new月別集計: 精緻な売上データから月別rev/pk/pnを生成
+function ePnNewMonthly(mfFilter,reskFilter){
+  var data=window.E_PN_NEW;var col=window.E_PN_NEW_COL;
+  if(!data||!col||col.ym<0)return null;
+  // acplan_pn(E_PN2)からoppId→月額請求マップを毎回ビルド（pn_newの請求額列が空の場合のフォールバック）
+  var _pfCol=window.E_PN_COL||{};
+  var _pnBillMap={};
+  if(_pfCol.oppId>=0){
+    (window.E_PN2||[]).forEach(function(pnr){
+      var oid=(pnr[_pfCol.oppId]||'').toString().trim();
+      var b=_pfCol.bill>=0?parseInt(((pnr[_pfCol.bill]||'0').toString()).replace(/[,\s¥円]/g,''))||0:0;
+      var p2=_pfCol.pay>=0?parseInt(((pnr[_pfCol.pay]||'0').toString()).replace(/[,\s¥円]/g,''))||0:0;
+      if(oid&&(b>0||p2>0))_pnBillMap[oid]={bill:b,pay:p2};
+    });
+  }
+  console.log('_pnBillMap: entries='+Object.keys(_pnBillMap).length+' E_PN_COL={oppId:'+_pfCol.oppId+',bill:'+_pfCol.bill+',pay:'+_pfCol.pay+'}');
+  var TEAM_NAMES=['徳永','栫','中村','岡部','福本','飯田','木曽'];
+  var _thMap=window.E_THEME_MAP||{};
+  var byMonth={};var seen={};
+  data.forEach(function(r){
+    var member=(col.member>=0?(r[col.member]||''):'').toString().trim();
+    var ym=(col.ym>=0?(r[col.ym]||''):'').toString().trim();
+    if(!ym||ym.length<6)return;
+    // 対象年月を YYYY/MM形式に正規化
+    ym=ym.replace(/-/g,'/');if(ym.length===7)ym=ym;else if(ym.length===6)ym=ym.substring(0,4)+'/'+ym.substring(4);
+    if(ym.length>=10)ym=ym.substring(0,7);
+    // PN/PKマップで月別PK担当者を取得
+    var origMember=member;
+    var _pnN=(col.name>=0?(r[col.name]||''):'').toString().trim();
+    var _pnOid=(col.oppId>=0?(r[col.oppId]||''):'').toString().trim();
+    var _pkById=window.E_PK_OWNER_MAP;var _pkByNm=window.E_PK_OWNER_BY_NAME;
+    if(_pkById&&_pnOid&&_pkById[_pnOid]&&_pkById[_pnOid][ym])member=_pkById[_pnOid][ym];
+    else if(_pkByNm&&_pnN&&_pkByNm[_pnN]&&_pkByNm[_pnN][ym])member=_pkByNm[_pnN][ym];
+    var isTeam=false;TEAM_NAMES.forEach(function(t){if(member.indexOf(t)>=0)isTeam=true;});
+    if(!isTeam)return;
+    if(mfFilter&&mfFilter!=='all'&&member.indexOf(mfFilter.split(' ')[0])<0)return;
+    // リスキリングフィルター（案件IDでテーママップ参照）
+    if(reskFilter&&reskFilter!=='all'){var _th2=_thMap[_pnOid]||'';var _isR2=_th2&&_th2.indexOf('リスキリング')>=0;if(reskFilter==='exclude'&&_isR2)return;if(reskFilter==='only'&&!_isR2)return;}
+    var _billCol=col.billM>=0?col.billM:col.bill;
+    var _payCol=col.payM>=0?col.payM:col.pay;
+    var bill=parseInt(((_billCol>=0?(r[_billCol]||'0'):'0').toString()).replace(/[,\s¥円]/g,''))||0;
+    var payV=parseInt(((_payCol>=0?(r[_payCol]||'0'):'0').toString()).replace(/[,\s¥円]/g,''))||0;
+    var pk=parseInt(((col.pk>=0?(r[col.pk]||'0'):'0').toString()).replace(/[,\s¥円]/g,''))||0;
+    if(pk===0&&bill>0)pk=bill-payV;
+    var oppId=(col.oppId>=0?(r[col.oppId]||''):'').toString().trim();
+    if(!byMonth[ym])byMonth[ym]={rev:0,pk:0,pn:0,cases:[]};
+    byMonth[ym].rev+=bill;
+    byMonth[ym].pk+=pk;
+    // PN数: 同月同案件は1回だけカウント
+    var pnKey=ym+'_'+oppId;
+    if(oppId&&!seen[pnKey]){seen[pnKey]=true;byMonth[ym].pn++;}
+    else if(!oppId)byMonth[ym].pn++;
+    byMonth[ym].cases.push({member:member,account:(col.account>=0?(r[col.account]||''):'').toString(),name:(col.name>=0?(r[col.name]||''):'').toString(),bill:bill,pk:pk});
+  });
+  return byMonth;
+}
+// PN stats (active projects) - monthly forecast
+
+function normTier(v){var m=(v||'').match(/Tier\s*([1-4])/i);return m?'Tier'+m[1]:(v?v.trim():'');}
+// 案件名から企業名を抽出: "YYYYMMDD_企業名様_テーマ" → "企業名"
+function extractCoFromCaseName(nm){
+  if(!nm)return '';
+  var m=nm.match(/^\d{8}_(.+?)(?:様_|様\s|_)/);
+  return m?m[1].trim():'';
+}
+// 案件名からテーマ部分を抽出: "YYYYMMDD_企業名様_テーマ" → "テーマ"
+function extractThemeFromCaseName(nm){
+  if(!nm)return '';
+  var m=nm.match(/^\d{8}_.+?(?:様_|様\s|_)(.+)$/);
+  return m?m[1].trim():'';
+}
+// 取引先名が議事録テキスト等の場合は案件名からフォールバック取得
+function getCleanAccount(r){
+  var acc=eGet(r,'account');
+  var bad=!acc||acc.length>60||/^[#◎【■●▼▶〇※]/.test(acc)||acc.indexOf('【目的】')>=0||acc.indexOf('議事録')>=0||acc.indexOf('提示')>=0;
+  if(bad){var nm=eGet(r,'name');return extractCoFromCaseName(nm)||acc;}
+  return acc;
+}
+var SF_BASE='https://circulation.lightning.force.com/lightning/r/';
+function sfContactLink(name,contactId){
+  if(!contactId||!contactId.trim())return name;
+  var url=SF_BASE+'Contact/'+contactId.trim()+'/view';
+  return '<a href="'+url+'" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-weight:inherit">'+name+'</a>';
+}
+function sfAccountLink(name,coName,directId){
+  // directId: all_leadの取引先ID列から直接取得したID（優先）
+  // coName: なければacplan_contactsのマップから検索（フォールバック）
+  var aid=(directId&&directId.trim())?directId.trim():(window.SF_ACCOUNT_ID_MAP&&coName?(window.SF_ACCOUNT_ID_MAP[coName]||''):'');
+  if(!aid)return name;
+  var url=SF_BASE+'Account/'+aid+'/view';
+  return '<a href="'+url+'" target="_blank" rel="noopener" style="color:var(--ink1);text-decoration:none;font-weight:inherit">'+name+'</a>';
+}
+
+
+// ===== LEAD MANAGEMENT MODULE =====
+var L_DATA=null,L_HEADER=null,L_COL={},L_LOADING=false,L_LOADED=false;
+var L_MEMBER_FILTER='all',L_TIER_FILTER='all',L_TARGET_FILTER='all',L_ACTIVE_ONLY=false,L_SEARCH='',L_SORT='company',L_SORT_DIR='asc';
+// L_VIEW_MODE: 'all' | 'active' | 'dormant' | 'unproposed' | 'analytics'
+var L_VIEW_MODE='all';
+var L_ANALYTICS_MEMBER='all'; // analytics tab member filter (independent of list filter)
+// "確定リード" = 法人_KOMON/NOMAD担当者 が以下メンバーのいずれか
+var L_TEAM=['小林 暁飛','徳永 雄大','栫 英輝','中村 春香','岡部 瑛美','福本 悠太','飯田 知美','木曽 嘉己','土田 真矢'];
+var L_MEMBER_COLORS=Object.assign({'小林 暁飛':'#6366f1'},E_MEMBER_COLORS);
+
+function lDetectCols(h){
+  var c={company:-1,name:-1,lastName:-1,firstName:-1,member:-1,tier:-1,targetCat:-1,status:-1,la:-1,recycle:-1,dept:-1,deptClass:-1,role:-1,recycleDate:-1,notes:-1,phone:-1,mobile:-1,email:-1,nextActionDate:-1,contactId:-1,accountId:-1};
+  h.forEach(function(v,i){
+    var s=(v||'').trim();
+    if(s.indexOf('KOMON')>=0||s.indexOf('NOMAD')>=0)c.member=i;
+    // 会社名列: 完全一致のみ（部分一致で誤検出しないよう厳密に）
+    else if((s==='取引先名'||s==='企業名'||s==='法人名'||s==='会社名')&&c.company<0)c.company=i;
+    else if(s.indexOf('Tier')>=0||s.indexOf('ティア')>=0)c.tier=i;
+    // ターゲット/カテゴリ → targetCat (キーマン/チャンピオン/決裁者 etc), NOT tier
+    else if(s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)c.targetCat=i;
+    else if((s.indexOf('ステータス')>=0||s==='状態')&&c.status<0)c.status=i;
+    else if(s.indexOf('最終活動')>=0)c.la=i;
+    else if(s.indexOf('リサイクル予定日')>=0||s.indexOf('リサイクル日')>=0||s.indexOf('アポ予定')>=0)c.recycleDate=i;
+    else if(s.indexOf('リサイクル')>=0&&c.recycle<0)c.recycle=i;
+    else if((s.indexOf('氏名')>=0||s.indexOf('名前')>=0||s.indexOf('担当者名')>=0)&&c.name<0)c.name=i;
+    else if(s==='姓'&&c.lastName<0)c.lastName=i;
+    else if(s==='名'&&c.firstName<0)c.firstName=i;
+    else if(s==='部署クラス'&&c.deptClass<0)c.deptClass=i;
+    else if((s.indexOf('部署')>=0||s.indexOf('所属')>=0)&&c.dept<0)c.dept=i;
+    else if((s.indexOf('役職')>=0||s.indexOf('職位')>=0)&&c.role<0)c.role=i;
+    // 備考 → tier (contains Tier1/Tier2/Tier3/Tier4)
+    else if(s==='備考'){c.tier=i;c.notes=i;}
+    else if((s==='電話'||s.indexOf('電話番号')>=0)&&c.phone<0)c.phone=i;
+    else if((s==='携帯'||s.indexOf('携帯電話')>=0)&&c.mobile<0)c.mobile=i;
+    else if((s==='メール'||s.indexOf('メールアドレス')>=0||s.indexOf('Email')>=0)&&c.email<0)c.email=i;
+    else if((s.indexOf('次回アクション日')>=0||s.indexOf('ネクストアクション実施日')>=0||s.indexOf('NextAction')>=0)&&c.nextActionDate<0)c.nextActionDate=i;
+    else if((s.indexOf('取引先責任者')>=0||s.indexOf('コンタクトID')>=0||s.indexOf('ContactId')>=0||s.indexOf('Contact ID')>=0)&&s.indexOf('ID')>=0&&c.contactId<0)c.contactId=i;
+    else if((s==='取引先ID'||s==='取引先 ID'||s.indexOf('AccountId')>=0||s.indexOf('Account ID')>=0)&&c.accountId<0)c.accountId=i;
+  });
+  // fallback
+  if(c.company<0)c.company=0;
+  return c;
+}
+
+function showLeads(){
+  document.querySelectorAll('.tn-btn').forEach(function(e){e.classList.remove('act');});
+  var nl=document.getElementById('nl');if(nl)nl.classList.add('act');
+  var M=document.getElementById('M');
+  if(!L_LOADED&&!L_LOADING){
+    L_LOADING=true;
+    M.innerHTML='<div style="padding:60px;text-align:center;color:var(--ink3)"><div style="font-size:20px;margin-bottom:12px">👥</div>リードデータを取得中...</div>';
+    fetch(GAS_URL+'?sheet=all_lead').then(function(r){return r.text();}).then(function(t){
+      if(!t||t.length<50){L_LOADING=false;M.innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">リードデータを取得できませんでした</div>';return;}
+      var p=pCSV(t);L_HEADER=p.h;L_DATA=p.r;L_COL=lDetectCols(p.h);
+      L_LOADING=false;L_LOADED=true;
+      console.log('all_lead: '+L_DATA.length+'行 cols='+JSON.stringify(L_COL)+' headers='+L_HEADER.slice(0,20).join('|'));
+      renderLeads(M);
+    }).catch(function(e){L_LOADING=false;M.innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">取得エラー: '+e.message+'</div>';});
+  } else {
+    renderLeads(M);
+  }
+}
+
+// ===== 未来パイプライン（リサイクル）分析 =====
+function renderRecyclePipeline(){
+  if(!window.E_ROWS||!window.E_ROWS.length)return '';
+  var today=new Date();today.setHours(0,0,0,0);
+  var TEAM5=['徳永 雄大','栫 英輝','中村 春香','岡部 瑛美','福本 悠太','木曽 嘉己','飯田 知美'];
+  function matchMember(mem){for(var i=0;i<TEAM5.length;i++){if(mem&&mem.indexOf(TEAM5[i].split(' ')[0])>=0)return TEAM5[i];}return null;}
+  // Parse recycle date from recycleDate col (リサイクル希望日) — YYYY/MM or YYYY/MM/DD
+  function parseRD(r){
+    var v=(eGet(r,'recycleDate')||'').trim(); // リサイクル希望日を優先
+    if(!v){v=(eGet(r,'recycle')||'').trim();}// fallback: リサイクル選択列
+    if(!v||v==='--'||v==='なし'||v==='-')return null;
+    var m=v.match(/(\d{4})[\/\-](\d{1,2})(?:[\/\-](\d{1,2}))?/);
+    if(!m)return null;
+    var d=new Date(parseInt(m[1]),parseInt(m[2])-1,m[3]?parseInt(m[3]):1);
+    return isNaN(d.getTime())?null:d;
+  }
+  // A case is a recycle candidate if:
+  // 1. Has future recycleDate (リサイクル希望日), OR
+  // 2. リサイクル選択 = "ISリサイクル"/"FSリサイクル" etc. (even without a specific date)
+  function isRecycleType(r){var v=(eGet(r,'recycle')||'').trim();return v&&v.indexOf('リサイクル')>=0&&v!=='なし';}
+  function isFutureRD(r){var d=parseRD(r);if(d)return d>=today;return isRecycleType(r);}
+  function rdYM(r){
+    var d=parseRD(r);
+    if(d)return d.getFullYear()+'/'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1);
+    if(isRecycleType(r))return '日付未設定';
+    return null;
+  }
+  // Build member stats
+  var byMem={};
+  TEAM5.forEach(function(m){byMem[m]={active:[],recycles:[],past08:[]};});
+  E_ROWS.forEach(function(r){
+    var mem=eGet(r,'member');var mk=matchMember(mem);if(!mk)return;
+    var ph=eGet(r,'curPh');var phN=ePh(ph);var isDead=ph.indexOf('DEAD')>=0;
+    if(!isDead&&phN>=1&&phN<=7){byMem[mk].active.push(r);}
+    else if(isDead&&isFutureRD(r)){byMem[mk].recycles.push(r);}
+    else if(phN===8){var ed=eGet(r,'endDate');if(ed){var d2=new Date(ed.replace(/\//g,'-'));if(!isNaN(d2)&&d2<today)byMem[mk].past08.push(r);}}
+  });
+  // Team totals — computed FIRST so debug panel can use them
+  var totA=0,totR=0,totP=0;TEAM5.forEach(function(m){totA+=byMem[m].active.length;totR+=byMem[m].recycles.length;totP+=byMem[m].past08.length;});
+  // Debug info — always visible so user can verify column detection
+  var deadTotal=E_ROWS.filter(function(r){return eGet(r,'curPh').indexOf('DEAD')>=0;}).length;
+  var deadWithType=E_ROWS.filter(function(r){return eGet(r,'curPh').indexOf('DEAD')>=0&&isRecycleType(r);}).length;
+  var rcTypeSamples=[],rdSamples=[];
+  if(E_COL.recycle>=0)E_ROWS.slice(0,30).forEach(function(r){var v=(r[E_COL.recycle]||'').trim();if(v&&rcTypeSamples.indexOf(v)<0)rcTypeSamples.push(v);});
+  if(E_COL.recycleDate>=0)E_ROWS.slice(0,30).forEach(function(r){var v=(r[E_COL.recycleDate]||'').trim();if(v&&rdSamples.indexOf(v)<0)rdSamples.push(v);});
+  // Next 6 months + 日付未設定
+  var months=[];for(var i=0;i<6;i++){var d=new Date(today.getFullYear(),today.getMonth()+i,1);months.push(d.getFullYear()+'/'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1));}
+  var allMonths=months.concat(['日付未設定']);
+  // recycle count by member × month
+  var rcByMemMo={};
+  TEAM5.forEach(function(m){rcByMemMo[m]={};allMonths.forEach(function(mo){rcByMemMo[m][mo]=[];});});
+  TEAM5.forEach(function(mk){
+    byMem[mk].recycles.forEach(function(r){var ym=rdYM(r);if(ym&&rcByMemMo[mk][ym])rcByMemMo[mk][ym].push(r);});
+  });
+  function heatColor(n){if(n===0)return '#f1f5f9';if(n<=1)return '#bfdbfe';if(n<=3)return '#60a5fa';if(n<=5)return '#2563eb';return '#1e3a8a';}
+  var h='<div class="ent-section">';
+  h+='<div class="es-title">🔄 未来パイプライン分析（リサイクル候補）</div>';
+  // Debug panel — always show to verify column detection
+  h+='<details'+(totR===0?' open':'')+' style="margin-bottom:12px">';
+  h+='<summary style="cursor:pointer;font-size:10px;color:var(--ink3);padding:4px 0">🔍 データ確認（クリックで展開）</summary>';
+  h+='<div style="font-size:10px;background:#f8fafc;border:1px solid var(--bd);border-radius:6px;padding:8px 12px;margin-top:4px;line-height:1.8">';
+  h+='<b>all_cases 列検出:</b> リサイクル選択=col'+(E_COL.recycle>=0?E_COL.recycle:'未検出')+' / リサイクル希望日=col'+(E_COL.recycleDate>=0?E_COL.recycleDate:'未検出')+'<br>';
+  h+='<b>DEAD案件:</b> '+deadTotal+'件 / うちリサイクル種別あり='+deadWithType+'件<br>';
+  if(rcTypeSamples.length)h+='<b>リサイクル選択 値サンプル:</b> '+rcTypeSamples.slice(0,8).map(function(v){return '"'+v+'"';}).join(' / ')+'<br>';
+  if(rdSamples.length)h+='<b>リサイクル希望日 値サンプル:</b> '+rdSamples.slice(0,8).map(function(v){return '"'+v+'"';}).join(' / ')+'<br>';
+  if(!rdSamples.length&&E_COL.recycleDate<0){
+    h+='<b style="color:var(--red)">⚠ リサイクル希望日が未検出です。</b> all_casesシートの列名を確認してください。';
+    if(window.E_HEADERS)h+='<br><b>全列名:</b> '+window.E_HEADERS.map(function(v,i){return i+':'+v;}).join(' / ');
+  }
+  h+='</div></details>';
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">';
+  [{l:'提案中',v:totA,sub:'フェーズ01〜07',c:'var(--blue)'},{l:'未来リサイクル',v:totR,sub:'DEAD→再アプローチ予定',c:'#7c3aed'},{l:'過去稼働（アプローチ可）',v:totP,sub:'稼働終了・再提案候補',c:'var(--grn)'}].forEach(function(s){
+    h+='<div style="background:rgba(0,0,0,.03);border-radius:8px;padding:12px;border-left:3px solid '+s.c+'">';
+    h+='<div style="font-size:10px;color:var(--ink2)">'+s.l+'</div>';
+    h+='<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:'+s.c+'">'+s.v+'</div>';
+    h+='<div style="font-size:9px;color:var(--ink3)">'+s.sub+'</div></div>';
+  });
+  h+='</div>';
+  // Member × Month heatmap table
+  h+='<div style="overflow-x:auto"><table class="ent-table" style="width:100%;min-width:500px">';
+  var totNoDate=TEAM5.reduce(function(s,m){return s+(rcByMemMo[m]['日付未設定']||[]).length;},0);
+  h+='<thead><tr><th style="text-align:left;min-width:80px">担当者</th><th style="text-align:right">提案中</th>';
+  months.forEach(function(mo){h+='<th style="text-align:center;min-width:50px;font-size:10px">'+mo.slice(5)+'月</th>';});
+  h+='<th style="text-align:center;font-size:10px;color:var(--ink3)">日付未設定</th>';
+  h+='<th style="text-align:right">過去稼働</th></tr></thead><tbody>';
+  var totByMo={};months.forEach(function(mo){totByMo[mo]=0;TEAM5.forEach(function(m){totByMo[mo]+=(rcByMemMo[m][mo]||[]).length;});});
+  // Store drawer data globally
+  window._rcDrawerData={};
+  var allRcRows=[];TEAM5.forEach(function(m){allRcRows=allRcRows.concat(byMem[m].recycles||[]);});
+  window._rcDrawerData['team__all']={title:'チーム全リサイクル ('+allRcRows.length+'件)',rows:allRcRows};
+  months.forEach(function(mo){var rs=[];TEAM5.forEach(function(m){rs=rs.concat(rcByMemMo[m][mo]||[]);});if(rs.length)window._rcDrawerData['team__'+mo]={title:mo+'月 チームリサイクル ('+rs.length+'件)',rows:rs};});
+  TEAM5.forEach(function(mk){
+    allMonths.forEach(function(mo){var rows=rcByMemMo[mk][mo];if(!rows||!rows.length)return;window._rcDrawerData[mk+'__'+mo]={title:mk.split(' ')[0]+' / '+(mo==='日付未設定'?'日付未設定':mo+'月')+' リサイクル ('+rows.length+'件)',rows:rows};});
+  });
+  function cellBtn(n,key){
+    if(!n)return '<td style="text-align:center"><span style="display:inline-block;min-width:28px;font-size:11px;font-family:var(--mono);color:var(--ink3)">0</span></td>';
+    var bg=heatColor(n);var fg=n>3?'#fff':'var(--ink)';
+    return '<td style="text-align:center"><button onclick="showRcDrawer(\''+key+'\')" style="display:inline-block;min-width:28px;padding:3px 6px;border-radius:5px;font-family:var(--mono);font-size:11px;font-weight:700;background:'+bg+';color:'+fg+';border:none;cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity=\'.8\'" onmouseleave="this.style.opacity=\'1\'">'+n+'</button></td>';
+  }
+  // Team total row
+  h+='<tr style="background:rgba(16,185,129,.07);font-weight:700">';
+  h+='<td>チーム計</td><td style="text-align:right;font-family:var(--mono)">'+totA+'</td>';
+  months.forEach(function(mo){h+=cellBtn(totByMo[mo],'team__'+mo);});
+  h+='<td style="text-align:center;font-family:var(--mono);color:var(--ink3)">'+(totNoDate||'−')+'</td>';
+  h+='<td style="text-align:right;font-family:var(--mono);color:var(--grn)">'+totP+'</td></tr>';
+  // Per-member rows
+  TEAM5.forEach(function(mk){
+    var d=byMem[mk];var mc=E_MEMBER_COLORS[mk]||'#888';
+    var hasAlert=d.active.length<3&&(rcByMemMo[mk][months[0]]||[]).length+(rcByMemMo[mk][months[1]]||[]).length<2;
+    h+='<tr'+(hasAlert?' style="background:rgba(239,68,68,.04)"':'')+'>';
+    h+='<td style="font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;background:'+mc+';border-radius:50%;margin-right:4px;vertical-align:middle"></span>'+mk.split(' ')[0]+(hasAlert?' <span title="提案中＋直近リサイクルが少ない" style="font-size:9px;color:var(--red)">⚠</span>':'')+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono)">'+(d.active.length||'−')+'</td>';
+    months.forEach(function(mo){h+=cellBtn((rcByMemMo[mk][mo]||[]).length,mk+'__'+mo);});
+    h+=cellBtn((rcByMemMo[mk]['日付未設定']||[]).length,mk+'__日付未設定');
+    h+='<td style="text-align:right;font-family:var(--mono);color:var(--grn)">'+(d.past08.length||'−')+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  // Recycle detail list (collapsed by default, expand button)
+  var allRecycles=[];TEAM5.forEach(function(m){byMem[m].recycles.forEach(function(r){allRecycles.push({r:r,mk:m,ym:rdYM(r)});});});
+  allRecycles.sort(function(a,b){return (a.ym||'9999').localeCompare(b.ym||'9999');});
+  if(allRecycles.length>0){
+    h+='<details style="margin-top:12px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:6px 0">📋 リサイクル案件一覧（'+allRecycles.length+'件）</summary>';
+    h+='<div style="overflow-x:auto;margin-top:8px"><table class="ent-table" style="width:100%">';
+    h+='<thead><tr><th>リサイクル予定</th><th>担当</th><th>取引先</th><th>案件名</th><th>顧客担当者</th><th>最終P</th><th>CK</th></tr></thead><tbody>';
+    allRecycles.slice(0,100).forEach(function(item){
+      var r=item.r;var mc=E_MEMBER_COLORS[item.mk]||'#888';
+      var past=item.ym&&item.ym<(today.getFullYear()+'/'+(today.getMonth()+1<10?'0':'')+(today.getMonth()+1));
+      var ymStyle=past?'color:var(--ink3)':'color:#7c3aed;font-weight:600';
+      var cc=eGet(r,'custContact');
+      h+='<tr>';
+      h+='<td style="font-size:10px;font-family:var(--mono);'+ymStyle+'">'+(item.ym||'未設定')+'</td>';
+      h+='<td style="font-size:10px;color:'+mc+';font-weight:600">'+item.mk.split(' ')[0]+'</td>';
+      h+='<td style="font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+getCleanAccount(r).replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱')+'</td>';
+      h+='<td style="font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+eGet(r,'name')+'</td>';
+      h+='<td style="font-size:10px;color:var(--ink2)">'+cc+'</td>';
+      h+='<td style="font-size:10px;text-align:center">'+(eGet(r,'lastPh')||'')+'</td>';
+      h+='<td style="font-size:10px;text-align:right;font-family:var(--mono)">'+(eGetN(r,'ck')>0?eFmt(eGetN(r,'ck')):'−')+'</td>';
+      h+='</tr>';
+    });
+    if(allRecycles.length>100)h+='<tr><td colspan="7" style="text-align:center;font-size:10px;color:var(--ink3);padding:8px">…他 '+(allRecycles.length-100)+' 件</td></tr>';
+    h+='</tbody></table></div></details>';
+  }
+  h+='</div>';
+  return h;
+}
+
+function renderNextActionHeatmap(){
+  if(!window.L_DATA||!window.L_DATA.length||!window.L_COL)return '';
+  var col=window.L_COL;
+  if(col.nextActionDate<0)return '<div style="color:var(--ink3);font-size:11px;padding:8px 0">（次回アクション日列が見つかりません）</div>';
+  var TEAM5=['徳永 雄大','栫 英輝','中村 春香','岡部 瑛美','福本 悠太','木曽 嘉己','飯田 知美'];
+  function matchMember(mem){for(var i=0;i<TEAM5.length;i++){if(mem&&mem.indexOf(TEAM5[i].split(' ')[0])>=0)return TEAM5[i];}return null;}
+  var E_MEMBER_COLORS_L={'徳永 雄大':'#0079C0','栫 英輝':'#7c3aed','中村 春香':'#1a7f37','岡部 瑛美':'#bf8700','福本 悠太':'#ea580c','木曽 嘉己':'#0891b2','飯田 知美':'#db2777'};
+  function parseNA(r){
+    var v=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();
+    if(!v)return null;
+    var m=v.match(/(\d{4})[\/\-](\d{1,2})/);
+    if(m)return m[1]+'/'+(m[2].length===1?'0':'')+m[2];
+    return null;
+  }
+  var today=new Date();today.setHours(0,0,0,0);
+  var todayYM=(today.getFullYear()+'/'+(today.getMonth()+1<10?'0':'')+(today.getMonth()+1));
+  // Collect future next action rows
+  var byMemMo={};TEAM5.forEach(function(m){byMemMo[m]={};});
+  var months=[];var moSet={};
+  window.L_DATA.forEach(function(r){
+    var mem=(col.member>=0?(r[col.member]||''):'').trim();
+    var mk=matchMember(mem);if(!mk)return;
+    var ym=parseNA(r);if(!ym||ym<todayYM)return;
+    if(!byMemMo[mk][ym])byMemMo[mk][ym]=[];
+    byMemMo[mk][ym].push(r);
+    if(!moSet[ym]){moSet[ym]=true;months.push(ym);}
+  });
+  months.sort();
+  if(!months.length)return '<div style="color:var(--ink3);font-size:11px;padding:8px 0">次回アクション予定がありません</div>';
+  var maxMo=months[months.length-1];
+  // extend months to cover up to 3 months beyond last entry
+  var tmp=new Date(today);
+  for(var i=0;i<24;i++){
+    var ym2=tmp.getFullYear()+'/'+(tmp.getMonth()+1<10?'0':'')+(tmp.getMonth()+1);
+    if(!moSet[ym2]&&ym2<=maxMo){moSet[ym2]=true;months.push(ym2);}
+    tmp.setMonth(tmp.getMonth()+1);
+    if(ym2>maxMo)break;
+  }
+  months.sort();
+  // Store drawer data keyed "na__member__month"
+  TEAM5.forEach(function(mk){
+    months.forEach(function(mo){
+      var rows=byMemMo[mk][mo]||[];
+      if(!rows.length)return;
+      window._rcDrawerData['na__'+mk+'__'+mo]={
+        title:mk+' — '+mo+'月 次回アクション予定 ('+rows.length+'名)',
+        rows:rows,
+        isLead:true
+      };
+    });
+    // team totals per month
+  });
+  months.forEach(function(mo){
+    var allR=[];TEAM5.forEach(function(m){allR=allR.concat(byMemMo[m][mo]||[]);});
+    if(allR.length)window._rcDrawerData['na__team__'+mo]={title:mo+'月 チーム次回アクション予定 ('+allR.length+'名)',rows:allR,isLead:true};
+  });
+  // Build table
+  var h='<div class="ent-section" style="margin-top:12px">';
+  h+='<div class="es-title">📅 次回アクション日パイプライン（ISアクション予定）</div>';
+  h+='<div style="overflow-x:auto"><table class="ent-table" style="width:100%;border-collapse:collapse;font-size:11px">';
+  h+='<thead><tr><th style="text-align:left;min-width:80px">担当者</th>';
+  months.forEach(function(mo){h+='<th style="text-align:center;min-width:50px;font-size:10px">'+mo.slice(5)+'月</th>';});
+  h+='</tr></thead><tbody>';
+  // Team total row
+  var totByMo2={};months.forEach(function(mo){totByMo2[mo]=0;TEAM5.forEach(function(m){totByMo2[mo]+=(byMemMo[m][mo]||[]).length;});});
+  h+='<tr style="background:rgba(16,185,129,.08);font-weight:700">';
+  h+='<td style="padding:4px 8px">チーム計</td>';
+  months.forEach(function(mo){
+    var cnt=totByMo2[mo];
+    var key='na__team__'+mo;
+    h+='<td style="text-align:center;padding:4px 2px">';
+    if(cnt>0){var bg='rgba(0,121,192,'+(Math.min(cnt/10,1)*0.5+0.15)+')';h+='<button onclick="showRcDrawer(\''+key+'\')" style="background:'+bg+';border:none;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;cursor:pointer;color:#0f172a;width:100%">'+cnt+'</button>';}
+    else h+='<span style="color:var(--ink3);font-size:10px">−</span>';
+    h+='</td>';
+  });
+  h+='</tr>';
+  TEAM5.forEach(function(mk){
+    var mc=E_MEMBER_COLORS_L[mk]||'#666';
+    var hasAny=months.some(function(mo){return (byMemMo[mk][mo]||[]).length>0;});
+    if(!hasAny)return;
+    h+='<tr>';
+    h+='<td style="padding:4px 8px;font-weight:600;font-size:11px;color:'+mc+';white-space:nowrap">'+mk.split(' ')[0]+'</td>';
+    months.forEach(function(mo){
+      var cnt=(byMemMo[mk][mo]||[]).length;
+      var key='na__'+mk+'__'+mo;
+      h+='<td style="text-align:center;padding:4px 2px">';
+      if(cnt>0){var bg='rgba('+hexToRgb(mc)+','+(Math.min(cnt/5,1)*0.4+0.1)+')';h+='<button onclick="showRcDrawer(\''+key+'\')" style="background:'+bg+';border:none;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600;cursor:pointer;color:#0f172a;width:100%">'+cnt+'</button>';}
+      else h+='<span style="color:var(--ink3);font-size:10px">−</span>';
+      h+='</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div></div>';
+  return h;
+}
+function hexToRgb(hex){var r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'0,121,192';}
+
+// Normalize tier: "Tier1クロスセル対象企業" → "Tier1"
+function normTier(v){var m=(v||'').match(/Tier\s*([1-4])/i);return m?'Tier'+m[1]:(v?v.trim():'');}
+// 案件名から企業名を抽出: "YYYYMMDD_企業名様_テーマ" → "企業名"
+function extractCoFromCaseName(nm){
+  if(!nm)return '';
+  var m=nm.match(/^\d{8}_(.+?)(?:様_|様\s|_)/);
+  return m?m[1].trim():'';
+}
+// 案件名からテーマ部分を抽出: "YYYYMMDD_企業名様_テーマ" → "テーマ"
+function extractThemeFromCaseName(nm){
+  if(!nm)return '';
+  var m=nm.match(/^\d{8}_.+?(?:様_|様\s|_)(.+)$/);
+  return m?m[1].trim():'';
+}
+// 取引先名が議事録テキスト等の場合は案件名からフォールバック取得
+function getCleanAccount(r){
+  var acc=eGet(r,'account');
+  var bad=!acc||acc.length>60||/^[#◎【■●▼▶〇※]/.test(acc)||acc.indexOf('【目的】')>=0||acc.indexOf('議事録')>=0||acc.indexOf('提示')>=0;
+  if(bad){var nm=eGet(r,'name');return extractCoFromCaseName(nm)||acc;}
+  return acc;
+}
+var SF_BASE='https://circulation.lightning.force.com/lightning/r/';
+function sfContactLink(name,contactId){
+  if(!contactId||!contactId.trim())return name;
+  var url=SF_BASE+'Contact/'+contactId.trim()+'/view';
+  return '<a href="'+url+'" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-weight:inherit">'+name+'</a>';
+}
+function sfAccountLink(name,coName,directId){
+  // directId: all_leadの取引先ID列から直接取得したID（優先）
+  // coName: なければacplan_contactsのマップから検索（フォールバック）
+  var aid=(directId&&directId.trim())?directId.trim():(window.SF_ACCOUNT_ID_MAP&&coName?(window.SF_ACCOUNT_ID_MAP[coName]||''):'');
+  if(!aid)return name;
+  var url=SF_BASE+'Account/'+aid+'/view';
+  return '<a href="'+url+'" target="_blank" rel="noopener" style="color:var(--ink1);text-decoration:none;font-weight:inherit">'+name+'</a>';
+}
+
+function renderLeadCompanyCards(filtered,col,badgeFunc,emptyMsg,bannerHtml,personProposalMap,personContractMap){
+  // 共通: リードを企業ごとにまとめてカード表示
+  var coLeads={};
+  filtered.forEach(function(r){
+    var co=(r[col.company]||'').trim();if(!co)return;
+    if(!coLeads[co])coLeads[co]=[];coLeads[co].push(r);
+  });
+  var cos=Object.keys(coLeads).sort(function(a,b){return a.localeCompare(b,'ja');});
+  if(!cos.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">'+emptyMsg+'</div>';
+  function getFullName(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
+  var showHistory=!!(personProposalMap||personContractMap);
+  var h='';
+  if(bannerHtml)h+=bannerHtml;
+  cos.forEach(function(co){
+    var leads=coLeads[co];
+    var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    var _coAid=leads.length&&col.accountId>=0?(leads[0][col.accountId]||'').trim():'';
+    var badge=badgeFunc(co,leads);
+    h+='<details style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:8px">';
+    h+='<summary style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;background:var(--bg)">';
+    h+='<span style="font-weight:700;font-size:13px;flex:1">'+sfAccountLink(dispCo,co,_coAid)+'</span>';
+    if(badge)h+=badge;
+    h+='<span style="font-size:10px;color:var(--ink3)">'+leads.length+'名</span>';
+    h+='</summary>';
+    h+='<div style="padding:8px 16px;background:#fff">';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    h+='<thead><tr style="border-bottom:1px solid var(--bd)">';
+    var hdrs=['氏名','部署クラス','部署','役職','ターゲット','Tier','メール','電話'];
+    if(showHistory){hdrs.push('過去提案実績');hdrs.push('過去契約実績');}
+    hdrs.forEach(function(l){h+='<th style="padding:3px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    leads.forEach(function(r){
+      var fn=getFullName(r);
+      var fnNo=fn.replace(/\s+/g,'');
+      var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+      var deptC=(col.deptClass>=0?(r[col.deptClass]||''):'').trim();
+      var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
+      var role=(col.role>=0?(r[col.role]||''):'').trim();
+      var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
+      var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
+      var email=(col.email>=0?(r[col.email]||''):'').trim();
+      var phone=(col.phone>=0?(r[col.phone]||''):'').trim()||((col.mobile>=0?(r[col.mobile]||''):'').trim());
+      var tcc=tcat.indexOf('決裁')>=0?'#7c3aed':tcat.indexOf('チャンピオン')>=0?'var(--blue)':tcat.indexOf('キーマン')>=0?'#f97316':'var(--ink3)';
+      var tn=parseInt((tier||'').replace(/[^0-9]/g,''))||0;var tcs2=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc2=tcs2[tn]||'var(--ink3)';
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04)">';
+      h+='<td style="padding:3px 8px;font-weight:600;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
+      h+='<td style="padding:3px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+deptC+'</td>';
+      h+='<td style="padding:3px 8px;font-size:10px;color:var(--ink2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
+      h+='<td style="padding:3px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
+      h+='<td style="padding:3px 8px;font-size:9px">'+(tcat?'<span style="color:'+tcc+';font-weight:500">'+tcat+'</span>':'')+'</td>';
+      h+='<td style="padding:3px 8px;text-align:center">'+(tier?'<span style="font-size:9px;font-weight:700;color:'+tc2+';padding:1px 5px;background:'+tc2+'18;border-radius:3px">'+tier+'</span>':'')+'</td>';
+      h+='<td style="padding:3px 8px;font-size:10px">'+(email?'<a href="mailto:'+email+'" style="color:var(--blue);text-decoration:none">'+email+'</a>':'')+'</td>';
+      h+='<td style="padding:3px 8px;font-size:10px;font-family:var(--mono)">'+phone+'</td>';
+      if(showHistory){
+        var pKey1=co+'__'+fn,pKey2=co+'__'+fnNo;
+        var pps=(personProposalMap&&(personProposalMap[pKey1]||personProposalMap[pKey2]))||null;
+        var ccs=(personContractMap&&(personContractMap[pKey1]||personContractMap[pKey2]))||null;
+        if(pps&&pps.length){
+          var latP=pps.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+          var pdS=(latP[0].date||'').substring(0,7);
+          var themes=[];pps.forEach(function(p){if(p.theme&&themes.indexOf(p.theme)<0)themes.push(p.theme);});
+          var tip='提案'+pps.length+'件\n'+latP.slice(0,3).map(function(p){return (p.date||'').substring(0,7)+' '+p.caseName.substring(0,20);}).join('\n');
+          h+='<td style="padding:3px 8px;font-size:9px"><div><span title="'+tip.replace(/"/g,"'")+'" style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;font-weight:600;cursor:default;white-space:nowrap">📋 '+pdS+'('+pps.length+'件)</span>';
+          if(themes.length)h+='<div style="margin-top:2px">'+themes.slice(0,3).map(function(t){return '<span style="font-size:8px;background:#fef3c7;color:#92400e;border-radius:3px;padding:0 4px;margin-right:2px">'+t+'</span>';}).join('')+'</div>';
+          h+='</div></td>';
+        } else { h+='<td style="padding:3px 8px"></td>'; }
+        if(ccs&&ccs.length){
+          var latC=ccs.slice().sort(function(a,b){return (b.endDate||b.startDate||'').localeCompare(a.endDate||a.startDate||'');});
+          var cdS=(latC[0].endDate||latC[0].startDate||'').substring(0,7);
+          var tip2='契約'+ccs.length+'件\n'+latC.slice(0,3).map(function(c){return (c.startDate||'').substring(0,7)+'〜'+(c.endDate||'').substring(0,7)+' '+c.caseName.substring(0,16);}).join('\n');
+          h+='<td style="padding:3px 8px;font-size:9px"><span title="'+tip2.replace(/"/g,"'")+'" style="background:#d1fae5;color:#065f46;border-radius:4px;padding:1px 5px;font-weight:600;cursor:default;white-space:nowrap">🏆 '+cdS+'('+ccs.length+'件)</span></td>';
+        } else { h+='<td style="padding:3px 8px"></td>'; }
+      }
+      h+='</tr>';
+    });
+    h+='</tbody></table></div></details>';
+  });
+  return h;
+}
+
+// ===== ANALYTICS VIEW =====
+window._analyticsDrawerData={};
+function showAnalyticsDrawer(key,title){
+  _ensureRcDrawer();
+  document.getElementById('rc-drawer-title').textContent=title;
+  var rows=window._analyticsDrawerData[key]||[];
+  var SC2={active:'#10b981',recycle:'#0079C0',wonDormant:'#7c3aed',dealDormant:'#f59e0b',none:'#94a3b8'};
+  var SL2={active:'稼働中★',recycle:'RC中🔄',wonDormant:'稼働後休眠😴',dealDormant:'商談後休眠💤',none:'未接点⬜'};
+
+  // 企業ごとにグループ化（会社名順）
+  var coMap={};
+  rows.forEach(function(row){
+    var c=row.co||'（未設定）';
+    if(!coMap[c])coMap[c]=[];
+    coMap[c].push(row);
+  });
+  var coKeys=Object.keys(coMap).sort(function(a,b){return a.localeCompare(b,'ja');});
+
+  var h='<div style="padding:6px 16px 2px;font-size:10px;color:var(--ink3)">'+rows.length+'名 / '+coKeys.length+'社</div>';
+  h+='<div id="adrawer-list" style="padding:0 8px 16px">';
+  coKeys.forEach(function(co,ci){
+    var leads=coMap[co];
+    var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    var tid='adco_'+ci;
+    // 会社行のステータスバッジ集計
+    var stCounts={};leads.forEach(function(r){stCounts[r.status]=(stCounts[r.status]||0)+1;});
+    var badges='';
+    ['active','recycle','wonDormant','dealDormant','none'].forEach(function(s){
+      if(stCounts[s]){badges+='<span style="font-size:8px;font-weight:700;color:'+SC2[s]+';background:'+SC2[s]+'18;border-radius:3px;padding:1px 4px;margin-left:3px">'+SL2[s].split(/[★🔄😴💤⬜]/)[0].trim()+' '+stCounts[s]+'</span>';}
+    });
+    h+='<div style="border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;overflow:hidden">';
+    // 企業ヘッダー行（クリックでトグル）
+    h+='<div onclick="(function(el){var b=el.parentNode.querySelector(\'.adco-body\');var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';el.querySelector(\'.adco-arrow\').textContent=open?\'▶\':\'▼\';})(this)" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;background:#f8fafc;user-select:none">';
+    h+='<span class="adco-arrow" style="font-size:9px;color:var(--ink3);width:12px">▶</span>';
+    h+='<span style="font-size:11px;font-weight:700;flex:1">'+sfAccountLink(dispCo,co,'')+'</span>';
+    h+='<span style="font-size:10px;color:var(--ink3)">'+leads.length+'名</span>';
+    h+=badges;
+    h+='</div>';
+    // リード展開パネル（デフォルト非表示）
+    h+='<div class="adco-body" style="display:none;border-top:1px solid var(--bd)">';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    h+='<thead><tr style="background:#f8fafc">';
+    ['氏名','部署','Tier','ステータス','メール'].forEach(function(l){h+='<th style="padding:5px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--bd)">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    leads.forEach(function(row,li){
+      var tn=parseInt((row.tier||'').replace(/[^0-9]/g,''))||0;var tcs2=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc=tcs2[tn]||'#888';
+      var sc=SC2[row.status]||'#888';var sl=SL2[row.status]||row.status;
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(li%2===0?'':'background:#fafbfc')+'">';
+      h+='<td style="padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">'+sfContactLink(row.nm,row.cid)+'</td>';
+      h+='<td style="padding:5px 8px;font-size:9px;color:var(--ink2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+row.dept+'">'+row.dept+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center">'+(row.tier?'<span style="font-size:9px;font-weight:700;color:'+tc+';padding:1px 5px;background:'+tc+'18;border-radius:3px">'+row.tier+'</span>':'')+'</td>';
+      h+='<td style="padding:5px 8px"><span style="font-size:9px;font-weight:600;color:'+sc+';background:'+sc+'18;border-radius:3px;padding:1px 5px">'+sl+'</span></td>';
+      h+='<td style="padding:5px 8px;font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+(row.email?'<a href="mailto:'+row.email+'" style="color:var(--blue);text-decoration:none">'+row.email+'</a>':'')+'</td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  document.getElementById('rc-drawer-body').innerHTML=h;
+  var dr=document.getElementById('rc-drawer');var ov=document.getElementById('rc-drawer-overlay');
+  dr.style.right='0';ov.style.display='block';
+}
+function renderAnalyticsView(col,activeCos,anyCasesCos,personProposalMap,personContractMap){
+  var KOBAYASHI='小林 暁飛';
+  var TEAM5_N=['徳永','栫','中村','岡部','福本','飯田','木曽','土田','小林'];
+  function isTM(m){if(!m)return false;for(var i=0;i<TEAM5_N.length;i++)if(m.indexOf(TEAM5_N[i])>=0)return true;return false;}
+  var SC={active:'#10b981',recycle:'#0079C0',wonDormant:'#7c3aed',dealDormant:'#f59e0b',none:'#94a3b8'};
+  var SL={active:'稼働中★',recycle:'RC中🔄',wonDormant:'稼働後休眠😴',dealDormant:'商談後休眠💤',none:'未接点⬜'};
+  var SK=['active','recycle','wonDormant','dealDormant','none'];
+  function rcMonth(rd){if(!rd)return '';var mt=rd.match(/^(\d{4})[\/\-](\d{1,2})/);return mt?(parseInt(mt[2])+'月'):(rd.substring(0,7));}
+  // 会社名の表記ゆれを吸収（株式会社/㈱/（株）/有限会社/㈲ など）
+  function normCo(s){return (s||'').replace(/株式会社\s*/g,'').replace(/\s*株式会社/g,'').replace(/㈱/g,'').replace(/（株）/g,'').replace(/\(株\)/g,'').replace(/有限会社\s*/g,'').replace(/\s*有限会社/g,'').replace(/㈲/g,'').trim();}
+
+  // 1. Build person-level maps from E_ROWS
+  var personRcMap={},personAnyPhase08={},personAnyCase={};
+  if(window.E_ROWS&&window.E_COL){
+    var td0=new Date();td0.setHours(0,0,0,0);
+    E_ROWS.forEach(function(r){
+      var mem=eGet(r,'member');if(!isTM(mem))return;
+      var acRaw=getCleanAccount(r).trim();if(!acRaw)return;
+      var ac=normCo(acRaw); // 正規化した会社名をキーに使う
+      var cc=(E_COL.custContact>=0?(r[E_COL.custContact]||''):'').trim();if(!cc)return;
+      var ph=eGet(r,'curPh');var isP08=(ePh(ph)===8&&ph.indexOf('DEAD')<0);
+      var rd=eGet(r,'recycleDate');
+      var isFutureRc=false;
+      if(rd){var rdD=new Date(rd.replace(/\//g,'-'));isFutureRc=!isNaN(rdD)&&rdD>=td0;}
+      var info=isFutureRc?{recycleDate:rd,fsMember:mem,caseName:eGet(r,'name'),oppId:eGet(r,'oppId')}:null;
+      cc.split(/[,、；;\/・]/).forEach(function(n){
+        var nn=n.trim();if(!nn)return;
+        var k1=ac+'__'+nn,k2=ac+'__'+nn.replace(/\s+/g,'');
+        [k1,k2].forEach(function(k){
+          if(isFutureRc){if(!personRcMap[k])personRcMap[k]=[];personRcMap[k].push(info);}
+          if(isP08)personAnyPhase08[k]=true;
+          personAnyCase[k]=true;
+        });
+      });
+    });
+  }
+
+  // 2. Per-lead status
+  function getStatus(co,nm,nmN){
+    if(!co)return 'none';
+    var nc=normCo(co);
+    var k1=nc+'__'+nm,k2=nc+'__'+nmN;
+    if(window.starContactMap){var sc1=co+'__'+nm,sc2=co+'__'+nmN;if(starContactMap[sc1]||starContactMap[sc2])return 'active';}
+    if(personRcMap[k1]||personRcMap[k2])return 'recycle';
+    if(personAnyPhase08[k1]||personAnyPhase08[k2])return 'wonDormant';
+    if(personAnyCase[k1]||personAnyCase[k2])return 'dealDormant';
+    return 'none';
+  }
+
+
+  // 3. Build member stats + drawer data buckets
+  var memStats={};
+  var drawerBuckets={}; // "m__s" → [{co,nm,tier,status,cid,dept,email,phone}]
+  function addBucket(key,obj){if(!drawerBuckets[key])drawerBuckets[key]=[];drawerBuckets[key].push(obj);}
+  L_DATA.forEach(function(r){
+    var m=(col.member>=0?(r[col.member]||''):'').trim();
+    // 担当者未設定は小林さん扱い
+    if(!m||!isTM(m))m=KOBAYASHI;
+    var co=(r[col.company]||'').trim();
+    var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+    var fn2=(col.firstName>=0?(r[col.firstName]||''):'').trim();
+    var nm=(ln+' '+fn2).trim(),nmN=nm.replace(/\s+/g,'');
+    var s=getStatus(co,nm,nmN);
+    var t=normTier((col.tier>=0?(r[col.tier]||''):'').trim())||'未分類';
+    var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+    var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
+    var email=(col.email>=0?(r[col.email]||''):'').trim();
+    var phone=(col.phone>=0?(r[col.phone]||''):col.mobile>=0?(r[col.mobile]||''):'').trim();
+    var obj={co:co,nm:nm,tier:t,status:s,cid:cid,dept:dept,email:email,phone:phone,member:m};
+    if(!memStats[m]){memStats[m]={total:0,tiers:{}};SK.forEach(function(k){memStats[m][k]=0;});}
+    var ms=memStats[m];ms.total++;ms[s]++;
+    if(!ms.tiers[t]){ms.tiers[t]={total:0};SK.forEach(function(k){ms.tiers[t][k]=0;});}
+    ms.tiers[t].total++;ms.tiers[t][s]++;
+    addBucket('bar__'+m+'__'+s,obj);
+    addBucket('bar__'+m+'__all',obj);
+    addBucket('bar__all__'+s,obj);
+  });
+  // Tier-level buckets (built after member filter is known, so defer)
+  window._analyticsDrawerData=drawerBuckets;
+
+  var L_TEAM_WITH_KOBAYASHI=(window.L_TEAM||[]).indexOf(KOBAYASHI)<0
+    ?[KOBAYASHI].concat(window.L_TEAM||[]):(window.L_TEAM||[]);
+  var displayMems=L_TEAM_WITH_KOBAYASHI.filter(function(m){return memStats[m];});
+
+  // 4. Aggregate
+  function aggStats(mList){
+    var a={total:0};SK.forEach(function(k){a[k]=0;});
+    mList.forEach(function(m){var ms=memStats[m];if(!ms)return;a.total+=ms.total;SK.forEach(function(k){a[k]+=(ms[k]||0);});});
+    return a;
+  }
+  var tot=aggStats(displayMems);
+  var selMs=L_ANALYTICS_MEMBER==='all'?tot:(memStats[L_ANALYTICS_MEMBER]||tot);
+  var aggBase=L_ANALYTICS_MEMBER==='all'?displayMems:[L_ANALYTICS_MEMBER];
+  var tierAgg={};
+  aggBase.forEach(function(m){var ms=memStats[m];if(!ms)return;Object.keys(ms.tiers).forEach(function(t){
+    if(!tierAgg[t]){tierAgg[t]={total:0};SK.forEach(function(k){tierAgg[t][k]=0;});}
+    tierAgg[t].total+=ms.tiers[t].total;SK.forEach(function(k){tierAgg[t][k]+=(ms.tiers[t][k]||0);});
+  });});
+
+  // Build tier drawer buckets for current member selection
+  aggBase.forEach(function(m){
+    (drawerBuckets['bar__'+m+'__all']||[]).forEach(function(obj){
+      addBucket('tier__'+obj.tier+'__'+obj.status,obj);
+      addBucket('tier__'+obj.tier+'__all',obj);
+    });
+  });
+
+  // 5. Recycle list
+  var rcRows=[];var seenK={};
+  L_DATA.forEach(function(r){
+    var co=(r[col.company]||'').trim();if(!co)return;
+    var m=(col.member>=0?(r[col.member]||''):'').trim();
+    if(!m||!isTM(m))m=KOBAYASHI;
+    if(L_ANALYTICS_MEMBER!=='all'&&m!==L_ANALYTICS_MEMBER)return;
+    var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+    var fn2=(col.firstName>=0?(r[col.firstName]||''):'').trim();
+    var nm=(ln+' '+fn2).trim(),nmN=nm.replace(/\s+/g,'');
+    var nc2=normCo(co);var rcList=personRcMap[nc2+'__'+nm]||personRcMap[nc2+'__'+nmN];
+    if(!rcList||!rcList.length)return;
+    var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
+    var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+    var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
+    rcList.forEach(function(rc){
+      var k=co+'__'+nm+'__'+rc.recycleDate+'__'+rc.caseName;if(seenK[k])return;seenK[k]=true;
+      rcRows.push({co:co,nm:nm,tier:tier,lm:m,fm:rc.fsMember,rd:rc.recycleDate,cn:rc.caseName,cid:cid,dept:dept});
+    });
+  });
+  rcRows.sort(function(a,b){return (a.rd||'').localeCompare(b.rd||'');});
+
+  // ===== RENDER =====
+  var h='<div style="padding:0 24px 32px">';
+  var selName=L_ANALYTICS_MEMBER==='all'?'チーム全体':L_ANALYTICS_MEMBER;
+
+  // helper: clickable number
+  function clk(key,title,cnt,color){
+    if(!cnt)return '<span style="font-family:var(--mono)">0</span>';
+    var esc=key.replace(/'/g,"\\'");var etitle=title.replace(/'/g,"\\'");
+    return '<span onclick="showAnalyticsDrawer(\''+esc+'\',\''+etitle+'\');" style="font-family:var(--mono);color:'+(color||'inherit')+';cursor:pointer;text-decoration:underline dotted;font-weight:700">'+cnt+'</span>';
+  }
+
+  // ---- Filter + KPI ----
+  h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 18px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">';
+  h+='<span style="font-size:12px;font-weight:700">👤 担当者</span>';
+  h+='<select style="padding:5px 10px;border:1px solid var(--bd);border-radius:6px;font-size:11px" onchange="L_ANALYTICS_MEMBER=this.value;renderLeads(document.getElementById(\'M\'))">';
+  h+='<option value="all"'+(L_ANALYTICS_MEMBER==='all'?' selected':'')+'>👥 チーム全体</option>';
+  displayMems.forEach(function(m){h+='<option value="'+m+'"'+(L_ANALYTICS_MEMBER===m?' selected':'')+'>'+m+'</option>';});
+  h+='</select>';
+  h+='<span style="font-size:11px;color:var(--ink3)">— '+selName+' の '+selMs.total.toLocaleString()+' リードの内訳</span>';
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  SK.forEach(function(s){
+    var v=selMs[s]||0;var pct=selMs.total?((v/selMs.total)*100).toFixed(1):'0.0';
+    var bkey=L_ANALYTICS_MEMBER==='all'?('bar__all__'+s):('bar__'+L_ANALYTICS_MEMBER+'__'+s);
+    var esc=bkey.replace(/'/g,"\\'");var etitle=(SL[s]+' / '+selName).replace(/'/g,"\\'");
+    h+='<div onclick="showAnalyticsDrawer(\''+esc+'\',\''+etitle+'\');" style="flex:1;min-width:110px;background:'+SC[s]+'0f;border:1px solid '+SC[s]+'44;border-radius:8px;padding:10px 12px;text-align:center;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.12)\'" onmouseout="this.style.boxShadow=\'\'">';
+    h+='<div style="font-size:22px;font-weight:700;font-family:var(--mono);color:'+SC[s]+'">'+v.toLocaleString()+'</div>';
+    h+='<div style="font-size:8px;color:'+SC[s]+';font-weight:700;margin-top:1px">'+pct+'%</div>';
+    h+='<div style="font-size:9px;color:var(--ink2);margin-top:2px">'+SL[s]+'</div></div>';
+  });
+  h+='</div></div>';
+
+  // ---- Stacked bar ----
+  h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px">';
+  h+='<div style="font-weight:700;font-size:12px;margin-bottom:4px">📊 担当者別 リード接点ステータス分布</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+  SK.forEach(function(s){h+='<span style="font-size:8px;color:'+SC[s]+';background:'+SC[s]+'18;border-radius:3px;padding:2px 6px;font-weight:600">'+SL[s]+'</span>';});
+  h+='</div>';
+  displayMems.forEach(function(m){
+    var ms=memStats[m];if(!ms||!ms.total)return;
+    var hl=L_ANALYTICS_MEMBER==='all'||L_ANALYTICS_MEMBER===m;
+    var mc=L_MEMBER_COLORS[m]||'#888';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;opacity:'+(hl?'1':'0.25')+'">';
+    h+='<div style="width:60px;font-size:10px;font-weight:700;color:'+mc+';text-align:right;white-space:nowrap">'+m.split(' ')[0]+'</div>';
+    h+='<div style="flex:1;display:flex;border-radius:4px;overflow:hidden;height:22px">';
+    SK.forEach(function(s){
+      var cnt=ms[s]||0;if(!cnt)return;
+      var pct=(cnt/ms.total*100).toFixed(1);
+      var bkey=('bar__'+m+'__'+s).replace(/'/g,"\\'");
+      var etitle=(m+' / '+SL[s]).replace(/'/g,"\\'");
+      h+='<div onclick="showAnalyticsDrawer(\''+bkey+'\',\''+etitle+'\');" style="width:'+pct+'%;background:'+SC[s]+';display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer" title="'+SL[s]+': '+cnt+'名('+pct+'%)">';
+      if(parseFloat(pct)>5)h+='<span style="font-size:8px;color:#fff;font-weight:700;pointer-events:none">'+cnt+'</span>';
+      h+='</div>';
+    });
+    h+='</div>';
+    h+='<div style="font-size:9px;color:var(--ink3);width:40px;text-align:right">'+ms.total+'名</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  // ---- Tier × Status + Member summary grid ----
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+  // Left: Tier × Status
+  h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px">';
+  h+='<div style="font-weight:700;font-size:12px;margin-bottom:10px">🎯 Tier × ステータス（'+selName+'）</div>';
+  var tOrd=['Tier1','Tier2','Tier3','Tier4','未分類'];
+  var tClr={Tier1:'#0079C0',Tier2:'#1a7f37',Tier3:'#bf8700',Tier4:'#7c3aed','未分類':'#888'};
+  var sAbbr={active:'稼働★',recycle:'RC🔄',wonDormant:'稼後😴',dealDormant:'商後💤',none:'未⬜'};
+  h+='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="border-bottom:1px solid var(--bd)">';
+  h+='<th style="padding:4px 6px;text-align:left;font-size:9px;color:var(--ink3)">Tier</th>';
+  h+='<th style="padding:4px 6px;text-align:right;font-size:9px;color:var(--ink3)">計</th>';
+  SK.forEach(function(s){h+='<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+SC[s]+'">'+sAbbr[s]+'</th>';});
+  h+='<th style="padding:4px 6px;min-width:64px;font-size:9px;color:var(--ink3)">分布</th></tr></thead><tbody>';
+  tOrd.forEach(function(t){
+    var td=tierAgg[t];if(!td||!td.total)return;
+    var tc=tClr[t]||'#888';
+    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.05)">';
+    h+='<td style="padding:4px 6px"><span style="font-size:9px;font-weight:700;color:'+tc+';background:'+tc+'18;border-radius:3px;padding:1px 5px">'+t+'</span></td>';
+    h+=clk('tier__'+t+'__all',t+' 全ステータス',td.total,'var(--ink1)').replace('font-family:var(--mono)','padding:4px 6px;display:block;text-align:right;font-family:var(--mono)').replace('<span','<td').replace('</span>','</td>');
+    SK.forEach(function(s){var c=td[s]||0;
+      h+='<td style="padding:4px 6px;text-align:right">'+clk('tier__'+t+'__'+s,t+' / '+SL[s],c,SC[s])+'</td>';
+    });
+    h+='<td style="padding:4px 6px"><div style="display:flex;border-radius:2px;overflow:hidden;height:10px">';
+    SK.forEach(function(s){var c=td[s]||0;if(!c)return;
+      var bkey=('tier__'+t+'__'+s).replace(/'/g,"\\'");
+      h+='<div onclick="showAnalyticsDrawer(\''+bkey+'\',\''+t+' / '+SL[s]+'\');" style="width:'+(c/td.total*100).toFixed(1)+'%;background:'+SC[s]+';cursor:pointer" title="'+SL[s]+': '+c+'"></div>';
+    });
+    h+='</div></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  // Right: Member summary
+  h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px">';
+  h+='<div style="font-weight:700;font-size:12px;margin-bottom:10px">👤 担当者別サマリー</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="border-bottom:1px solid var(--bd)">';
+  h+='<th style="padding:4px 6px;text-align:left;font-size:9px;color:var(--ink3)">担当</th>';
+  h+='<th style="padding:4px 6px;text-align:right;font-size:9px;color:var(--ink3)">計</th>';
+  SK.forEach(function(s){h+='<th style="padding:4px 6px;text-align:right;font-size:9px;color:'+SC[s]+'">'+{active:'稼働',recycle:'RC',wonDormant:'稼後',dealDormant:'商後',none:'未'}[s]+'</th>';});
+  h+='<th style="padding:4px 6px;font-size:9px;color:var(--ink3)">分布</th></tr></thead><tbody>';
+  displayMems.forEach(function(m){
+    var ms=memStats[m];if(!ms)return;
+    var mc=L_MEMBER_COLORS[m]||'#888';var hl=L_ANALYTICS_MEMBER==='all'||L_ANALYTICS_MEMBER===m;
+    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.05);'+(hl?'':'opacity:.3')+'">';
+    h+='<td style="padding:4px 6px;font-weight:700;color:'+mc+';white-space:nowrap">'+m.split(' ')[0]+'</td>';
+    h+='<td style="padding:4px 6px;text-align:right">'+clk('bar__'+m+'__all',m+' 全ステータス',ms.total,'var(--ink1)')+'</td>';
+    SK.forEach(function(s){h+='<td style="padding:4px 6px;text-align:right">'+clk('bar__'+m+'__'+s,m+' / '+SL[s],ms[s]||0,SC[s])+'</td>';});
+    h+='<td style="padding:4px 6px"><div style="display:flex;border-radius:2px;overflow:hidden;height:10px;min-width:60px">';
+    SK.forEach(function(s){var c=ms[s]||0;if(!c||!ms.total)return;
+      var bkey=('bar__'+m+'__'+s).replace(/'/g,"\\'");
+      h+='<div onclick="showAnalyticsDrawer(\''+bkey+'\',\''+m+' / '+SL[s]+'\');" style="width:'+(c/ms.total*100).toFixed(1)+'%;background:'+SC[s]+';cursor:pointer" title="'+SL[s]+': '+c+'"></div>';
+    });
+    h+='</div></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='</div>'; // end grid
+
+  // ---- Recycle list ----
+  h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px">';
+  h+='<div style="font-weight:700;font-size:12px;margin-bottom:4px;display:flex;align-items:center;gap:8px">🔄 リサイクル対象リード';
+  h+='<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 8px">'+rcRows.length+'件</span>';
+  h+='<span style="font-size:10px;color:var(--ink3);font-weight:400">案件のcustContactに記載されているリードのみ</span></div>';
+  if(!rcRows.length){
+    h+='<div style="padding:20px;text-align:center;color:var(--ink3)">リサイクル対象リードはありません</div>';
+  } else {
+    h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid var(--bd)">';
+    ['取引先','担当者','部署','Tier','IS/FS担当','リサイクル予定月','案件名'].forEach(function(l){h+='<th style="padding:5px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    var today4=new Date();today4.setHours(0,0,0,0);
+    rcRows.forEach(function(row,idx){
+      var dispCo=row.co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+      var rdD=new Date((row.rd||'').replace(/\//g,'-'));
+      var dl=isNaN(rdD)?null:Math.ceil((rdD-today4)/86400000);
+      var rdC=dl===null?'var(--ink2)':dl<=14?'#dc2626':dl<=30?'#ea580c':'#16a34a';
+      var tn=parseInt((row.tier||'').replace(/[^0-9]/g,''))||0;var tcs2=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc=tcs2[tn]||'#888';
+      var lmC=L_MEMBER_COLORS[row.lm]||'#888';
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:#fafafa':'')+'">';
+      h+='<td style="padding:5px 8px;font-size:10px;white-space:nowrap;font-weight:600">'+sfAccountLink(dispCo,row.co,'')+'</td>';
+      h+='<td style="padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">'+sfContactLink(row.nm,row.cid)+'</td>';
+      h+='<td style="padding:5px 8px;font-size:9px;color:var(--ink2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+row.dept+'">'+row.dept+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center">'+(row.tier?'<span style="font-size:9px;font-weight:700;color:'+tc+';padding:1px 5px;background:'+tc+'18;border-radius:3px">'+row.tier+'</span>':'')+'</td>';
+      h+='<td style="padding:5px 8px;font-size:9px;color:'+lmC+';font-weight:600;white-space:nowrap">'+(row.lm||'').split(' ')[0]+(row.fm&&row.fm!==row.lm?' / <span style="color:#888">'+row.fm.split(' ')[0]+'</span>':'')+'</td>';
+      h+='<td style="padding:5px 8px;font-family:var(--mono);font-size:10px;white-space:nowrap;color:'+rdC+';font-weight:'+(dl!==null&&dl<=30?'700':'400')+'" title="'+row.rd+'">'+rcMonth(row.rd)+'</td>';
+      h+='<td style="padding:5px 8px;font-size:9px;color:var(--ink2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+row.cn+'">'+row.cn+'</td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  h+='</div>';
+  h+='</div>';
+  // --- Section A: 月別フェーズ転換率トレンド ---
+h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px">';
+h+='<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📈 月別フェーズ転換率トレンド（作成月ベース）</div>';
+var byCreM={};
+E_ROWS.forEach(function(r){
+  var mem=eGet(r,'member');
+  if(L_ANALYTICS_MEMBER!=='all'&&mem!==L_ANALYTICS_MEMBER)return;
+  var cd=eGet(r,'createDate');if(!cd)return;
+  var ym=cd.replace(/-/g,'/').substring(0,7);
+  var ph=eGet(r,'curPh');var isDead=ph.indexOf('DEAD')>=0;
+  var phN=ePh(ph);var isWon=phN===8&&!isDead;
+  var maxPhVal=eGet(r,'lastPh');var maxPhN=ePh(maxPhVal);
+  if(!byCreM[ym])byCreM[ym]={total:0,won:0,dead:0,p2:0,p4:0};
+  byCreM[ym].total++;
+  if(isWon)byCreM[ym].won++;
+  if(isDead)byCreM[ym].dead++;
+  if(phN>=2||maxPhN>=2)byCreM[ym].p2++;
+  if(phN>=4||maxPhN>=4)byCreM[ym].p4++;
+});
+var cMKeys=Object.keys(byCreM).filter(function(k){return k>='2025/04';}).sort();
+if(cMKeys.length>0){
+  var svgW=800,svgH=180,padL=30,padR=20,padT=20,padB=30;
+  var innerW=svgW-padL-padR,innerH=svgH-padT-padB;
+  var maxTotal=Math.max.apply(null,cMKeys.map(function(k){return byCreM[k].total;}));
+  var nCols=cMKeys.length;var colW=innerW/nCols;
+  var svgStr='<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:100%;height:200px" preserveAspectRatio="none">';
+  // grid
+  for(var gi=0;gi<=4;gi++){
+    var gy=padT+innerH*(1-gi/4);
+    svgStr+='<line x1="'+padL+'" y1="'+gy+'" x2="'+(padL+innerW)+'" y2="'+gy+'" stroke="#e5e7eb" stroke-width="0.5"/>';
+    svgStr+='<text x="'+(padL-4)+'" y="'+(gy+3)+'" text-anchor="end" font-size="7" fill="#6b7280">'+(gi*25)+'%</text>';
+  }
+  // bars and lines
+  var wonPts=[],deadPts=[];
+  for(var ci=0;ci<cMKeys.length;ci++){
+    var ck2=cMKeys[ci];var dd=byCreM[ck2];
+    var bx=padL+ci*colW+colW*0.1;var bw=colW*0.8;
+    var bh2=maxTotal>0?dd.total/maxTotal*innerH*0.7:0;
+    svgStr+='<rect x="'+bx+'" y="'+(padT+innerH-bh2)+'" width="'+bw+'" height="'+bh2+'" rx="2" fill="rgba(0,121,192,0.3)"/>';
+    var cx2=padL+ci*colW+colW/2;
+    var wonR=dd.total>0?dd.won/dd.total*100:0;
+    var deadR=dd.total>0?dd.dead/dd.total*100:0;
+    var wonY=padT+innerH*(1-wonR/100);
+    var deadY=padT+innerH*(1-deadR/100);
+    wonPts.push([cx2,wonY]);deadPts.push([cx2,deadY]);
+    // labels
+    if(dd.total>0)svgStr+='<text x="'+cx2+'" y="'+(padT+innerH+12)+'" text-anchor="middle" font-size="7" fill="#6b7280">'+ck2.substring(5)+'</text>';
+    svgStr+='<text x="'+cx2+'" y="'+(padT+innerH-bh2-3)+'" text-anchor="middle" font-size="7" fill="#0079C0">'+dd.total+'</text>';
+  }
+  // polylines
+  if(wonPts.length>1){
+    svgStr+='<polyline points="'+wonPts.map(function(p){return p[0]+','+p[1];}).join(' ')+'" fill="none" stroke="#1a7f37" stroke-width="1.5"/>';
+    wonPts.forEach(function(p,i){svgStr+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="#1a7f37"/>';var r2=byCreM[cMKeys[i]];if(r2.total>0)svgStr+='<text x="'+p[0]+'" y="'+(p[1]-5)+'" text-anchor="middle" font-size="7" fill="#1a7f37">'+Math.round(r2.won/r2.total*100)+'%</text>';});
+  }
+  if(deadPts.length>1){
+    svgStr+='<polyline points="'+deadPts.map(function(p){return p[0]+','+p[1];}).join(' ')+'" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 2"/>';
+    deadPts.forEach(function(p,i){svgStr+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="#dc2626"/>';var r2=byCreM[cMKeys[i]];if(r2.total>0)svgStr+='<text x="'+p[0]+'" y="'+(p[1]+13)+'" text-anchor="middle" font-size="7" fill="#dc2626">'+Math.round(r2.dead/r2.total*100)+'%</text>';});
+  }
+  svgStr+='</svg>';
+  // legend
+  svgStr+='<div style="display:flex;gap:16px;font-size:11px;margin-top:4px">';
+  svgStr+='<span style="color:#0079C0">■ 新規案件数（棒）</span>';
+  svgStr+='<span style="color:#1a7f37">— 受注率（緑）</span>';
+  svgStr+='<span style="color:#dc2626">- - DEAD率（赤）</span>';
+  svgStr+='</div>';
+  h+=svgStr;
+}else{h+='<p style="font-size:12px;color:#6b7280">データなし</p>';}
+h+='</div>';
+// --- Section B: パイプラインファネル ---
+h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px">';
+h+='<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">🔽 パイプラインファネル（現在フェーズ別・非DEAD）</div>';
+var phFunnel={};
+var phNames={1:'P1 アプローチ',2:'P2 商談',3:'P3 提案',4:'P4 面談',5:'P5 見積',6:'P6 交渉',7:'P7 内定'};
+E_ROWS.forEach(function(r){
+  if(L_ANALYTICS_MEMBER!=='all'&&eGet(r,'member')!==L_ANALYTICS_MEMBER)return;
+  var ph=eGet(r,'curPh');if(ph.indexOf('DEAD')>=0)return;
+  var phN=ePh(ph);if(phN<1||phN>=8)return;
+  var ck=eGetN(r,'ck');
+  if(!phFunnel[phN])phFunnel[phN]={cnt:0,ck:0};
+  phFunnel[phN].cnt++;phFunnel[phN].ck+=ck;
+});
+var maxCnt=0;
+for(var pi=1;pi<=7;pi++){if(phFunnel[pi])maxCnt=Math.max(maxCnt,phFunnel[pi].cnt);}
+for(var pi=7;pi>=1;pi--){
+  var fd=phFunnel[pi]||{cnt:0,ck:0};
+  var fPct=maxCnt>0?fd.cnt/maxCnt*100:0;
+  var fColor=pi>=4?'#1a7f37':pi>=2?'#0079C0':'#9ca3af';
+  h+='<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">';
+  h+='<div style="width:90px;font-size:11px;color:var(--text2);text-align:right">'+phNames[pi]+'</div>';
+  h+='<div style="flex:1;background:#f3f4f6;border-radius:4px;height:28px;position:relative">';
+  h+='<div style="width:'+fPct+'%;background:'+fColor+';height:100%;border-radius:4px;opacity:0.8"></div>';
+  h+='<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#fff">'+fd.cnt+'件</span>';
+  h+='</div>';
+  h+='<div style="width:80px;font-size:11px;font-family:var(--mono);color:'+fColor+'">'+eFmt(fd.ck)+'</div>';
+  h+='</div>';
+}
+h+='</div>';
+// --- Section C: 担当者別ボトルネック分析テーブル ---
+h+='<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px">';
+h+='<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">🔍 担当者別 ボトルネック分析</div>';
+var mBnk={};
+L_DATA.forEach(function(r){
+  var m=(col.member>=0?(r[col.member]||''):'').trim();
+  if(!m||!isTM(m))m=KOBAYASHI;
+  if(L_ANALYTICS_MEMBER!=='all'&&m!==L_ANALYTICS_MEMBER)return;
+  if(!mBnk[m])mBnk[m]={leads:0,cases:0,p2:0,p4:0,won:0,dead:0,rc:0};
+  mBnk[m].leads++;
+});
+E_ROWS.forEach(function(r){
+  var mem=eGet(r,'member');if(!isTM(mem))return;
+  if(L_ANALYTICS_MEMBER!=='all'&&mem!==L_ANALYTICS_MEMBER)return;
+  if(!mBnk[mem])mBnk[mem]={leads:0,cases:0,p2:0,p4:0,won:0,dead:0,rc:0};
+  var b=mBnk[mem];b.cases++;
+  var ph=eGet(r,'curPh');var isDead=ph.indexOf('DEAD')>=0;
+  var phN=ePh(ph);var maxPhRaw=eGet(r,'lastPh');var maxPhN=ePh(maxPhRaw);
+  if(isDead){b.dead++;
+    var mfj2=eGet(r,'mfj');if(mfj2&&mfj2!=='-'&&mfj2.indexOf('なし')<0)b.rc++;
+  }
+  if(phN>=2||maxPhN>=2)b.p2++;
+  if(phN>=4||maxPhN>=4)b.p4++;
+  if(phN===8&&!isDead)b.won++;
+});
+var mBnkKeys=Object.keys(mBnk).filter(function(m){return isTM(m);});
+// totals
+var tot={leads:0,cases:0,p2:0,p4:0,won:0,dead:0,rc:0};
+mBnkKeys.forEach(function(m){var b=mBnk[m];tot.leads+=b.leads;tot.cases+=b.cases;tot.p2+=b.p2;tot.p4+=b.p4;tot.won+=b.won;tot.dead+=b.dead;tot.rc+=b.rc;});
+h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+h+='<thead><tr style="background:#f6f8fa;border-bottom:2px solid var(--bd)">';
+['担当者','リード','案件','P2+商談','P4+面談','受注','DEAD','RC設定','商談率','受注率'].forEach(function(th){h+='<th style="padding:6px 8px;text-align:center;font-weight:700;color:var(--text2)">'+th+'</th>';});
+h+='</tr></thead><tbody>';
+mBnkKeys.forEach(function(m){
+  var b=mBnk[m];
+  var apRate=b.cases>0?Math.round(b.p2/b.cases*100):0;
+  var wonRate=b.p2>0?Math.round(b.won/b.p2*100):0;
+  var apColor=apRate>=50?'#1a7f37':apRate>=30?'#d97706':'#dc2626';
+  var wonColor=wonRate>=20?'#1a7f37':wonRate>=10?'#d97706':'#dc2626';
+  h+='<tr style="border-bottom:1px solid var(--bd)">';
+  h+='<td style="padding:6px 8px;font-weight:600;color:var(--text)">'+m+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center">'+b.leads+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center">'+b.cases+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center">'+b.p2+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center">'+b.p4+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center;font-weight:700;color:#1a7f37">'+b.won+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center;color:#dc2626">'+b.dead+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center">'+b.rc+'</td>';
+  h+='<td style="padding:6px 8px;text-align:center;color:'+apColor+';font-weight:700">'+apRate+'%</td>';
+  h+='<td style="padding:6px 8px;text-align:center;color:'+wonColor+';font-weight:700">'+wonRate+'%</td>';
+  h+='</tr>';
+});
+// total row
+var totApRate=tot.cases>0?Math.round(tot.p2/tot.cases*100):0;
+var totWonRate=tot.p2>0?Math.round(tot.won/tot.p2*100):0;
+h+='<tr style="background:#f6f8fa;font-weight:700;border-top:2px solid var(--bd)">';
+h+='<td style="padding:6px 8px">チーム計</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+tot.leads+'</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+tot.cases+'</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+tot.p2+'</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+tot.p4+'</td>';
+h+='<td style="padding:6px 8px;text-align:center;color:#1a7f37">'+tot.won+'</td>';
+h+='<td style="padding:6px 8px;text-align:center;color:#dc2626">'+tot.dead+'</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+tot.rc+'</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+totApRate+'%</td>';
+h+='<td style="padding:6px 8px;text-align:center">'+totWonRate+'%</td>';
+h+='</tr>';
+h+='</tbody></table></div>';
+h+='</div>';
+  return h;
+}
+
+function renderDormantView(filtered,col,anyCasesCos,activeCos,personProposalMap,personContractMap){
+  var banner='<div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">';
+  banner+='<div style="font-size:22px">😴</div>';
+  banner+='<div><div style="font-weight:700;font-size:13px">休眠リード — 過去に商談実績あり、今は眠ってます</div>';
+  banner+='<div style="font-size:11px;opacity:.9;margin-top:3px">一度接点を持った企業です。継続コール・リサイクル・稼働後フォローで再掘り起こしを狙いましょう。</div></div></div>';
+  return renderLeadCompanyCards(filtered,col,
+    function(co){ return '<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600">過去案件あり</span>'; },
+    '休眠リードが見つかりません',banner,personProposalMap,personContractMap);
+}
+
+function renderUnproposedView(filtered,col){
+  var banner='<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">';
+  banner+='<div style="font-size:22px">🔍</div>';
+  banner+='<div><div style="font-weight:700;font-size:13px">未提案リード — 商談ゼロの完全未開拓</div>';
+  banner+='<div style="font-size:11px;opacity:.9;margin-top:3px">まだ一度も商談していない企業です。Tier1・Tier2を優先的にアプローチしてTier3を引き上げていきましょう。</div></div></div>';
+  // Tier別集計
+  var tierGroups={};
+  filtered.forEach(function(r){
+    var t=normTier((col.tier>=0?(r[col.tier]||''):'').trim())||'未分類';
+    if(!tierGroups[t])tierGroups[t]=0;tierGroups[t]++;
+  });
+  var tierOrder=['Tier1','Tier2','Tier3','Tier4','未分類'];
+  var tierSummary='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+  tierOrder.forEach(function(t){
+    if(!tierGroups[t])return;
+    var tcs3=['Tier1','Tier2','Tier3','Tier4'];var tn=tcs3.indexOf(t)+1;
+    var tcolor=['','#0079C0','#1a7f37','#bf8700','#7c3aed'][tn]||'#888';
+    tierSummary+='<div style="background:'+tcolor+'18;border:1px solid '+tcolor+'44;border-radius:6px;padding:6px 14px;text-align:center">';
+    tierSummary+='<div style="font-size:9px;color:'+tcolor+';font-weight:600">'+t+'</div>';
+    tierSummary+='<div style="font-size:22px;font-weight:700;font-family:var(--mono);color:'+tcolor+'">'+tierGroups[t]+'</div>';
+    tierSummary+='<div style="font-size:9px;color:var(--ink3)">名</div></div>';
+  });
+  tierSummary+='</div>';
+  return banner+tierSummary+renderLeadCompanyCards(filtered,col,
+    function(co){
+      return '<span style="font-size:10px;background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:4px;font-weight:600">未開拓</span>';
+    },
+    '未提案リードが見つかりません','');
+}
+
+function renderPastClientView(pastClientCos,activeCos,filtered,col,personProposalMap,personContractMap){
+  var h2='';
+  var cos={};
+  filtered.forEach(function(r){var co=(r[col.company]||'').trim();if(co&&pastClientCos[co]&&!activeCos[co]){if(!cos[co])cos[co]=[];cos[co].push(r);}});
+  var coList=Object.keys(cos).sort(function(a,b){return (cos[b].length)-(cos[a].length);});
+  if(!coList.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">稼働後顧客のリードが見つかりません</div>';
+  h2+='<div style="padding:10px 0 14px"><div style="font-weight:700;font-size:13px">稼働後顧客 — 過去に稼働実績あり、契約終了済みの企業</div>';
+  h2+='<div style="font-size:11px;color:var(--ink3);margin-top:4px">再提案のターゲット。過去の実績を活かして再商談へ。</div></div>';
+  h2+=renderCompanyAccordion(cos,coList,col,'#0891b2',personProposalMap,personContractMap);
+  return h2;
+}
+
+function _eA(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+function renderCompanyAccordion(cos,coList,col,accentColor,personProposalMap,personContractMap){
+  var h2='';
+  h2+='<div style="display:flex;flex-direction:column;gap:6px">';
+  coList.forEach(function(co){
+    var leads=cos[co];
+    var domId='lco_'+co.replace(/[^a-zA-Z0-9]/g,'_');
+    h2+='<div style="border:1px solid var(--bd);border-radius:8px;overflow:hidden">';
+    // Company header (clickable)
+    h2+='<div onclick="var el=document.getElementById(\''+domId+'\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'" ';
+    h2+='style="display:flex;align-items:center;padding:10px 14px;background:#fff;cursor:pointer;gap:10px;user-select:none">';
+    h2+='<div style="font-size:12px;font-weight:700;color:var(--ink);flex:1">'+co+'</div>';
+    h2+='<div style="font-size:11px;color:var(--ink3)">'+leads.length+'名</div>';
+    h2+='<div style="font-size:12px;color:var(--ink3)">▼</div>';
+    h2+='</div>';
+    // Leads list (initially hidden)
+    h2+='<div id="'+domId+'" style="display:none;border-top:1px solid var(--bd);background:#fafafa">';
+    leads.forEach(function(r){
+      var fn=(col.firstName>=0?(r[col.firstName]||''):'').trim();
+      var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+      var fullName=ln&&fn?(ln+' '+fn):(ln||fn||(col.name>=0?(r[col.name]||''):'')).trim();
+      var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
+      var role=(col.role>=0?(r[col.role]||''):'').trim();
+      var email=(col.email>=0?(r[col.email]||''):'').trim();
+      var tier=(col.tier>=0?(r[col.tier]||''):'').trim();
+      var tierColors={'Tier1':'#0079C0','Tier2':'#1a7f37','Tier3':'#bf8700','Tier4':'#888'};
+      var tc=tierColors[normTier(tier)]||'#888';
+      var keyS=co+'__'+fullName;var keyN=co+'__'+fullName.replace(/\s+/g,'');
+      var hasProp=personProposalMap&&(personProposalMap[keyS]||personProposalMap[keyN]);
+      var hasCont=personContractMap&&(personContractMap[keyS]||personContractMap[keyN]);
+      h2+='<div style="display:flex;align-items:center;padding:8px 14px;border-top:1px solid var(--bd);gap:8px;font-size:11px">';
+      if(tier){h2+='<span style="color:'+tc+';font-size:9px;font-weight:700;min-width:28px">'+normTier(tier)+'</span>';}
+      h2+='<div style="font-weight:600;min-width:80px">'+fullName+'</div>';
+      h2+='<div style="color:var(--ink3);flex:1">'+[dept,role].filter(Boolean).join(' / ')+'</div>';
+      if(hasCont){h2+='<span class="_lead-hist" data-co="'+_eA(co)+'" data-fn="'+_eA(fullName)+'" data-type="cont" style="font-size:9px;background:#10b98120;color:#10b981;border-radius:4px;padding:2px 5px;cursor:pointer" title="クリックで契約歴を表示">契約歴</span>';}
+      if(hasProp){h2+='<span class="_lead-hist" data-co="'+_eA(co)+'" data-fn="'+_eA(fullName)+'" data-type="prop" style="font-size:9px;background:#0079C020;color:#0079C0;border-radius:4px;padding:2px 5px;cursor:pointer" title="クリックで提案歴を表示">提案歴</span>';}
+      h2+='<span class="_lead-memo" data-co="'+_eA(co)+'" data-fn="'+_eA(fullName)+'" style="font-size:9px;background:#f3f4f6;color:#6b7280;border-radius:4px;padding:2px 5px;cursor:pointer" title="アクションメモ">📝</span>';
+      if(email){h2+='<a href="mailto:'+email+'" style="font-size:9px;color:var(--ink3);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">✉ '+email+'</a>';}
+      h2+='</div>';
+    });
+    h2+='</div>';
+    h2+='</div>';
+  });
+  h2+='</div>';
+  return h2;
+}
+
+function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,today){
+  // Group leads by company
+  var coLeads={};
+  filtered.forEach(function(r){
+    var co=(r[col.company]||'').trim();if(!co||!activeCos[co])return;
+    if(!coLeads[co])coLeads[co]=[];coLeads[co].push(r);
+  });
+  var cos=Object.keys(coLeads).sort(function(a,b){return a.localeCompare(b,'ja');});
+  if(!cos.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">稼働中企業のリードが見つかりません</div>';
+  function getFullName(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
+  function leadRow(r,isStar){
+    var fn=getFullName(r);
+    var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+    var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
+    var deptC=(col.deptClass>=0?(r[col.deptClass]||''):'').trim();
+    var role=(col.role>=0?(r[col.role]||''):'').trim();
+    var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
+    var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
+    var email=(col.email>=0?(r[col.email]||''):'').trim();
+    var phone=(col.phone>=0?(r[col.phone]||''):'').trim()||((col.mobile>=0?(r[col.mobile]||''):'').trim());
+    var tcc=tcat.indexOf('決裁')>=0?'#7c3aed':tcat.indexOf('チャンピオン')>=0?'var(--blue)':tcat.indexOf('キーマン')>=0?'#f97316':'var(--ink3)';
+    var tn=parseInt(tier.replace(/[^0-9]/g,''))||0;var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc2=tcs[tn]||'var(--ink3)';
+    var h='<tr style="'+(isStar?'background:rgba(245,158,11,.06)':'')+'">';
+    h+='<td style="padding:4px 8px;text-align:center;width:20px">'+(isStar?'⭐':'')+'</td>';
+    h+='<td style="padding:4px 8px;font-weight:'+(isStar?'700':'600')+';font-size:11px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+deptC+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
+    h+='<td style="padding:4px 8px;font-size:9px">'+(tcat?'<span style="color:'+tcc+';font-weight:500">'+tcat+'</span>':'')+'</td>';
+    h+='<td style="padding:4px 8px;text-align:center">'+(tier?'<span style="font-size:9px;font-weight:700;color:'+tc2+';padding:1px 5px;background:'+tc2+'18;border-radius:3px">'+tier+'</span>':'')+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;color:var(--blue)">'+(email?'<a href="mailto:'+email+'" style="color:var(--blue);text-decoration:none">'+email+'</a>':'')+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;font-family:var(--mono)">'+phone+'</td>';
+    h+='</tr>';
+    return h;
+  }
+  var h='';
+  // Message banner
+  h+='<div style="background:linear-gradient(135deg,#0079C0,#005a94);color:#fff;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">';
+  h+='<div style="font-size:22px">🚀</div>';
+  h+='<div><div style="font-weight:700;font-size:13px">稼働中企業は拡大のゴールデンチャンス！</div>';
+  h+='<div style="font-size:11px;opacity:.9;margin-top:3px">「今御社とプロジェクトを進めています」というトークで、他部署・他担当者へのアプローチが最も刺さるタイミングです。スターリード（⭐）から横展開を狙いましょう。</div></div></div>';
+  cos.forEach(function(co){
+    var leads=coLeads[co];
+    var starL=leads.filter(function(r){var fn=getFullName(r);return fn&&starContactMap[co+'__'+fn];});
+    var otherL=leads.filter(function(r){var fn=getFullName(r);return !fn||!starContactMap[co+'__'+fn];});
+    var cases=coCases[co]||[];
+    var ckTotal=cases.reduce(function(s,r){return s+eGetN(r,'ck');},0);
+    var mem='';if(cases.length){var mm=eGet(cases[0],'member');mem=mm?mm.split(' ')[0]:'';}
+    var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    var _activeAid=leads.length&&col.accountId>=0?(leads[0][col.accountId]||'').trim():'';
+    h+='<details style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:8px">';
+    h+='<summary style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;background:var(--bg)">';
+    h+='<span style="font-size:18px">🏭</span>';
+    h+='<span style="font-weight:700;font-size:13px;flex:1">'+sfAccountLink(dispCo,co,_activeAid)+'</span>';
+    if(mem)h+='<span style="font-size:10px;font-weight:600;color:var(--blue)">担当: '+mem+'</span>';
+    if(cases.length){h+='<span style="font-size:10px;background:#ecfdf5;color:#065f46;padding:2px 8px;border-radius:4px;font-weight:600">稼働 '+cases.length+'件'+(ckTotal>0?' / CK '+eFmt(ckTotal)+'万':'')+'</span>';}
+    if(starL.length)h+='<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600">⭐ スター '+starL.length+'名</span>';
+    h+='<span style="font-size:10px;color:var(--ink3)">候補 '+otherL.length+'名</span>';
+    h+='</summary>';
+    h+='<div style="padding:12px 16px;background:#fff">';
+    // Active cases info
+    if(cases.length){
+      h+='<div style="font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:6px">🔖 稼働中案件</div>';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+      cases.forEach(function(r){
+        var cn=eGet(r,'name');var ck=eGetN(r,'ck');var cc=eGet(r,'custContact');
+        h+='<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:6px 10px;font-size:10px">';
+        h+='<div style="font-weight:600">'+cn+'</div>';
+        if(ck>0)h+='<div style="color:var(--ink3)">CK: '+eFmt(ck)+'万</div>';
+        if(cc)h+='<div style="color:var(--blue)">顧客担当: '+cc+'</div>';
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    h+='<thead><tr style="border-bottom:1px solid var(--bd)">';
+    ['','氏名','部署クラス','部署','役職','ターゲット','Tier','メール','電話'].forEach(function(l){h+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    if(starL.length){
+      h+='<tr><td colspan="9" style="padding:4px 8px 2px;font-size:10px;font-weight:600;color:#92400e;background:#fffbeb">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
+      starL.forEach(function(r){h+=leadRow(r,true);});
+    }
+    if(otherL.length){
+      h+='<tr><td colspan="9" style="padding:6px 8px 2px;font-size:10px;font-weight:600;color:var(--ink2)">👥 その他アプローチ候補</td></tr>';
+      otherL.forEach(function(r){h+=leadRow(r,false);});
+    }
+    h+='</tbody></table></div></details>';
+  });
+  return h;
+}
+
+function renderLeads(M){
+  if(!L_DATA||!L_DATA.length){M.innerHTML='<div style="padding:40px;text-align:center;color:var(--ink3)">データなし</div>';return;}
+  var col=L_COL,today=new Date();today.setHours(0,0,0,0);
+  var todayStr=today.toISOString().slice(0,10).replace(/-/g,'/');
+  // "確定リード" filter
+  function isConfirmed(r){
+    if(col.member<0)return true;
+    var m=(r[col.member]||'').trim();
+    return L_TEAM.indexOf(m)>=0;
+  }
+  var confirmed=L_DATA.filter(isConfirmed);
+  // Unique accounts
+  function uniqCo(rows){var s={};rows.forEach(function(r){var co=(r[col.company]||'').trim();if(co)s[co]=true;});return Object.keys(s).length;}
+  function isActive(r){var st=(col.status>=0?(r[col.status]||''):'').trim();return st.indexOf('稼働')>=0||st.toLowerCase().indexOf('active')>=0;}
+  // チームメンバー判定（E_ROWSのmember列）
+  var TEAM5_NAMES=['徳永','栫','中村','岡部','福本','飯田','木曽','土田','小林'];
+  function isTeamMember(mem){if(!mem)return false;for(var i=0;i<TEAM5_NAMES.length;i++)if(mem.indexOf(TEAM5_NAMES[i])>=0)return true;return false;}
+  // Build active-company sets from E_ROWS (all_cases フェーズ08) — チームメンバーの案件のみ
+  var activeCos={};    // 取引先名 → true (現在稼働中: phase08かつ終了日未来)
+  var anyCasesCos={};  // 取引先名 → true (過去含め何らかの案件あり = 接点あり)
+  window.starContactMap={}; // "会社名__氏名" → true (analytics view からも参照)
+  var starContactMap=window.starContactMap;
+  var coCases={};        // 取引先名 → [稼働中case rows]
+  if(window.E_ROWS&&window.E_COL){
+    var today2=new Date();today2.setHours(0,0,0,0);
+    // まず全案件（チームメンバーのみ）から接点ありの企業を収集
+    E_ROWS.forEach(function(r){
+      var mem=eGet(r,'member');if(!isTeamMember(mem))return;
+      var ac=eGet(r,'account').trim();if(!ac)return;
+      anyCasesCos[ac]=true;
+    });
+    // 次に稼働中（phase08・終了日未来・チームメンバー）のみ絞り込み
+    E_ROWS.forEach(function(r){
+      var mem=eGet(r,'member');if(!isTeamMember(mem))return;
+      var ph=eGet(r,'curPh');if(ePh(ph)!==8||ph.indexOf('DEAD')>=0)return;
+      var ed=eGet(r,'endDate');
+      if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today2)return;}
+      var ac=eGet(r,'account').trim();if(!ac)return;
+      activeCos[ac]=true;
+      if(!coCases[ac])coCases[ac]=[];coCases[ac].push(r);
+      if(E_COL.custContact>=0){var cc=(r[E_COL.custContact]||'').trim();if(cc){
+        // 「姓 名」「姓名」両方でマップ登録（スペースあり/なし両対応）
+        cc.split(/[,、；;\/・]/).forEach(function(n){
+          var nn=n.trim();if(!nn)return;
+          starContactMap[ac+'__'+nn]=true;
+          starContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;// スペースなしも登録
+        });
+      }}
+    });
+  }
+  // 過去提案・過去契約マップ（"会社名__担当者名" → 配列）— 顧客担当者に紐付け
+  var personProposalMap={};  // "co__name" → [{caseName,date,oppId,theme}]
+  var personContractMap={};  // "co__name" → [{caseName,startDate,endDate,oppId}]
+  if(window.E_ROWS&&window.E_COL){
+    E_ROWS.forEach(function(r){
+      var mem=eGet(r,'member');if(!isTeamMember(mem))return;
+      var ac=getCleanAccount(r).trim();if(!ac)return;
+      var ph=eGet(r,'curPh');if(ph.indexOf('DEAD')>=0)return;
+      var nm=eGet(r,'name');
+      var propDate=eGet(r,'proposalDate');
+      var startDate=eGet(r,'startDate');
+      var endDate=eGet(r,'endDate');
+      var oppId=eGet(r,'oppId');
+      var theme=extractThemeFromCaseName(nm);
+      // 顧客担当者列から担当者名を取得（複数の場合はsplit）
+      var cc=(E_COL.custContact>=0?(r[E_COL.custContact]||''):'').trim();
+      if(!cc)return; // 顧客担当者が不明な案件はスキップ
+      cc.split(/[,、；;\/・]/).forEach(function(n){
+        var nn=n.trim();if(!nn)return;
+        var keyS=ac+'__'+nn;
+        var keyN=ac+'__'+nn.replace(/\s+/g,'');
+        function addProp(key){
+          if(propDate){
+            if(!personProposalMap[key])personProposalMap[key]=[];
+            personProposalMap[key].push({caseName:nm,date:propDate,oppId:oppId,theme:theme});
+          }
+          if(ePh(ph)===8){
+            if(!personContractMap[key])personContractMap[key]=[];
+            personContractMap[key].push({caseName:nm,startDate:startDate,endDate:endDate,oppId:oppId});
+          }
+        }
+        addProp(keyS);if(keyN!==keyS)addProp(keyN);
+      });
+    });
+  }
+  window._lPropMap=personProposalMap; window._lContMap=personContractMap;
+  // 稼働後顧客 = 過去にph=08の案件があったが現在は終了（稼働中ではない）
+  var pastClientCos={};
+  if(window.E_ROWS&&window.E_COL){
+    var today3=new Date();today3.setHours(0,0,0,0);
+    E_ROWS.forEach(function(r){
+      var mem=eGet(r,'member');if(!isTeamMember(mem))return;
+      var ph=eGet(r,'curPh');if(ePh(ph)!==8||ph.indexOf('DEAD')>=0)return;
+      var ed=eGet(r,'endDate');
+      if(!ed)return;
+      var ed2=new Date(ed.replace(/\//g,'-'));if(isNaN(ed2)||ed2>=today3)return;
+      var ac=eGet(r,'account').trim();if(!ac)return;
+      pastClientCos[ac]=true;
+    });
+  }
+  function isPastClient(r){var co=(r[col.company]||'').trim();return pastClientCos[co]&&!activeCos[co];}
+  // 休眠 = 過去案件あり (anyCasesCos) かつ 現在稼働中でない (!activeCos)
+  // 未提案 = 案件ゼロ (!anyCasesCos)
+  function isDormant(r){var co=(r[col.company]||'').trim();return anyCasesCos[co]&&!activeCos[co];}
+  function isUnproposed(r){var co=(r[col.company]||'').trim();return !anyCasesCos[co];}
+  // 全タブ L_DATA 全件ベース（数字を統一）
+  var baseRows=L_DATA;
+  // Apply user filters for the list
+  var filtered=baseRows.filter(function(r){
+    if(L_MEMBER_FILTER!=='all'&&(col.member<0||(r[col.member]||'').trim()!==L_MEMBER_FILTER))return false;
+    if(L_TIER_FILTER!=='all'&&(col.tier<0||normTier((r[col.tier]||'').trim())!==L_TIER_FILTER))return false;
+    if(L_TARGET_FILTER!=='all'&&(col.targetCat<0||(r[col.targetCat]||'').indexOf(L_TARGET_FILTER)<0))return false;
+    var co2=(r[col.company]||'').trim();
+    if(L_VIEW_MODE==='active'&&!activeCos[co2])return false;
+    if(L_VIEW_MODE==='dormant'&&!isDormant(r))return false;
+    if(L_VIEW_MODE==='unproposed'&&!isUnproposed(r))return false;
+    if(L_VIEW_MODE==='pastclient'&&!isPastClient(r))return false;
+    if(L_ACTIVE_ONLY&&!activeCos[co2])return false;
+    if(L_SEARCH){var s=L_SEARCH.toLowerCase();var match=false;r.forEach(function(v){if(v&&v.toLowerCase().indexOf(s)>=0)match=true;});if(!match)return false;}
+    return true;
+  });
+  // Sort
+  filtered.sort(function(a,b){
+    var sd=L_SORT_DIR==='desc'?-1:1;
+    var ai=(col[L_SORT]>=0?(a[col[L_SORT]]||''):'').trim();
+    var bi=(col[L_SORT]>=0?(b[col[L_SORT]]||''):'').trim();
+    return sd*ai.localeCompare(bi,'ja');
+  });
+  // Per-member stats (L_DATAベース — 全リード)
+  var byMember={};var tierMap={};
+  // Tier別 + 提案中/リサイクル per member用にE_ROWSからも集計
+  var memberProposal={};// member → 提案中件数
+  var memberRecycle={};// member → リサイクル件数
+  if(window.E_ROWS&&window.E_COL){
+    E_ROWS.forEach(function(r){
+      var mem=eGet(r,'member');if(!isTeamMember(mem))return;
+      var mk=mem;
+      var ph=eGet(r,'curPh');var isDead=ph.indexOf('DEAD')>=0;var phN2=ePh(ph);
+      if(!isDead&&phN2>=1&&phN2<=7){memberProposal[mk]=(memberProposal[mk]||0)+1;}
+      if(isDead&&(E_COL.recycle>=0)&&(r[E_COL.recycle]||'').indexOf('リサイクル')>=0&&(r[E_COL.recycle]||'')!=='なし'){
+        memberRecycle[mk]=(memberRecycle[mk]||0)+1;
+      }
+    });
+  }
+  L_DATA.forEach(function(r){
+    var mem=(col.member>=0?(r[col.member]||''):'').trim()||'未設定';
+    var co=(r[col.company]||'').trim();
+    var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim())||'未分類';
+    if(!byMember[mem])byMember[mem]={leads:0,companies:{},active:0,star:0,t1:0,t2:0,t3:0,t4:0};
+    byMember[mem].leads++;
+    if(co)byMember[mem].companies[co]=true;
+    if(activeCos[co])byMember[mem].active++;
+    // star: 稼働中案件の顧客担当者（スペースあり/なし両方チェック）
+    var _ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+    var _fn2=(col.firstName>=0?(r[col.firstName]||''):'').trim();
+    var fnWithSp=(_ln+' '+_fn2).trim();var fnNoSp=(_ln+_fn2).trim();
+    if(co&&(starContactMap[co+'__'+fnWithSp]||starContactMap[co+'__'+fnNoSp]))byMember[mem].star++;
+    if(tier==='Tier1')byMember[mem].t1++;else if(tier==='Tier2')byMember[mem].t2++;else if(tier==='Tier3')byMember[mem].t3++;else if(tier==='Tier4')byMember[mem].t4++;
+    if(!tierMap[tier])tierMap[tier]={leads:0,companies:{}};
+    tierMap[tier].leads++;if(co)tierMap[tier].companies[co]=true;
+  });
+  // Unique tiers sorted
+  var tiers=Object.keys(tierMap).sort(function(a,b){
+    var ta=a.replace(/[^0-9]/g,''),tb=b.replace(/[^0-9]/g,'');
+    if(ta&&tb)return parseInt(ta)-parseInt(tb);
+    if(ta)return -1;if(tb)return 1;
+    return a.localeCompare(b,'ja');
+  });
+  // Members to show: all members who have data, in E_MEMBER_ORDER order + 小林 + 土田
+  var memberOrder=['小林 暁飛','土田 真矢'].concat(E_MEMBER_ORDER);
+  // Also include any member in byMember not in the default order
+  Object.keys(byMember).forEach(function(m){if(m!=='未設定'&&memberOrder.indexOf(m)<0)memberOrder.push(m);});
+  var activeMembers=memberOrder.filter(function(m){return byMember[m]&&byMember[m].leads>0;});
+  // Team totals
+  var teamTotal={leads:L_DATA.length,companies:uniqCo(L_DATA)};
+  // Build HTML
+  var h='<div style="padding:0 0 24px">';
+  // Header
+  h+='<div class="ent-hdr"><div><h2>リード管理ダッシュボード</h2><div class="sub">Enterprise Lead Management — 全 '+L_DATA.length+'名 / '+uniqCo(L_DATA)+'社</div></div></div>';
+  // ===== RECYCLE PIPELINE ANALYSIS =====
+  h+='<div style="padding:0 24px 4px">'+renderRecyclePipeline()+'</div>';
+  // ===== NEXT ACTION HEATMAP =====
+  h+='<div style="padding:0 24px 4px">'+renderNextActionHeatmap()+'</div>';
+  // ===== SUMMARY KPI TABLE =====
+  h+='<div style="padding:0 24px 20px">';
+  h+='<div class="ent-section">';
+  h+='<div class="es-title">📊 担当者別リード数サマリー</div>';
+  h+='<div style="overflow-x:auto"><table class="ent-table" style="width:100%">';
+  h+='<thead><tr>';
+  h+='<th style="text-align:left">担当者</th>';
+  h+='<th style="text-align:right">社数</th>';
+  h+='<th style="text-align:right">リード数</th>';
+  h+='<th style="text-align:right;color:#0079C0">T1</th>';
+  h+='<th style="text-align:right;color:#1a7f37">T2</th>';
+  h+='<th style="text-align:right;color:#bf8700">T3</th>';
+  h+='<th style="text-align:right;color:#888">T4</th>';
+  h+='<th style="text-align:right">⭐スター</th>';
+  h+='<th style="text-align:right">🏭稼働中</th>';
+  h+='<th style="text-align:right">提案中</th>';
+  h+='<th style="text-align:right">リサイクル</th>';
+  h+='</tr></thead><tbody>';
+  // Team total row
+  var totStar=0,totActLead=0,totProp=0,totRc=0,totT1=0,totT2=0,totT3=0,totT4=0;
+  activeMembers.forEach(function(m){var d=byMember[m]||{};totStar+=(d.star||0);totActLead+=(d.active||0);totT1+=(d.t1||0);totT2+=(d.t2||0);totT3+=(d.t3||0);totT4+=(d.t4||0);});
+  Object.values(memberProposal).forEach(function(v){totProp+=v;});Object.values(memberRecycle).forEach(function(v){totRc+=v;});
+  function mn(v){return v?v:'−';}
+  h+='<tr style="background:rgba(16,185,129,.08);font-weight:700">';
+  h+='<td>チーム合計</td><td style="text-align:right;font-family:var(--mono)">'+teamTotal.companies+'</td><td style="text-align:right;font-family:var(--mono)">'+teamTotal.leads+'</td>';
+  h+='<td style="text-align:right;font-family:var(--mono);color:#0079C0">'+mn(totT1)+'</td><td style="text-align:right;font-family:var(--mono);color:#1a7f37">'+mn(totT2)+'</td><td style="text-align:right;font-family:var(--mono);color:#bf8700">'+mn(totT3)+'</td><td style="text-align:right;font-family:var(--mono);color:#888">'+mn(totT4)+'</td>';
+  h+='<td style="text-align:right;font-family:var(--mono);color:#f59e0b">'+mn(totStar)+'</td><td style="text-align:right;font-family:var(--mono);color:var(--grn)">'+mn(totActLead)+'</td>';
+  h+='<td style="text-align:right;font-family:var(--mono);color:var(--blue)">'+mn(totProp)+'</td><td style="text-align:right;font-family:var(--mono);color:#7c3aed">'+mn(totRc)+'</td>';
+  h+='</tr>';
+  activeMembers.forEach(function(m){
+    var d=byMember[m]||{leads:0,companies:{},active:0,star:0,t1:0,t2:0,t3:0,t4:0};
+    var mc=L_MEMBER_COLORS[m]||'#888';
+    var pr=memberProposal[m]||0,rc=memberRecycle[m]||0;
+    h+='<tr>';
+    h+='<td style="font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;background:'+mc+';border-radius:50%;margin-right:5px;vertical-align:middle"></span>'+m+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono)">'+Object.keys(d.companies).length+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono)">'+d.leads+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#0079C0">'+mn(d.t1)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#1a7f37">'+mn(d.t2)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#bf8700">'+mn(d.t3)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#888">'+mn(d.t4)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);color:#f59e0b">'+mn(d.star)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);color:var(--grn)">'+mn(d.active)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);color:var(--blue)">'+mn(pr)+'</td>';
+    h+='<td style="text-align:right;font-family:var(--mono);color:#7c3aed">'+mn(rc)+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div></div>';
+  // ===== TIER BREAKDOWN =====
+  if(tiers.length>0&&col.tier>=0){
+    var tierTotal=0;tiers.forEach(function(t){tierTotal+=(tierMap[t]||{leads:0}).leads;});
+    h+='<div class="ent-section">';
+    h+='<div class="es-title">🏷️ Tier別リード構成</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">';
+    var tierColors={'Tier1':'#0079C0','Tier2':'#1a7f37','Tier3':'#bf8700','Tier4':'#888','未分類':'#ccc'};
+    tiers.forEach(function(t){
+      var d=tierMap[t]||{leads:0,companies:{}};
+      var tc=tierColors[t]||'#888';
+      var pct=tierTotal>0?Math.round(d.leads/tierTotal*100):0;
+      var coN=Object.keys(d.companies).length;
+      h+='<div style="background:'+tc+'12;border:2px solid '+tc+'44;border-radius:10px;padding:12px;text-align:center">';
+      h+='<div style="font-size:11px;font-weight:700;color:'+tc+'">'+t+'</div>';
+      h+='<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:'+tc+';line-height:1.2;margin:6px 0 2px">'+d.leads+'</div>';
+      h+='<div style="font-size:10px;color:var(--ink3)">'+coN+'社 / '+pct+'%</div>';
+      h+='</div>';
+    });
+    h+='</div></div>';
+  }
+  // Collect unique targetCat values (from L_DATA)
+  var targetCats=[];if(col.targetCat>=0){var tcSet={};L_DATA.forEach(function(r){var v=(r[col.targetCat]||'').trim();if(v)tcSet[v]=true;});targetCats=Object.keys(tcSet).sort(function(a,b){return a.localeCompare(b,'ja');});}
+  // ===== VIEW MODE TABS (status boxes) =====
+  var dormantCount=L_DATA.filter(isDormant).length;
+  var unpropCount=L_DATA.filter(isUnproposed).length;
+  var actLeadCount=L_DATA.filter(function(r){return activeCos[(r[col.company]||'').trim()];}).length;
+  var pastClientCount=L_DATA.filter(isPastClient).length;
+  h+='<div style="padding:0 24px 16px">';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">';
+  var tabs=[
+    {id:'all',label:'\uD83D\uDCCB 全リード',cnt:L_DATA.length,color:'#0079C0',sub:uniqCo(L_DATA)+'社'},
+    {id:'active',label:'\uD83C\uDFED 稼働中企業',cnt:actLeadCount,color:'#10b981',sub:Object.keys(activeCos).length+'社'},
+    {id:'pastclient',label:'\uD83D\uDD04 稼働後顧客',cnt:pastClientCount,color:'#0891b2',sub:Object.keys(pastClientCos).filter(function(co){return !activeCos[co];}).length+'社'},
+    {id:'dormant',label:'\uD83D\uDE34 休眠リード',cnt:dormantCount,color:'#f59e0b',sub:Object.keys(anyCasesCos).filter(function(co){return !activeCos[co];}).length+'社'},
+    {id:'unproposed',label:'\uD83D\uDD0D 未提案リード',cnt:unpropCount,color:'#7c3aed',sub:'商談ゼロ'},
+    {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別'}
+  ];
+  tabs.forEach(function(t){
+    var act=L_VIEW_MODE===t.id;
+    var tc=t.color;
+    h+='<div onclick="L_VIEW_MODE=\''+t.id+'\';L_ACTIVE_ONLY=(\''+t.id+'\'===\'active\');renderLeads(document.getElementById(\'M\'))" ';
+    h+='style="background:'+(act?tc+'20':'#fff')+';border:2px solid '+(act?tc:tc+'44')+';border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s">';
+    h+='<div style="font-size:11px;font-weight:700;color:'+tc+'">'+t.label+'</div>';
+    if(t.cnt!==null){
+      h+='<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:'+(act?tc:'var(--ink)')+';line-height:1.2;margin:6px 0 2px">'+t.cnt+'</div>';
+    }else{
+      h+='<div style="font-size:24px;margin:6px 0 2px">\uD83D\uDCCA</div>';
+    }
+    h+='<div style="font-size:10px;color:var(--ink3)">'+t.sub+'</div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  // ===== FILTER BAR ===== (analytics tab has its own filter)
+  // 全担当者フィルター: L_DATAから全メンバーを収集
+  var allMembersSet={};L_DATA.forEach(function(r){var m=(col.member>=0?(r[col.member]||''):'').trim();if(m)allMembersSet[m]=true;});
+  var allMembersSorted=Object.keys(allMembersSet).sort(function(a,b){return a.localeCompare(b,'ja');});
+  if(L_VIEW_MODE!=='analytics'){
+  h+='<div class="ent-section">';
+  h+='<div style="display:flex;gap:8px;padding:0 0 12px;align-items:center;flex-wrap:wrap">';
+  h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">絞込:</span>';
+  h+='<select class="fl" onchange="L_MEMBER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全担当者</option>';
+  allMembersSorted.forEach(function(m){h+='<option value="'+m+'"'+(L_MEMBER_FILTER===m?' selected':'')+'>'+m+'</option>';});
+  h+='</select>';
+  if(tiers.length>0&&col.tier>=0){
+    h+='<select class="fl" onchange="L_TIER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全Tier</option>';
+    tiers.forEach(function(t){h+='<option value="'+t+'"'+(L_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
+    h+='</select>';
+  }
+  if(targetCats.length>0){
+    h+='<select class="fl" onchange="L_TARGET_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">ターゲット/カテゴリ 全て</option>';
+    targetCats.forEach(function(t){h+='<option value="'+t+'"'+(L_TARGET_FILTER===t?' selected':'')+'>'+t+'</option>';});
+    h+='</select>';
+  }
+  h+='<input type="text" class="fl" id="l-search-input" placeholder="企業名・名前で検索..." style="min-width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;font-size:11px" value="'+L_SEARCH+'" oninput="clearTimeout(window._lsT);window._lsT=setTimeout(function(){L_SEARCH=document.getElementById(\'l-search-input\').value;renderLeads(document.getElementById(\'M\'));},300)">';
+  h+='<span style="margin-left:auto;font-size:11px;color:var(--ink2)"><strong>'+filtered.length+'</strong> / '+L_DATA.length+' 全リード</span>';
+  h+='</div>';
+  // ===== LEAD TABLE / VIEW ROUTING =====
+  h+='</div>'; // close ent-section (filter bar)
+  } // end if(L_VIEW_MODE!=='analytics')
+  if(L_VIEW_MODE==='analytics'){
+    h+=renderAnalyticsView(col,activeCos,anyCasesCos,personProposalMap,personContractMap);
+  } else if(L_VIEW_MODE==='active'){
+    h+='<div style="padding:0 24px 24px">'+renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,today)+'</div>';
+  } else if(L_VIEW_MODE==='dormant'){
+    h+='<div style="padding:0 24px 24px">'+renderDormantView(filtered,col,anyCasesCos,activeCos,personProposalMap,personContractMap)+'</div>';
+  } else if(L_VIEW_MODE==='unproposed'){
+    h+='<div style="padding:0 24px 24px">'+renderUnproposedView(filtered,col)+'</div>';
+    } else if(L_VIEW_MODE==='pastclient'){
+    h+='<div style="padding:0 24px 24px">'+renderPastClientView(pastClientCos,activeCos,filtered,col,personProposalMap,personContractMap)+'</div>';
+  } else {
+    // 全リード: 企業名アコーディオン表示
+    var allCos={};
+    filtered.forEach(function(r){var co=(r[col.company]||'').trim();if(co){if(!allCos[co])allCos[co]=[];allCos[co].push(r);}});
+    var allCoList=Object.keys(allCos).sort(function(a,b){return allCos[b].length-allCos[a].length;});
+    h+='<div style="padding:0 24px 24px">';
+    if(!allCoList.length){
+      h+='<div style="padding:40px;text-align:center;color:var(--ink3)">該当するリードが見つかりません</div>';
+    } else {
+      h+=renderCompanyAccordion(allCos,allCoList,col,'#0079C0',personProposalMap,personContractMap);
+    }
+    h+='</div>';
+  }
+  M.innerHTML=h;
+  updateSyncBadge();
+}
+// ===== RECYCLE DRAWER =====
+window._rcDrawerData={};
+function _ensureRcDrawer(){
+  if(document.getElementById('rc-drawer'))return;
+  var ov=document.createElement('div');ov.id='rc-drawer-overlay';ov.onclick=closeRcDrawer;document.body.appendChild(ov);
+  var dr=document.createElement('div');dr.id='rc-drawer';
+  dr.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--bd);background:#fff;position:sticky;top:0;z-index:1"><div id="rc-drawer-title" style="font-weight:700;font-size:14px"></div><button onclick="closeRcDrawer()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink2);line-height:1">×</button></div><div id="rc-drawer-body"></div>';
+  document.body.appendChild(dr);
+}
+function showRcDrawer(key){
+  _ensureRcDrawer();
+  var data=window._rcDrawerData[key];if(!data||!data.rows)return;
+  document.getElementById('rc-drawer-title').textContent=data.title;
+  var rows=data.rows;
+  var h='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:8px">';
+  if(data.isLead){
+    // Lead rows (next action heatmap)
+    var col=window.L_COL||{};
+    h+='<thead><tr style="border-bottom:2px solid var(--bd)">';
+    ['取引先','氏名','部署','役職','ターゲット','Tier','次回アクション日','メール','電話'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    rows.forEach(function(r,idx){
+      var co=(col.company>=0?(r[col.company]||''):'').replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+      var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+      var fn=(col.firstName>=0?(r[col.firstName]||''):'').trim();
+      var nm=(ln+' '+fn).trim();
+      var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+      var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
+      var role=(col.role>=0?(r[col.role]||''):'').trim();
+      var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
+      var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
+      var nad=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();
+      var email=(col.email>=0?(r[col.email]||''):'').trim();
+      var phone=(col.phone>=0?(r[col.phone]||''):(col.mobile>=0?(r[col.mobile]||''):'')).trim();
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:#fafafa':'')+'">';
+      h+='<td style="padding:6px 8px;font-size:10px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis" title="'+co+'">'+co+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;font-weight:600;white-space:nowrap">'+sfContactLink(nm,cid)+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2);max-width:120px;overflow:hidden;text-overflow:ellipsis">'+dept+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;white-space:nowrap">'+tcat+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;text-align:center">'+tier+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;font-family:var(--mono);font-weight:600;color:#7c3aed;white-space:nowrap">'+nad+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px">'+(email?'<a href="mailto:'+email+'" style="color:var(--blue)">'+email+'</a>':'')+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;font-family:var(--mono)">'+phone+'</td>';
+      h+='</tr>';
+    });
+  } else {
+    // Case rows (recycle heatmap)
+    h+='<thead><tr style="border-bottom:2px solid var(--bd)">';
+    ['取引先','案件名','種別','リサイクル希望日','最終P','CK','顧客担当者'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    rows.forEach(function(r,idx){
+      var acc=getCleanAccount(r).replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+      var nm=eGet(r,'name');
+      var rt=eGet(r,'recycle');
+      var rd=eGet(r,'recycleDate');
+      var lp=eGet(r,'lastPh');
+      var ck=eGetN(r,'ck');
+      var cc=eGet(r,'custContact');
+      var rdStyle=(rd&&rd>='2026')?'color:#7c3aed;font-weight:600':'color:var(--ink3)';
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:#fafafa':'')+'">';
+      h+='<td style="padding:6px 8px;font-size:10px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis" title="'+acc+'">'+acc+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis" title="'+nm+'">'+nm+'</td>';
+      h+='<td style="padding:6px 8px;font-size:9px;white-space:nowrap;color:var(--blue)">'+rt+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;font-family:var(--mono);white-space:nowrap;'+rdStyle+'">'+rd+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;text-align:center">'+lp+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;text-align:right;font-family:var(--mono)">'+(ck>0?eFmt(ck)+'万':'−')+'</td>';
+      h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2)">'+cc+'</td>';
+      h+='</tr>';
+    });
+  }
+  h+='</tbody></table>';
+  document.getElementById('rc-drawer-body').innerHTML=h;
+  document.getElementById('rc-drawer').classList.add('open');
+  document.getElementById('rc-drawer-overlay').classList.add('open');
+}
+function closeRcDrawer(){
+  var dr=document.getElementById('rc-drawer');if(dr)dr.classList.remove('open');
+  var ov=document.getElementById('rc-drawer-overlay');if(ov)ov.classList.remove('open');
+}
+// ===== END LEAD MANAGEMENT MODULE =====
+
+// ===== LEAD HISTORY / MEMO MODALS =====
+function _lModal(innerHtml){
+  var ov=document.getElementById('_lmod-ov');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='_lmod-ov';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+    ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+    document.body.appendChild(ov);
+  }
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:12px;padding:20px 24px;max-width:480px;width:90%;max-height:70vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative';
+  box.innerHTML=innerHtml;
+  ov.innerHTML='';
+  ov.appendChild(box);
+  var cl=document.createElement('button');
+  cl.style.cssText='position:absolute;top:10px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:#666;line-height:1';
+  cl.textContent='×';
+  cl.onclick=function(){ov.remove();};
+  box.appendChild(cl);
+}
+function showLeadHistory(co,fn,type){
+  var propMap=window._lPropMap||{};
+  var contMap=window._lContMap||{};
+  var keyS=co+'__'+fn;
+  var keyN=co+'__'+fn.replace(/\s+/g,'');
+  var props=(propMap[keyS]||propMap[keyN])||[];
+  var conts=(contMap[keyS]||contMap[keyN])||[];
+  var SFOP='https://circulation.lightning.force.com/lightning/r/Opportunity/';
+  var h='<div style="font-weight:700;font-size:14px;margin-bottom:14px;padding-right:24px">'+fn+' ／ '+co+'</div>';
+  if(type==='cont'||type==='both'){
+    h+='<div style="font-size:11px;font-weight:600;color:#10b981;margin-bottom:6px">📄 契約歴（'+conts.length+'件）</div>';
+    if(!conts.length){h+='<div style="font-size:11px;color:#888;margin-bottom:10px">なし</div>';}
+    conts.forEach(function(c){
+      h+='<div style="background:#ecfdf5;border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px">';
+      h+='<div style="font-weight:600"><a href="'+SFOP+c.oppId+'/view" target="_blank" style="color:#065f46;text-decoration:none">'+c.caseName+'</a></div>';
+      if(c.startDate||c.endDate){h+='<div style="color:#666;margin-top:2px;font-size:10px">'+(c.startDate||'')+(c.endDate?' 〜 '+c.endDate:'')+'</div>';}
+      h+='</div>';
+    });
+  }
+  if(type==='prop'||type==='both'){
+    h+='<div style="font-size:11px;font-weight:600;color:#0079C0;margin-bottom:6px;'+(type==='both'?'margin-top:10px':'')+'">💼 提案歴（'+props.length+'件）</div>';
+    if(!props.length){h+='<div style="font-size:11px;color:#888;margin-bottom:10px">なし</div>';}
+    props.forEach(function(p){
+      h+='<div style="background:#f0f9ff;border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px">';
+      h+='<div style="font-weight:600"><a href="'+SFOP+p.oppId+'/view" target="_blank" style="color:#0c4a6e;text-decoration:none">'+p.caseName+'</a></div>';
+      if(p.date){h+='<div style="color:#666;margin-top:2px;font-size:10px">提案日: '+p.date+'</div>';}
+      h+='</div>';
+    });
+  }
+  _lModal(h);
+}
+function showLeadMemo(co,fn){
+  var key='lmemo_'+co+'__'+fn;
+  var cur=localStorage.getItem(key)||'';
+  var h='<div style="font-weight:700;font-size:14px;margin-bottom:8px;padding-right:24px">📝 アクションメモ</div>';
+  h+='<div style="font-size:11px;color:#666;margin-bottom:10px">'+fn+' ／ '+co+'</div>';
+  h+='<textarea id="_lmemo-ta" style="width:100%;height:120px;border:1px solid #d1d5db;border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;font-family:inherit"></textarea>';
+  h+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">';
+  h+='<button id="_lmemo-del" style="padding:6px 14px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:12px">削除</button>';
+  h+='<button id="_lmemo-sav" style="padding:6px 14px;background:#0079C0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">保存</button>';
+  h+='</div>';
+  _lModal(h);
+  document.getElementById('_lmemo-ta').value=cur;
+  document.getElementById('_lmemo-del').onclick=function(){
+    localStorage.removeItem(key);
+    var ov=document.getElementById('_lmod-ov');if(ov)ov.remove();
+  };
+  document.getElementById('_lmemo-sav').onclick=function(){
+    var ta=document.getElementById('_lmemo-ta');
+    if(ta)localStorage.setItem(key,ta.value);
+    var ov=document.getElementById('_lmod-ov');if(ov)ov.remove();
+  };
+}
+document.addEventListener('click',function(e){
+  var h=e.target.closest('._lead-hist');
+  if(h){e.stopPropagation();showLeadHistory(h.dataset.co,h.dataset.fn,h.dataset.type);return;}
+  var m=e.target.closest('._lead-memo');
+  if(m){e.stopPropagation();showLeadMemo(m.dataset.co,m.dataset.fn);}
+});
+
+
+function fetchFromGAS(){
+  console.log('>>> fetchFromGAS (standalone) called');
+  SYNC_STATUS='syncing';updateSyncBadge();
+  var M=document.getElementById('M');
+  M.innerHTML='<div style="padding:60px;text-align:center;color:var(--ink3)"><div class="spinner" style="width:32px;height:32px;margin:0 auto 16px"></div>データを取得中...</div>';
+  Promise.all([
+    fetch(GAS_URL+'?sheet=acplan_cases').then(function(r){return r.text();}),
+    fetch(GAS_URL+'?sheet=all_lead').then(function(r){return r.text();}),
+    fetch(GAS_URL+'?sheet=acplan_pn').then(function(r){return r.text();}),
+    fetch(GAS_URL+'?sheet=pn_new').then(function(r){return r.text();})
+  ]).then(function(res){
+    // acplan_cases → E_ROWS, E_COL
+    var cf=pCSV(res[0]);
+    E_COL=eDetect(cf.h);window.E_HEADERS=cf.h;
+    var TEAM5_N=['徳永','栫','中村','岡部','福本','飯田','木曽','土田','小林'];
+    function isT(m){if(!m)return false;for(var i=0;i<TEAM5_N.length;i++)if(m.indexOf(TEAM5_N[i])>=0)return true;return false;}
+    E_ROWS=cf.r.filter(function(r){return isT((E_COL.member>=0?r[E_COL.member]:'').trim());});
+
+    // all_lead → L_DATA, L_HEADER, L_COL
+    var lf=pCSV(res[1]);
+    L_HEADER=lf.h;L_DATA=lf.r;L_COL=lDetectCols(lf.h);
+    L_LOADING=false;L_LOADED=true;
+    console.log('leads: '+L_DATA.length+' rows');
+
+    // acplan_pn → E_PN2, E_PN_COL
+    var pf=pCSV(res[2]);E_PN2=pf.r;window.E_PN_H=pf.h;
+    window.E_PN_COL={member:-1,name:-1,phase:-1,oppId:-1,bill:-1,pay:-1,startDate:-1,endDate:-1,cancel:-1,keizoku:-1,keizokuPro:-1};
+    if(pf.h)pf.h.forEach(function(hv,pi){
+      hv=hv.trim();
+      if(hv==='主担当者')window.E_PN_COL.member=pi;
+      else if(hv==='案件名')window.E_PN_COL.name=pi;
+      else if(hv==='フェーズ')window.E_PN_COL.phase=pi;
+      else if(hv.match(/案件.?ID|Opportunity ID/))window.E_PN_COL.oppId=pi;
+      else if(hv.match(/月額.*顧客請求|月額.*請求額/))window.E_PN_COL.bill=pi;
+      else if(hv.match(/月額.*専門家|月額.*支払/))window.E_PN_COL.pay=pi;
+      else if(hv==='契約開始日')window.E_PN_COL.startDate=pi;
+      else if(hv==='契約終了日')window.E_PN_COL.endDate=pi;
+      else if(hv==='解約日')window.E_PN_COL.cancel=pi;
+      else if(hv.indexOf('継続意向')>=0&&hv.indexOf('顧客')>=0)window.E_PN_COL.keizoku=pi;
+      else if(hv.indexOf('継続意向')>=0&&hv.indexOf('プロ')>=0)window.E_PN_COL.keizokuPro=pi;
+      else if(hv.indexOf('継続意向')>=0&&window.E_PN_COL.keizoku<0)window.E_PN_COL.keizoku=pi;
+    });
+
+    // pn_new → E_PN_NEW, E_PN_NEW_COL
+    var pn=pCSV(res[3]);window.E_PN_NEW=pn.r;window.E_PN_NEW_H=pn.h;
+    var nc={member:-1,sub:-1,account:-1,name:-1,type:-1,ym:-1,bill:-1,pay:-1,billM:-1,payM:-1,pk:-1,start:-1,end:-1,expert:-1,bill2:-1,pay2:-1,status:-1,oppId:-1};
+    if(pn.h)pn.h.forEach(function(nv,ni){
+      nv=nv.trim();
+      if(nv.indexOf('主担当者')>=0)nc.member=ni;
+      else if(nv.indexOf('副担当者')>=0)nc.sub=ni;
+      else if(nv==='取引先名')nc.account=ni;
+      else if(nv==='案件名')nc.name=ni;
+      else if(nv==='新規/継続')nc.type=ni;
+      else if(nv==='対象年月')nc.ym=ni;
+      else if(nv.indexOf('[月額]顧客請求')>=0)nc.billM=ni;
+      else if(nv.indexOf('[月額]専門家支払')>=0)nc.payM=ni;
+      else if(nv.indexOf('請求小計')>=0||nv.indexOf('①顧客請求')>=0)nc.bill=ni;
+      else if(nv.indexOf('支払小計')>=0||nv.indexOf('①専門家支払')>=0)nc.pay=ni;
+      else if(nv==='PK')nc.pk=ni;
+      else if(nv==='契約開始日')nc.start=ni;
+      else if(nv==='契約終了日')nc.end=ni;
+      else if(nv.indexOf('専門家氏名')>=0)nc.expert=ni;
+      else if(nv==='契約ステータス')nc.status=ni;
+      else if(nv.match(/案件.?ID/))nc.oppId=ni;
+    });
+    window.E_PN_NEW_COL=nc;
+
+    SYNC_STATUS='live';updateSyncBadge();
+    renderLeads(M);
+  }).catch(function(err){
+    console.warn('GAS fetch failed:', err);
+    SYNC_STATUS='offline';updateSyncBadge();
+    document.getElementById('M').innerHTML='<div style="padding:40px;text-align:center"><div style="font-size:16px;margin-bottom:12px;color:var(--red)">⚠️ データ取得エラー</div><div style="color:var(--ink3);font-size:12px">GAS APIへの接続に失敗しました。<br>ローカル環境ではCORSエラーが発生します。<br>GitHub Pages経由でアクセスしてください。</div></div>';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', fetchFromGAS);
+</script>
+</body>
+</html>

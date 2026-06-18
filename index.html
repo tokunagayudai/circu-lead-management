@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>リード管理 | Circulation Enterprise</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👥</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 <style>
-<style>
-:root{--blue:#0079C0;--grn:#1a7f37;--grn-bg:#dafbe1;--org:#bf8700;--red:#cf222e;--purple:#7c3aed;
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{--blue:#0079C0;--blue-d:#003d5e;--blue-mid:#5599be;--blue-l:#e8f6ff;--grn:#1a7f37;--grn-bg:#dafbe1;--org:#bf8700;--red:#cf222e;--purple:#7c3aed;
 --bg:#f6f8fa;--bg2:#fff;--bd:#d0d7de;--ink:#1f2328;--ink2:#656d76;--ink3:#8b949e;
---mono:'SF Mono',Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13px}
+--mono:'JetBrains Mono','SF Mono',Consolas,monospace;--sans:'M PLUS Rounded 1c',-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans JP',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--sans);background:linear-gradient(160deg,#e8f6ff 0%,#d8eefb 100%);background-attachment:fixed;color:var(--ink);font-size:13px}
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:56px;background:#1a1f2e;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;z-index:100;overflow-y:auto}
 .ni{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8b949e;font-size:18px;transition:.15s;flex-direction:column;gap:1px}
 .ni .nl{font-size:7px;letter-spacing:.3px}
@@ -18,8 +19,17 @@
 .logo-s{width:36px;height:36px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;margin-bottom:12px}
 #M{margin-left:0;min-height:100vh;padding-top:52px}
 /* Top navigation bar with 2 major categories */
-.topnav{position:fixed;top:0;left:0;right:0;height:52px;background:#1a1f2e;display:flex;align-items:stretch;z-index:200;padding:0;gap:0}
-.topnav .tn-logo{color:#fff;font-weight:900;font-size:14px;background:var(--blue);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin:8px 12px;flex-shrink:0}
+.topnav{position:fixed;top:0;left:0;right:0;height:52px;background:linear-gradient(135deg,#0079c0,#005a92);display:flex;align-items:center;gap:10px;z-index:200;padding:0 18px;box-shadow:0 2px 12px rgba(0,121,192,.25)}
+.topnav .tn-logo{color:#fff;font-weight:900;font-size:18px;background:rgba(255,255,255,.18);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.topnav .tn-portal{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0}
+.topnav .tn-portal:hover .tn-portal-name{text-decoration:underline}
+.topnav .tn-portal-name{color:#fff;font-weight:800;font-size:14px;letter-spacing:.01em}
+.topnav .tn-badge{background:rgba(255,255,255,.2);color:#fff;border-radius:20px;padding:3px 11px;font-size:10px;font-weight:600;flex-shrink:0}
+.topnav .tn-div{width:1px;height:22px;background:rgba(255,255,255,.25);margin:0 4px;flex-shrink:0}
+.topnav .tn-sub{color:rgba(255,255,255,.6);font-size:11px;white-space:nowrap}
+.topnav .tn-back{display:inline-flex;align-items:center;gap:5px;color:#fff;text-decoration:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s}
+.topnav .tn-back:hover{background:rgba(255,255,255,.28)}
+@media(max-width:640px){.topnav .tn-sub,.topnav .tn-portal-name{display:none}}
 .tn-section{display:flex;flex-direction:column;padding:4px 16px;position:relative;min-width:0}
 .tn-section.biz{background:rgba(239,68,68,.08);border-right:1px solid rgba(255,255,255,.05)}
 .tn-section.ap{background:rgba(14,165,233,.06)}
@@ -335,20 +345,26 @@
 .st-lbl{font-size:8px;color:var(--ink3);margin-top:3px;text-align:center}
 .st-val{font-size:7px;font-family:var(--mono);color:var(--ink2);text-align:center;margin-bottom:2px}
 .loading-msg{padding:40px;text-align:center;color:var(--ink3);font-size:14px}
-</style>
 /* Standalone overrides */
 #M{margin-left:0;min-height:100vh;padding-top:52px}
-.topnav{position:fixed;top:0;left:0;right:0;height:52px;background:#1a1f2e;display:flex;align-items:center;z-index:200;padding:0 16px;gap:12px}
-.topnav .tn-logo{color:#fff;font-weight:900;font-size:14px;background:var(--blue);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.topnav{position:fixed;top:0;left:0;right:0;height:52px;background:linear-gradient(135deg,#0079c0,#005a92);display:flex;align-items:center;z-index:200;padding:0 18px;gap:10px;box-shadow:0 2px 12px rgba(0,121,192,.25)}
+.topnav .tn-logo{color:#fff;font-weight:900;font-size:18px;background:rgba(255,255,255,.18);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 </style>
 </head>
 <body>
 <nav class="topnav">
-  <div class="tn-logo">C</div>
+  <a class="tn-portal" href="https://tokunagayudai.github.io/circu-Enterprise-portal/" title="エンタープライズ ポータルへ">
+    <span class="tn-logo"><i class="ti ti-building-skyscraper"></i></span>
+    <span class="tn-portal-name">エンタープライズ ポータル</span>
+  </a>
+  <span class="tn-badge">CIRCULATION</span>
+  <span class="tn-div"></span>
+  <i class="ti ti-address-book" style="font-size:17px;color:#fff;opacity:.92"></i>
   <span style="color:#fff;font-weight:700;font-size:14px">リード管理</span>
-  <span style="color:rgba(255,255,255,.4);font-size:11px">Enterprise Lead Management</span>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+  <span class="tn-sub">Enterprise Lead Management</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
     <span id="nav-sync-badge"></span>
+    <a class="tn-back" href="https://tokunagayudai.github.io/circu-Enterprise-portal/"><i class="ti ti-arrow-left"></i> ポータルへ戻る</a>
   </div>
 </nav>
 <div id="M"><div style="padding:60px;text-align:center;color:var(--ink3)"><div class="spinner" style="width:32px;height:32px;margin:0 auto 16px"></div>読み込み中...</div></div>

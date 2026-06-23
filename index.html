@@ -1725,6 +1725,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   window.IS_MEMBER_FILTER=window.IS_MEMBER_FILTER||'all';
   window.IS_TIER_FILTER=window.IS_TIER_FILTER||'all';
   window.IS_CS_FILTER=window.IS_CS_FILTER||'all';
+  window.IS_APPROACH_FILTER=window.IS_APPROACH_FILTER||'all';
   var CS={
     active:{label:'🏭 稼働中',color:'#10b981',bg:'#d1fae5'},
     past:{label:'🔄 稼働後',color:'#0891b2',bg:'#e0f2fe'},
@@ -1771,6 +1772,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
       if(window.IS_MEMBER_FILTER!=='all'&&p.mem!==window.IS_MEMBER_FILTER)return false;
       if(window.IS_TIER_FILTER!=='all'&&p.tier!==window.IS_TIER_FILTER)return false;
       if(window.IS_CS_FILTER!=='all'&&p.csKey!==window.IS_CS_FILTER)return false;
+      if(window.IS_APPROACH_FILTER!=='all'&&p.status!==window.IS_APPROACH_FILTER)return false;
       return true;
     });
   }
@@ -1886,6 +1888,12 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_MEMBER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全FS担当者</option>';
   fsList.forEach(function(m){h+='<option value="'+m+'"'+(window.IS_MEMBER_FILTER===m?' selected':'')+'>'+m+'</option>';});
   h+='</select>';
+  // アプローチステータスドロップダウン（ユニーク値を収集）
+  var approachSet={};allRows.forEach(function(p){if(p.status)approachSet[p.status]=true;});
+  var approachList=Object.keys(approachSet).sort();
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px;max-width:200px" onchange="window.IS_APPROACH_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">アプローチST 全て</option>';
+  approachList.forEach(function(s){h+='<option value="'+s.replace(/"/g,'&quot;')+'"'+(window.IS_APPROACH_FILTER===s?' selected':'')+'>'+s+'</option>';});
+  h+='</select>';
   h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全Tier</option>';
   tierList.forEach(function(t){h+='<option value="'+t+'"'+(window.IS_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
   h+='</select>';
@@ -1894,6 +1902,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
     return rows.filter(function(p){
       if(window.IS_MEMBER_FILTER!=='all'&&p.mem!==window.IS_MEMBER_FILTER)return false;
       if(window.IS_TIER_FILTER!=='all'&&p.tier!==window.IS_TIER_FILTER)return false;
+      if(window.IS_APPROACH_FILTER!=='all'&&p.status!==window.IS_APPROACH_FILTER)return false;
       if(window.IS_VIEW==='future'&&!p.isFuture)return false;
       return true;
     });

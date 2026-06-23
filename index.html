@@ -1699,12 +1699,58 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     return h;
   }
   var h='';
+  // MTGフィルター用: リードごとのMTGデータをチェック
+  var mtgFilt=window.ACTIVE_MTG_FILTER||'all';
+  function leadMtgMissing(fn,cid){
+    var k='circu_lead_'+(cid||fn);
+    var d=(function(){try{return JSON.parse(localStorage.getItem(k)||'{}');}catch(e){return {};}}());
+    if(mtgFilt==='r1_missing')return !d.r1_date;
+    if(mtgFilt==='r3_missing')return !d.r3_date;
+    if(mtgFilt==='any_missing')return !d.r1_date||!d.r3_date;
+    return false;
+  }
+  // フィルター適用後の会社リスト
+  var filteredCos=cos.filter(function(co){
+    if(mtgFilt==='all')return true;
+    var leads=coLeads[co];
+    return leads.some(function(r){
+      var fn=getFullName(r);
+      var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+      return leadMtgMissing(fn,cid);
+    });
+  });
+  // 未設定件数カウント
+  var anyMissingCos=cos.filter(function(co){
+    return coLeads[co].some(function(r){
+      var fn=getFullName(r);var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+      var k='circu_lead_'+(cid||fn);
+      var d=(function(){try{return JSON.parse(localStorage.getItem(k)||'{}');}catch(e){return {};}}());
+      return !d.r1_date||!d.r3_date;
+    });
+  });
+  var anyMissingLeads=0;cos.forEach(function(co){coLeads[co].forEach(function(r){
+    var fn=getFullName(r);var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+    var k='circu_lead_'+(cid||fn);
+    var d=(function(){try{return JSON.parse(localStorage.getItem(k)||'{}');}catch(e){return {};}}());
+    if(!d.r1_date||!d.r3_date)anyMissingLeads++;
+  });});
   // Message banner
-  h+='<div style="background:linear-gradient(135deg,#0079C0,#005a94);color:#fff;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">';
+  h+='<div style="background:linear-gradient(135deg,#0079C0,#005a94);color:#fff;border-radius:10px;padding:12px 18px;margin-bottom:12px;display:flex;align-items:center;gap:10px">';
   h+='<div style="font-size:22px">🚀</div>';
   h+='<div><div style="font-weight:700;font-size:13px">稼働中企業は拡大のゴールデンチャンス！</div>';
   h+='<div style="font-size:11px;opacity:.9;margin-top:3px">「今御社とプロジェクトを進めています」というトークで、他部署・他担当者へのアプローチが最も刺さるタイミングです。スターリード（⭐）から横展開を狙いましょう。</div></div></div>';
-  cos.forEach(function(co){
+  // MTGフィルターバー
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+  h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">📋 MTGフィルター</span>';
+  [['all','全て'],['any_missing','未設定あり'],['r1_missing','1M未設定'],['r3_missing','3M未設定']].forEach(function(opt){
+    var isAct=mtgFilt===opt[0];
+    var badge=(opt[0]==='any_missing'&&anyMissingCos.length)?'<span style="font-size:9px;background:#ef4444;color:#fff;border-radius:8px;padding:0 5px;margin-left:4px;font-weight:700">'+anyMissingCos.length+'社</span>':'';
+    var _bstyle='padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(isAct?'#0079C0':'#d1d5db')+';background:'+(isAct?'#0079C0':'#fff')+';color:'+(isAct?'#fff':'#374151');
+    h+='<button onclick="isSetActiveMtgFilter(this.dataset.v)" data-v="'+opt[0]+'" style="'+_bstyle+'">'+opt[1]+badge+'</button>';
+  });
+  if(mtgFilt!=='all')h+='<span style="font-size:10px;color:var(--ink3);margin-left:4px">'+filteredCos.length+'社 / 未設定リード '+anyMissingLeads+'名</span>';
+  h+='</div>';
+  filteredCos.forEach(function(co){
     var leads=coLeads[co];
     var starL=leads.filter(function(r){var fn=getFullName(r);return fn&&starContactMap[co+'__'+fn];});
     var otherL=leads.filter(function(r){var fn=getFullName(r);return !fn||!starContactMap[co+'__'+fn];});
@@ -1841,6 +1887,7 @@ function circuMtgDoneBtn(co,field,done){
 function isSetView(v){window.IS_VIEW=v;renderLeads(document.getElementById('M'));}
 function isSetMember(v){window.IS_MEMBER_FILTER=v;renderLeads(document.getElementById('M'));}
 function isSetCS(v){window.IS_CS_FILTER=v;renderLeads(document.getElementById('M'));}
+function isSetActiveMtgFilter(v){window.ACTIVE_MTG_FILTER=v;renderLeads(document.getElementById('M'));}
 // ===== IS PIPELINE VIEW =====
 function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   var today=new Date();today.setHours(0,0,0,0);

@@ -1775,62 +1775,56 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     h+='</summary>';
     h+='<div style="padding:12px 16px;background:#fff">';
     // Active cases info
+    // ===== 稼働中案件 + 案件ごとMTGトラッカー =====
     if(cases.length){
-      h+='<div style="font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:6px">🔖 稼働中案件</div>';
-      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
-      cases.forEach(function(r){
-        var cn=eGet(r,'name');var ck=eGetN(r,'ck');var cc=eGet(r,'custContact');
-        h+='<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:6px 10px;font-size:10px">';
-        h+='<div style="font-weight:600">'+cn+'</div>';
-        if(ck>0)h+='<div style="color:var(--ink3)">CK: '+eFmt(ck)+'万</div>';
-        if(cc)h+='<div style="color:var(--blue)">顧客担当: '+cc+'</div>';
+      h+='<div style="font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:8px">🔖 稼働中案件</div>';
+      cases.forEach(function(cr,ci){
+        var cn=eGet(cr,'name');var ck=eGetN(cr,'ck');var cc=eGet(cr,'custContact');
+        var _sd=eGet(cr,'startDate')||'';
+        var _start1M='';var _start3M='';
+        if(_sd){
+          var _sdp=new Date(_sd.replace(/\//g,'-'));
+          if(!isNaN(_sdp)){
+            var _d1=new Date(_sdp);_d1.setMonth(_d1.getMonth()+1);
+            var _d3=new Date(_sdp);_d3.setMonth(_d3.getMonth()+3);
+            _start1M=_d1.getFullYear()+'/'+((_d1.getMonth()+1<10?'0':'')+(_d1.getMonth()+1))+'/'+(_d1.getDate()<10?'0':'')+_d1.getDate();
+            _start3M=_d3.getFullYear()+'/'+((_d3.getMonth()+1<10?'0':'')+(_d3.getMonth()+1))+'/'+(_d3.getDate()<10?'0':'')+_d3.getDate();
+          }
+        }
+        var _caseKey='circu_case_'+(cn||co+'_'+ci);
+        var _cd=(function(){try{return JSON.parse(localStorage.getItem(_caseKey)||'{}');}catch(e){return {};}}());
+        var _ckE=_caseKey.replace(/"/g,'&quot;');
+        var _r1id='cr1_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
+        var _r3id='cr3_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
+        var _r1done=!!_cd.r1_done;var _r3done=!!_cd.r3_done;
+        var _miss=(!_cd.r1_date||!_cd.r3_date)?'<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:8px;margin-left:6px">MTG未設定あり</span>':'';
+        h+='<div style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:8px">';
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+        h+='<span style="font-size:11px;font-weight:700;color:#1d4ed8">'+cn+'</span>';
+        if(ck>0)h+='<span style="font-size:10px;color:var(--ink3)">CK: '+eFmt(ck)+'万</span>';
+        if(cc)h+='<span style="font-size:10px;color:var(--blue)">顧客担当: '+cc+'</span>';
+        if(_sd)h+='<span style="font-size:10px;color:var(--ink3)">契約開始: '+_sd+'</span>';
+        h+=_miss;
+        h+='</div>';
+        h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+        h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
+        h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">1ヶ月レビュー'+(_start1M?' <span style="color:#6b7280;font-weight:400">目安: '+_start1M+'</span>':'')+'</div>';
+        h+='<div style="display:flex;align-items:center;gap:6px">';
+        h+='<input type="date" value="'+(_cd.r1_date||'')+'" oninput="circuSaveMtg(this.dataset.k,\'r1_date\',this.value)" data-k="'+_ckE+'" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
+        h+='<span id="'+_r1id+'" onclick="circuCaseDone(this)" data-k="'+_ckE+'" data-f="r1_done" data-id="'+_r1id+'" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(_r1done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(_r1done?'✅ 完了':'⬜ 未実施')+'</span>';
+        h+='</div></div>';
+        h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
+        h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">3ヶ月レビュー'+(_start3M?' <span style="color:#6b7280;font-weight:400">目安: '+_start3M+'</span>':'')+'</div>';
+        h+='<div style="display:flex;align-items:center;gap:6px">';
+        h+='<input type="date" value="'+(_cd.r3_date||'')+'" oninput="circuSaveMtg(this.dataset.k,\'r3_date\',this.value)" data-k="'+_ckE+'" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
+        h+='<span id="'+_r3id+'" onclick="circuCaseDone(this)" data-k="'+_ckE+'" data-f="r3_done" data-id="'+_r3id+'" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(_r3done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(_r3done?'✅ 完了':'⬜ 未実施')+'</span>';
+        h+='</div></div>';
+        h+='</div>';
+        h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">📝 追加提案メモ</div>';
+        h+='<textarea oninput="circuSaveMtg(this.dataset.k,\'proposal\',this.value)" data-k="'+_ckE+'" placeholder="追加提案の内容・ステータスをメモ..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:6px 8px;font-size:10px;resize:vertical;min-height:44px;box-sizing:border-box;font-family:inherit">'+(_cd.proposal||'')+'</textarea>';
         h+='</div>';
       });
-      h+='</div>';
     }
-    // ===== MTGトラッカー =====
-    var _mtg=circuGetMtg(co);
-    var _coE2=co.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    var _coId=btoa(encodeURIComponent(co)).replace(/=/g,'');
-    // 契約開始日から1M/3Mを計算
-    var _startStr='';var _start1M='';var _start3M='';
-    if(cases.length){
-      var _sd=eGet(cases[0],'startDate');
-      if(_sd){
-        _startStr=_sd;
-        var _sdp=new Date(_sd.replace(/\//g,'-'));
-        if(!isNaN(_sdp)){
-          var _d1=new Date(_sdp);_d1.setMonth(_d1.getMonth()+1);
-          var _d3=new Date(_sdp);_d3.setMonth(_d3.getMonth()+3);
-          _start1M=_d1.getFullYear()+'/'+((_d1.getMonth()+1<10?'0':'')+(_d1.getMonth()+1))+'/'+(_d1.getDate()<10?'0':'')+_d1.getDate();
-          _start3M=_d3.getFullYear()+'/'+((_d3.getMonth()+1<10?'0':'')+(_d3.getMonth()+1))+'/'+(_d3.getDate()<10?'0':'')+_d3.getDate();
-        }
-      }
-    }
-    h+='<div style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:10px">';
-    h+='<div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:8px">📋 レビューMTG管理'+((_startStr)?' <span style="font-weight:400;color:#6b7280">契約開始: '+_startStr+'</span>':'')+'</div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-    // 1ヶ月レビュー
-    h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
-    h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">1ヶ月レビュー'+(_start1M?' <span style="color:#6b7280;font-weight:400">目安: '+_start1M+'</span>':'')+'</div>';
-    h+='<div style="display:flex;align-items:center;gap:6px">';
-    h+='<input type="date" value="'+(_mtg.r1_date||'')+'" oninput="circuSaveMtg(\''+_coE2+'\',\'r1_date\',this.value)" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-    var _r1done=!!_mtg.r1_done;
-    h+='<span onclick="circuToggleDone(\''+_coE2+'\',\'r1_done\')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(_r1done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(_r1done?'✅ 完了':'⬜ 未実施')+'</span>';
-    h+='</div></div>';
-    // 3ヶ月レビュー
-    h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
-    h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">3ヶ月レビュー'+(_start3M?' <span style="color:#6b7280;font-weight:400">目安: '+_start3M+'</span>':'')+'</div>';
-    h+='<div style="display:flex;align-items:center;gap:6px">';
-    h+='<input type="date" value="'+(_mtg.r3_date||'')+'" oninput="circuSaveMtg(\''+_coE2+'\',\'r3_date\',this.value)" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-    var _r3done=!!_mtg.r3_done;
-    h+='<span onclick="circuToggleDone(\''+_coE2+'\',\'r3_done\')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(_r3done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(_r3done?'✅ 完了':'⬜ 未実施')+'</span>';
-    h+='</div></div>';
-    h+='</div>';
-    // 追加提案
-    h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">📝 追加提案メモ</div>';
-    h+='<textarea oninput="circuSaveMtg(\''+_coE2+'\',\'proposal\',this.value)" placeholder="追加提案の内容・ステータスをメモ..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:6px 8px;font-size:10px;resize:vertical;min-height:48px;box-sizing:border-box;font-family:inherit">'+(_mtg.proposal||'')+'</textarea>';
-    h+='</div>';
     h+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
     h+='<thead><tr style="border-bottom:1px solid var(--bd)">';
     ['','氏名','部署クラス','部署','役職','ターゲット','Tier','関係値','MTG','メール','電話'].forEach(function(l){h+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
@@ -1851,6 +1845,16 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
 
 
 // ===== リードごとの関係値・MTGヘルパー =====
+function circuCaseDone(el){
+  var lsKey=el.dataset.k;var field=el.dataset.f;var elId=el.dataset.id;
+  var d=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}}());
+  var dateField=field.replace('_done','_date');
+  if(!d[field]&&!d[dateField]){alert('先に日付を入力してください');return;}
+  d[field]=!d[field];localStorage.setItem(lsKey,JSON.stringify(d));
+  var span=document.getElementById(elId);
+  if(span){span.style.background=d[field]?'#dcfce7':'#f3f4f6';span.style.color=d[field]?'#15803d':'#6b7280';span.textContent=d[field]?'✅ 完了':'⬜ 未実施';}
+}
+
 function circuLeadSave(lsKey,field,val){
   var d=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}}());
   d[field]=val;localStorage.setItem(lsKey,JSON.stringify(d));

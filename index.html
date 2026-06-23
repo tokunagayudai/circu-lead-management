@@ -590,7 +590,7 @@ var L_TEAM=['小林 暁飛','徳永 雄大','栫 英輝','中村 春香','岡部
 var L_MEMBER_COLORS=Object.assign({'小林 暁飛':'#6366f1'},E_MEMBER_COLORS);
 
 function lDetectCols(h){
-  var c={company:-1,name:-1,lastName:-1,firstName:-1,member:-1,tier:-1,targetCat:-1,status:-1,la:-1,recycle:-1,dept:-1,deptClass:-1,role:-1,recycleDate:-1,notes:-1,phone:-1,mobile:-1,email:-1,nextActionDate:-1,contactId:-1,accountId:-1};
+  var c={company:-1,name:-1,lastName:-1,firstName:-1,member:-1,tier:-1,targetCat:-1,status:-1,approachStatus:-1,la:-1,recycle:-1,dept:-1,deptClass:-1,role:-1,recycleDate:-1,notes:-1,phone:-1,mobile:-1,email:-1,nextActionDate:-1,contactId:-1,accountId:-1};
   h.forEach(function(v,i){
     var s=(v||'').trim();
     if(s.indexOf('KOMON')>=0||s.indexOf('NOMAD')>=0)c.member=i;
@@ -599,6 +599,7 @@ function lDetectCols(h){
     else if(s.indexOf('Tier')>=0||s.indexOf('ティア')>=0)c.tier=i;
     // ターゲット/カテゴリ → targetCat (キーマン/チャンピオン/決裁者 etc), NOT tier
     else if(s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)c.targetCat=i;
+    else if(s.indexOf('アプローチ')>=0&&s.indexOf('ステータス')>=0&&c.approachStatus<0)c.approachStatus=i;
     else if((s.indexOf('ステータス')>=0||s==='状態')&&c.status<0)c.status=i;
     else if(s.indexOf('最終活動')>=0)c.la=i;
     else if(s.indexOf('リサイクル予定日')>=0||s.indexOf('リサイクル希望')>=0||s.indexOf('リサイクル日')>=0||s.indexOf('アポ予定')>=0||(s.indexOf('リサイクル')>=0&&s.indexOf('日')>=0))c.recycleDate=i;
@@ -1754,7 +1755,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
     var nm=(ln+' '+fn).trim();
     var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
     var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
-    var status=(col.status>=0?(r[col.status]||''):'').trim();
+    var status=(col.approachStatus>=0?(r[col.approachStatus]||''):col.status>=0?(r[col.status]||''):'').trim();
     var la=(col.la>=0?(r[col.la]||''):'').trim();
     var naYMraw=parseNAD(r);
     var naStr=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();
@@ -1834,9 +1835,29 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全Tier</option>';
   tierList.forEach(function(t){h+='<option value="'+t+'"'+(window.IS_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
   h+='</select>';
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_CS_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">接点ステータス 全て</option>';
-  Object.keys(CS).forEach(function(k){h+='<option value="'+k+'"'+(window.IS_CS_FILTER===k?' selected':'')+'>'+CS[k].label+'</option>';});
-  h+='</select>';
+  // 接点ステータスごとのカウント（FS/Tier/ビュー絞り込み適用済み、CS絞り込みは外して全数表示）
+  function applyF_noCS(rows){
+    return rows.filter(function(p){
+      if(window.IS_MEMBER_FILTER!=='all'&&p.mem!==window.IS_MEMBER_FILTER)return false;
+      if(window.IS_TIER_FILTER!=='all'&&p.tier!==window.IS_TIER_FILTER)return false;
+      if(window.IS_VIEW==='future'&&!p.isFuture)return false;
+      return true;
+    });
+  }
+  var _baseForCount=applyF_noCS(allRows);
+  var csCountFull={};
+  _baseForCount.forEach(function(p){csCountFull[p.csKey]=(csCountFull[p.csKey]||0)+1;});
+  var _allCnt=_baseForCount.length;
+  h+='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
+  var _allActive=window.IS_CS_FILTER==='all';
+  h+='<div onclick="window.IS_CS_FILTER=\'all\';renderLeads(document.getElementById(\'M\'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(_allActive?'#374151':'var(--bd)')+';background:'+(_allActive?'#374151':'#fff')+';color:'+(_allActive?'#fff':'var(--ink2)')+';white-space:nowrap">全て '+_allCnt+'</div>';
+  Object.keys(CS).forEach(function(k){
+    var cnt=csCountFull[k]||0;
+    var isAct=window.IS_CS_FILTER===k;
+    var c=CS[k];
+    h+='<div onclick="window.IS_CS_FILTER=\''+k+'\';renderLeads(document.getElementById(\'M\'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(isAct?c.color:'var(--bd)')+';background:'+(isAct?c.color:'#fff')+';color:'+(isAct?'#fff':c.color)+';white-space:nowrap">'+c.label+' '+cnt+'</div>';
+  });
+  h+='</div>';
   h+='<span style="margin-left:auto;font-size:11px;color:var(--ink2)"><strong>'+displayRows.length+'</strong>件</span>';
   h+='</div>';
   // Lead table

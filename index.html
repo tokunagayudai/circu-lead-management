@@ -1823,7 +1823,7 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
         h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">📝 追加提案メモ</div>';
         h+='<textarea oninput="circuSaveMtg(this.dataset.k,\'proposal\',this.value)" data-k="'+_ckE+'" placeholder="追加提案の内容・ステータスをメモ..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:6px 8px;font-size:10px;resize:vertical;min-height:44px;box-sizing:border-box;font-family:inherit">'+(_cd.proposal||'')+'</textarea>';
         // 資料リンクセクション
-        var _links=Array.isArray(_cd.links)?_cd.links:[];
+        var _links=(Array.isArray(_cd.links)?_cd.links:[]).filter(function(lk){return lk.url;});
         var _linksId='links_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
         h+='<div style="margin-top:8px">';
         h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
@@ -1896,6 +1896,7 @@ function circuSaveLink(inp){
   if(!Array.isArray(d.links))d.links=[];
   while(d.links.length<=li)d.links.push({label:'',url:''});
   d.links[li][field]=inp.value;
+  // URL空のエントリはlocalStorageに保存しない（クリーンに保つ）
   localStorage.setItem(lsKey,JSON.stringify(d));
   // URLが入力されたら🔗リンクを更新
   if(field==='url'){

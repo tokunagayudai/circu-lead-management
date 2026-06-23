@@ -1801,103 +1801,15 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   var t34Filtered=applyF(t34Rows);
   var t34Future=t34Filtered.filter(function(p){return p.isFuture;}).length;
   var t34ThisMonth=t34Filtered.filter(function(p){return p.isThisMonth;}).length;
-  var csCount={};filteredAll.forEach(function(p){csCount[p.csKey]=(csCount[p.csKey]||0)+1;});
-  var h='<div style="padding:0 24px 32px">';
-  // KPI — 2行: Tier1/2 と Tier3/4
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">';
-  // Tier1/2 カード
-  h+='<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:12px 16px">';
-  h+='<div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:8px">📋 FSパイプライン（Tier1/2）</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
-  [{l:'全リード',v:fsFiltered.length,c:'#1d4ed8'},{l:'未来アクション',v:fsFuture,c:'#7c3aed'},{l:'今月アクション',v:fsThisMonth,c:'#10b981'}].forEach(function(k){
-    h+='<div style="background:#fff;border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;color:var(--ink3)">'+k.l+'</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:'+k.c+'">'+k.v+'</div></div>';
-  });
-  h+='</div></div>';
-  // Tier3/4 カード
-  h+='<div style="background:#fafaf9;border:1.5px solid #e7e5e4;border-radius:12px;padding:12px 16px">';
-  h+='<div style="font-size:10px;font-weight:700;color:#78716c;margin-bottom:8px">📁 Tier3/4（IS直接管理）</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
-  [{l:'全リード',v:t34Filtered.length,c:'#78716c'},{l:'未来アクション',v:t34Future,c:'#7c3aed'},{l:'今月アクション',v:t34ThisMonth,c:'#10b981'}].forEach(function(k){
-    h+='<div style="background:#fff;border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;color:var(--ink3)">'+k.l+'</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:'+k.c+'">'+k.v+'</div></div>';
-  });
-  h+='</div></div>';
-  h+='</div>';
-  // FS summary table — Tier1/2のみ
-  h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px">';
-  h+='<div style="font-size:12px;font-weight:700;margin-bottom:10px">👤 FSパイプライン（Tier1/2）— FS担当者別</div>';
-  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid var(--bd)">';
-  ['FS担当者','全体','未来アクション','今月','🏭稼働中','🔄稼働後','😴休眠','🔍未提案'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:'+(l==='FS担当者'?'left':'center')+';font-size:9px;color:var(--ink3)">'+l+'</th>';});
-  h+='</tr></thead><tbody>';
-  var tot={t:0,f:0,m:0,ac:0,pa:0,do:0,un:0};
-  fsList.forEach(function(mem){
-    var mr=fsRows.filter(function(p){return p.mem===mem;});
-    if(!mr.length)return;
-    var mc=L_MEMBER_COLORS[mem]||'#888';
-    var mf=mr.filter(function(p){return p.isFuture;}).length;
-    var mm=mr.filter(function(p){return p.isThisMonth;}).length;
-    var mc2={};mr.forEach(function(p){mc2[p.csKey]=(mc2[p.csKey]||0)+1;});
-    tot.t+=mr.length;tot.f+=mf;tot.m+=mm;tot.ac+=(mc2['active']||0);tot.pa+=(mc2['past']||0);tot.do+=(mc2['dormant']||0);tot.un+=(mc2['unproposed']||0);
-    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04)">';
-    h+='<td style="padding:6px 8px;font-weight:600;color:'+mc+';white-space:nowrap">'+mem+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono)">'+mr.length+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed;font-weight:600">'+mf+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+mm+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+(mc2['active']||'−')+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#0891b2">'+(mc2['past']||'−')+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#f59e0b">'+(mc2['dormant']||'−')+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+(mc2['unproposed']||'−')+'</td>';
-    h+='</tr>';
-  });
-  h+='<tr style="background:rgba(29,78,216,.05);font-weight:700;border-top:2px solid var(--bd)"><td style="padding:6px 8px">チーム計</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono)">'+tot.t+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+tot.f+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+tot.m+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+tot.ac+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#0891b2">'+tot.pa+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#f59e0b">'+tot.do+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+tot.un+'</td></tr>';
-  h+='</tbody></table></div></div>';
-  // Tier3/4 セクション
-  h+='<div style="background:#fff;border:1.5px solid #e7e5e4;border-radius:12px;padding:16px;margin-bottom:12px">';
-  h+='<div style="font-size:12px;font-weight:700;color:#78716c;margin-bottom:10px">📁 Tier3/4（IS直接管理）— 接点ステータス別</div>';
-  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid var(--bd)">';
-  ['Tier','全体','未来アクション','今月','🏭稼働中','🔄稼働後','😴休眠','🔍未提案'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:'+(l==='Tier'?'left':'center')+';font-size:9px;color:var(--ink3)">'+l+'</th>';});
-  h+='</tr></thead><tbody>';
-  var t34tot={t:0,f:0,m:0,ac:0,pa:0,do:0,un:0};
-  ['Tier3','Tier4'].forEach(function(tier){
-    var tr2=t34Rows.filter(function(p){return p.tier===tier;});
-    if(!tr2.length)return;
-    var tnum=parseInt(tier.replace(/[^0-9]/g,''));
-    var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc=tcs[tnum]||'#78716c';
-    var tf=tr2.filter(function(p){return p.isFuture;}).length;
-    var tm=tr2.filter(function(p){return p.isThisMonth;}).length;
-    var tc2={};tr2.forEach(function(p){tc2[p.csKey]=(tc2[p.csKey]||0)+1;});
-    t34tot.t+=tr2.length;t34tot.f+=tf;t34tot.m+=tm;t34tot.ac+=(tc2['active']||0);t34tot.pa+=(tc2['past']||0);t34tot.do+=(tc2['dormant']||0);t34tot.un+=(tc2['unproposed']||0);
-    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04)">';
-    h+='<td style="padding:6px 8px;font-weight:700;color:'+tc+'">'+tier+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono)">'+tr2.length+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed;font-weight:600">'+tf+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+tm+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+(tc2['active']||'−')+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#0891b2">'+(tc2['past']||'−')+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#f59e0b">'+(tc2['dormant']||'−')+'</td>';
-    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+(tc2['unproposed']||'−')+'</td>';
-    h+='</tr>';
-  });
-  h+='<tr style="background:#fafaf9;font-weight:700;border-top:2px solid var(--bd)"><td style="padding:6px 8px;color:#78716c">合計</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono)">'+t34tot.t+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+t34tot.f+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+t34tot.m+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+t34tot.ac+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#0891b2">'+t34tot.pa+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#f59e0b">'+t34tot.do+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+t34tot.un+'</td></tr>';
-  h+='</tbody></table></div></div>';
-  // Filter bar
-  h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
-  h+='<div style="display:flex;border:1px solid var(--bd);border-radius:18px;overflow:hidden">';
-  h+='<div onclick="window.IS_VIEW=\'all\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;font-size:10px;cursor:pointer;font-weight:600;'+(window.IS_VIEW==='all'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">全体</div>';
-  h+='<div onclick="window.IS_VIEW=\'future\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;font-size:10px;cursor:pointer;font-weight:600;'+(window.IS_VIEW==='future'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">アクション予定（未来）</div>';
-  h+='</div>';
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_MEMBER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全FS担当者</option>';
-  fsList.forEach(function(m){h+='<option value="'+m+'"'+(window.IS_MEMBER_FILTER===m?' selected':'')+'>'+m+'</option>';});
-  h+='</select>';
-  // アプローチステータスドロップダウン（ユニーク値を収集）
-  var approachSet={};allRows.forEach(function(p){if(p.status)approachSet[p.status]=true;});
-  var approachList=Object.keys(approachSet).sort();
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px;max-width:200px" onchange="window.IS_APPROACH_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">アプローチST 全て</option>';
-  approachList.forEach(function(s){h+='<option value="'+s.replace(/"/g,'&quot;')+'"'+(window.IS_APPROACH_FILTER===s?' selected':'')+'>'+s+'</option>';});
-  h+='</select>';
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全Tier</option>';
-  tierList.forEach(function(t){h+='<option value="'+t+'"'+(window.IS_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
-  h+='</select>';
-  // 接点ステータスごとのカウント（FS/Tier/ビュー絞り込み適用済み、CS絞り込みは外して全数表示）
+  // サマリー用フィルター（メンバー・Tier除外でCS/アプローチSTは適用）
+  function applyF_summary(rows){
+    return rows.filter(function(p){
+      if(window.IS_CS_FILTER!=='all'&&p.csKey!==window.IS_CS_FILTER)return false;
+      if(window.IS_APPROACH_FILTER!=='all'&&p.status!==window.IS_APPROACH_FILTER)return false;
+      if(window.IS_VIEW==='future'&&!p.isFuture)return false;
+      return true;
+    });
+  }
   function applyF_noCS(rows){
     return rows.filter(function(p){
       if(window.IS_MEMBER_FILTER!=='all'&&p.mem!==window.IS_MEMBER_FILTER)return false;
@@ -1907,21 +1819,100 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
       return true;
     });
   }
+  function buildSR(rows){
+    var base=applyF_summary(rows);
+    var cs2={};base.forEach(function(p){cs2[p.csKey]=(cs2[p.csKey]||0)+1;});
+    return {t:base.length,f:base.filter(function(p){return p.isFuture;}).length,m:base.filter(function(p){return p.isThisMonth;}).length,cs:cs2};
+  }
   var _baseForCount=applyF_noCS(allRows);
-  var csCountFull={};
-  _baseForCount.forEach(function(p){csCountFull[p.csKey]=(csCountFull[p.csKey]||0)+1;});
+  var csCountFull={};_baseForCount.forEach(function(p){csCountFull[p.csKey]=(csCountFull[p.csKey]||0)+1;});
   var _allCnt=_baseForCount.length;
-  h+='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
-  var _allActive=window.IS_CS_FILTER==='all';
-  h+='<div onclick="window.IS_CS_FILTER=\'all\';renderLeads(document.getElementById(\'M\'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(_allActive?'#374151':'var(--bd)')+';background:'+(_allActive?'#374151':'#fff')+';color:'+(_allActive?'#fff':'var(--ink2)')+';white-space:nowrap">全て '+_allCnt+'</div>';
-  Object.keys(CS).forEach(function(k){
-    var cnt=csCountFull[k]||0;
-    var isAct=window.IS_CS_FILTER===k;
-    var c=CS[k];
-    h+='<div onclick="window.IS_CS_FILTER=\''+k+'\';renderLeads(document.getElementById(\'M\'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(isAct?c.color:'var(--bd)')+';background:'+(isAct?c.color:'#fff')+';color:'+(isAct?'#fff':c.color)+';white-space:nowrap">'+c.label+' '+cnt+'</div>';
-  });
+  var approachSet={};allRows.forEach(function(p){if(p.status)approachSet[p.status]=true;});
+  var approachList=Object.keys(approachSet).sort();
+  var isFV=window.IS_VIEW==='future';
+  var h='<div style="padding:0 24px 32px">';
+  // ===== FILTER BAR =====
+  h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+  h+='<div style="display:flex;border:1.5px solid var(--bd);border-radius:20px;overflow:hidden">';
+  h+='<div onclick="window.IS_VIEW='all';renderLeads(document.getElementById('M'))" style="padding:5px 14px;font-size:10px;cursor:pointer;font-weight:700;'+(window.IS_VIEW==='all'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">全体</div>';
+  h+='<div onclick="window.IS_VIEW='future';renderLeads(document.getElementById('M'))" style="padding:5px 14px;font-size:10px;cursor:pointer;font-weight:700;'+(isFV?'background:#7c3aed;color:#fff':'color:var(--ink3)')+'">📅 未来アクション</div>';
   h+='</div>';
-  h+='<span style="margin-left:auto;font-size:11px;color:var(--ink2)"><strong>'+displayRows.length+'</strong>件</span>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_MEMBER_FILTER=this.value;renderLeads(document.getElementById('M'))"><option value="all">全FS担当者</option>';
+  fsList.forEach(function(m){h+='<option value="'+m+'"'+(window.IS_MEMBER_FILTER===m?' selected':'')+'>'+m+'</option>';});
+  h+='</select>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById('M'))"><option value="all">全Tier</option>';
+  tierList.forEach(function(t){h+='<option value="'+t+'"'+(window.IS_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
+  h+='</select>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px;max-width:200px" onchange="window.IS_APPROACH_FILTER=this.value;renderLeads(document.getElementById('M'))"><option value="all">アプローチST 全て</option>';
+  approachList.forEach(function(s){h+='<option value="'+s.replace(/"/g,'&quot;')+'"'+(window.IS_APPROACH_FILTER===s?' selected':'')+'>'+s+'</option>';});
+  h+='</select>';
+  h+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
+  var _aA=window.IS_CS_FILTER==='all';
+  h+='<div onclick="window.IS_CS_FILTER='all';renderLeads(document.getElementById('M'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(_aA?'#374151':'var(--bd)')+';background:'+(_aA?'#374151':'#fff')+';color:'+(_aA?'#fff':'var(--ink2)')+';white-space:nowrap">全て '+_allCnt+'</div>';
+  Object.keys(CS).forEach(function(k){var cnt=csCountFull[k]||0;var isA=window.IS_CS_FILTER===k;var c=CS[k];h+='<div onclick="window.IS_CS_FILTER=''+k+'';renderLeads(document.getElementById('M'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(isA?c.color:'var(--bd)')+';background:'+(isA?c.color:'#fff')+';color:'+(isA?'#fff':c.color)+';white-space:nowrap">'+c.label+' '+cnt+'</div>';});
+  h+='</div></div>';
+  // ===== FS TABLE (Tier1/2) =====
+  h+='<div style="background:#fff;border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:10px">';
+  h+='<div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);padding:10px 16px;display:flex;align-items:center;gap:8px">';
+  h+='<span style="font-size:12px;font-weight:800;color:#1d4ed8">📋 FSパイプライン</span>';
+  h+='<span style="font-size:10px;color:#3b82f6;background:#dbeafe;padding:2px 8px;border-radius:10px;font-weight:600">Tier1 / Tier2</span>';
+  if(isFV)h+='<span style="margin-left:auto;font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:10px">📅 未来アクション表示中</span>';
+  h+='</div>';
+  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h+='<thead><tr style="background:#f8faff;border-bottom:1.5px solid #bfdbfe">';
+  [{l:'FS担当者',lft:true},{l:'件数',c:'#374151'},{l:'未来',c:isFV?'#7c3aed':'#9ca3af',hl:isFV},{l:'今月',c:'#10b981'},{l:'🏭稼働中',c:'#10b981'},{l:'🔄稼働後',c:'#0891b2'},{l:'😴休眠',c:'#f59e0b'},{l:'🔍未提案',c:'#7c3aed'}].forEach(function(col){
+    h+='<th style="padding:7px 10px;text-align:'+(col.lft?'left':'center')+';font-size:9px;font-weight:700;color:'+(col.c||'var(--ink3)')+(col.hl?';background:rgba(124,58,237,.07)':'')+';white-space:nowrap">'+col.l+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  var tot12={t:0,f:0,m:0,ac:0,pa:0,do:0,un:0};
+  fsList.forEach(function(mem){
+    var mr=fsRows.filter(function(p){return p.mem===mem;});
+    if(!mr.length)return;
+    var mc=L_MEMBER_COLORS[mem]||'#888';
+    var sr=buildSR(mr);
+    var isSel=window.IS_MEMBER_FILTER===mem;
+    tot12.t+=sr.t;tot12.f+=sr.f;tot12.m+=sr.m;tot12.ac+=(sr.cs['active']||0);tot12.pa+=(sr.cs['past']||0);tot12.do+=(sr.cs['dormant']||0);tot12.un+=(sr.cs['unproposed']||0);
+    var bg=isSel?'background:#eff6ff;':'';
+    h+='<tr onclick="window.IS_MEMBER_FILTER=''+(isSel?'all':mem)+'';renderLeads(document.getElementById('M'))" style="border-bottom:1px solid rgba(0,0,0,.04);cursor:pointer;'+bg+'" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''+(isSel?'#eff6ff':'')+''">';
+    h+='<td style="padding:7px 10px;font-weight:700;color:'+mc+';white-space:nowrap">'+mem+(isSel?' ✓':'')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono)">'+sr.t+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed;font-weight:700'+(isFV?';background:rgba(124,58,237,.05)':'')+'">'+(sr.f||'−')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+(sr.m||'−')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+(sr.cs['active']||'−')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#0891b2">'+(sr.cs['past']||'−')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#f59e0b">'+(sr.cs['dormant']||'−')+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+(sr.cs['unproposed']||'−')+'</td>';
+    h+='</tr>';
+  });
+  h+='<tr style="background:#eff6ff;font-weight:800;border-top:2px solid #bfdbfe"><td style="padding:7px 10px;color:#1d4ed8">チーム計</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono)">'+tot12.t+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed'+(isFV?';background:rgba(124,58,237,.08)':'')+'" >'+tot12.f+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+tot12.m+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+tot12.ac+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#0891b2">'+tot12.pa+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#f59e0b">'+tot12.do+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+tot12.un+'</td></tr>';
+  h+='</tbody></table></div></div>';
+  // ===== TIER3/4 TABLE =====
+  h+='<div style="background:#fff;border:1.5px solid #d6d3d1;border-radius:12px;overflow:hidden;margin-bottom:14px">';
+  h+='<div style="background:linear-gradient(135deg,#fafaf9,#f5f5f4);padding:10px 16px;display:flex;align-items:center;gap:8px">';
+  h+='<span style="font-size:12px;font-weight:800;color:#57534e">📁 Tier3/4</span>';
+  h+='<span style="font-size:10px;color:#78716c;background:#e7e5e4;padding:2px 8px;border-radius:10px;font-weight:600">IS直接管理</span>';
+  if(isFV)h+='<span style="margin-left:auto;font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:10px">📅 未来アクション表示中</span>';
+  h+='</div>';
+  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h+='<thead><tr style="background:#fafaf9;border-bottom:1.5px solid #d6d3d1">';
+  ['Tier','件数','未来','今月','🏭稼働中','🔄稼働後','😴休眠','🔍未提案'].forEach(function(l){h+='<th style="padding:7px 10px;text-align:'+(l==='Tier'?'left':'center')+';font-size:9px;font-weight:700;color:var(--ink3);white-space:nowrap">'+l+'</th>';});
+  h+='</tr></thead><tbody>';
+  var t34tot={t:0,f:0,m:0,ac:0,pa:0,do:0,un:0};
+  ['Tier3','Tier4'].forEach(function(tier){
+    var tr2=t34Rows.filter(function(p){return p.tier===tier;});
+    if(!tr2.length)return;
+    var tnum=parseInt(tier.replace(/[^0-9]/g,''));
+    var tcs2=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc=tcs2[tnum]||'#78716c';
+    var sr=buildSR(tr2);
+    t34tot.t+=sr.t;t34tot.f+=sr.f;t34tot.m+=sr.m;t34tot.ac+=(sr.cs['active']||0);t34tot.pa+=(sr.cs['past']||0);t34tot.do+=(sr.cs['dormant']||0);t34tot.un+=(sr.cs['unproposed']||0);
+    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04)"><td style="padding:7px 10px;font-weight:700;color:'+tc+'">'+tier+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono)">'+sr.t+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed;font-weight:700'+(isFV?';background:rgba(124,58,237,.05)':'')+'">'+(sr.f||'−')+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+(sr.m||'−')+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+(sr.cs['active']||'−')+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#0891b2">'+(sr.cs['past']||'−')+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#f59e0b">'+(sr.cs['dormant']||'−')+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+(sr.cs['unproposed']||'−')+'</td></tr>';
+  });
+  h+='<tr style="background:#fafaf9;font-weight:800;border-top:2px solid #d6d3d1"><td style="padding:7px 10px;color:#57534e">合計</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono)">'+t34tot.t+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+t34tot.f+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+t34tot.m+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+t34tot.ac+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#0891b2">'+t34tot.pa+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#f59e0b">'+t34tot.do+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+t34tot.un+'</td></tr>';
+  h+='</tbody></table></div></div>';
+  // ===== LEAD LIST HEADER =====
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  h+='<span style="font-size:11px;font-weight:700;color:var(--ink2)">リード一覧</span>';
+  h+='<span style="font-size:11px;color:var(--ink3)"><strong style="color:var(--blue)">'+displayRows.length+'</strong>件</span>';
   h+='</div>';
   // Lead table
   h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
@@ -2177,8 +2168,6 @@ function renderLeads(M){
   h+='<div class="ent-hdr"><div><h2>リード管理ダッシュボード</h2><div class="sub">Enterprise Lead Management — 全 '+L_DATA.length+'名 / '+uniqCo(L_DATA)+'社</div></div></div>';
   // ===== RECYCLE PIPELINE ANALYSIS =====
   h+='<div style="padding:0 24px 4px">'+renderRecyclePipeline()+'</div>';
-  // ===== NEXT ACTION HEATMAP =====
-  h+='<div style="padding:0 24px 4px">'+renderNextActionHeatmap()+'</div>';
   // ===== SUMMARY KPI TABLE =====
   h+='<div style="padding:0 24px 20px">';
   h+='<div class="ent-section">';

@@ -1763,7 +1763,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
     var isThisMonth=naYM===thisYM;
     var daysUntil=null;
     var csKey=getCS(co);
-    allRows.push({co:co,mem:mem,nm:nm,cid:cid,tier:tier,status:status,la:la,naDate:naDate,naStr:naStr,isFuture:isFuture,naYM:naYM,isThisMonth:isThisMonth,daysUntil:daysUntil,csKey:csKey});
+    allRows.push({co:co,mem:mem,nm:nm,cid:cid,tier:tier,status:status,la:la,naStr:naStr,isFuture:isFuture,naYM:naYM,isThisMonth:isThisMonth,csKey:csKey});
   });
   function applyF(rows){
     return rows.filter(function(p){

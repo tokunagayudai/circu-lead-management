@@ -1717,6 +1717,10 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
   return h;
 }
 
+// ISパイプライン ハンドラ
+function isSetView(v){window.IS_VIEW=v;renderLeads(document.getElementById('M'));}
+function isSetMember(v){window.IS_MEMBER_FILTER=v;renderLeads(document.getElementById('M'));}
+function isSetCS(v){window.IS_CS_FILTER=v;renderLeads(document.getElementById('M'));}
 // ===== IS PIPELINE VIEW =====
 function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   var today=new Date();today.setHours(0,0,0,0);
@@ -1834,22 +1838,22 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   // ===== FILTER BAR =====
   h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
   h+='<div style="display:flex;border:1.5px solid var(--bd);border-radius:20px;overflow:hidden">';
-  h+='<div onclick="window.IS_VIEW='all';renderLeads(document.getElementById('M'))" style="padding:5px 14px;font-size:10px;cursor:pointer;font-weight:700;'+(window.IS_VIEW==='all'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">全体</div>';
-  h+='<div onclick="window.IS_VIEW='future';renderLeads(document.getElementById('M'))" style="padding:5px 14px;font-size:10px;cursor:pointer;font-weight:700;'+(isFV?'background:#7c3aed;color:#fff':'color:var(--ink3)')+'">📅 未来アクション</div>';
+  h+='<div onclick="isSetView(\'all\')" style="padding:5px 14px;font-size:10px;cursor:pointer;font-weight:700;'+(window.IS_VIEW==='all'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">全体</div>';
+  h+='<div onclick="isSetView(\'future\')" style="padding:5px 14px;font-size:10px;cursor:pointer;font-weight:700;'+(isFV?'background:#7c3aed;color:#fff':'color:var(--ink3)')+'">📅 未来アクション</div>';
   h+='</div>';
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_MEMBER_FILTER=this.value;renderLeads(document.getElementById('M'))"><option value="all">全FS担当者</option>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_MEMBER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全FS担当者</option>';
   fsList.forEach(function(m){h+='<option value="'+m+'"'+(window.IS_MEMBER_FILTER===m?' selected':'')+'>'+m+'</option>';});
   h+='</select>';
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById('M'))"><option value="all">全Tier</option>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全Tier</option>';
   tierList.forEach(function(t){h+='<option value="'+t+'"'+(window.IS_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
   h+='</select>';
-  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px;max-width:200px" onchange="window.IS_APPROACH_FILTER=this.value;renderLeads(document.getElementById('M'))"><option value="all">アプローチST 全て</option>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px;max-width:200px" onchange="window.IS_APPROACH_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">アプローチST 全て</option>';
   approachList.forEach(function(s){h+='<option value="'+s.replace(/"/g,'&quot;')+'"'+(window.IS_APPROACH_FILTER===s?' selected':'')+'>'+s+'</option>';});
   h+='</select>';
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
   var _aA=window.IS_CS_FILTER==='all';
-  h+='<div onclick="window.IS_CS_FILTER='all';renderLeads(document.getElementById('M'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(_aA?'#374151':'var(--bd)')+';background:'+(_aA?'#374151':'#fff')+';color:'+(_aA?'#fff':'var(--ink2)')+';white-space:nowrap">全て '+_allCnt+'</div>';
-  Object.keys(CS).forEach(function(k){var cnt=csCountFull[k]||0;var isA=window.IS_CS_FILTER===k;var c=CS[k];h+='<div onclick="window.IS_CS_FILTER=''+k+'';renderLeads(document.getElementById('M'))" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(isA?c.color:'var(--bd)')+';background:'+(isA?c.color:'#fff')+';color:'+(isA?'#fff':c.color)+';white-space:nowrap">'+c.label+' '+cnt+'</div>';});
+  h+='<div onclick="isSetCS(\'all\')" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(_aA?'#374151':'var(--bd)')+';background:'+(_aA?'#374151':'#fff')+';color:'+(_aA?'#fff':'var(--ink2)')+';white-space:nowrap">全て '+_allCnt+'</div>';
+  Object.keys(CS).forEach(function(k){var cnt=csCountFull[k]||0;var isA=window.IS_CS_FILTER===k;var c=CS[k];h+='<div onclick="isSetCS(\''+k+'\')" style="cursor:pointer;padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;border:1.5px solid '+(isA?c.color:'var(--bd)')+';background:'+(isA?c.color:'#fff')+';color:'+(isA?'#fff':c.color)+';white-space:nowrap">'+c.label+' '+cnt+'</div>';});
   h+='</div></div>';
   // ===== FS TABLE (Tier1/2) =====
   h+='<div style="background:#fff;border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:10px">';
@@ -1873,7 +1877,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
     var isSel=window.IS_MEMBER_FILTER===mem;
     tot12.t+=sr.t;tot12.f+=sr.f;tot12.m+=sr.m;tot12.ac+=(sr.cs['active']||0);tot12.pa+=(sr.cs['past']||0);tot12.do+=(sr.cs['dormant']||0);tot12.un+=(sr.cs['unproposed']||0);
     var bg=isSel?'background:#eff6ff;':'';
-    h+='<tr onclick="window.IS_MEMBER_FILTER=''+(isSel?'all':mem)+'';renderLeads(document.getElementById('M'))" style="border-bottom:1px solid rgba(0,0,0,.04);cursor:pointer;'+bg+'" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''+(isSel?'#eff6ff':'')+''">';
+    h+='<tr onclick="isSetMember(\'+(isSel?\'all\'\:mem)+\')" style="border-bottom:1px solid rgba(0,0,0,.04);cursor:pointer;'+bg+'">';
     h+='<td style="padding:7px 10px;font-weight:700;color:'+mc+';white-space:nowrap">'+mem+(isSel?' ✓':'')+'</td>';
     h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono)">'+sr.t+'</td>';
     h+='<td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed;font-weight:700'+(isFV?';background:rgba(124,58,237,.05)':'')+'">'+(sr.f||'−')+'</td>';

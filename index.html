@@ -614,7 +614,7 @@ function lDetectCols(h){
     else if((s==='電話'||s.indexOf('電話番号')>=0)&&c.phone<0)c.phone=i;
     else if((s==='携帯'||s.indexOf('携帯電話')>=0)&&c.mobile<0)c.mobile=i;
     else if((s==='メール'||s.indexOf('メールアドレス')>=0||s.indexOf('Email')>=0)&&c.email<0)c.email=i;
-    else if((s.indexOf('次回アクション日')>=0||s.indexOf('ネクストアクション実施日')>=0||s.indexOf('NextAction')>=0)&&c.nextActionDate<0)c.nextActionDate=i;
+    else if((s.indexOf('次回アクション')>=0||s.indexOf('ネクストアクション')>=0||s.indexOf('NextAction')>=0)&&(s.indexOf('日')>=0||s.indexOf('Date')>=0)&&c.nextActionDate<0)c.nextActionDate=i;
     else if((s.indexOf('取引先責任者')>=0||s.indexOf('コンタクトID')>=0||s.indexOf('ContactId')>=0||s.indexOf('Contact ID')>=0)&&s.indexOf('ID')>=0&&c.contactId<0)c.contactId=i;
     else if((s==='取引先ID'||s==='取引先 ID'||s.indexOf('AccountId')>=0||s.indexOf('Account ID')>=0)&&c.accountId<0)c.accountId=i;
   });
@@ -1737,12 +1737,11 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
     if(anyCasesCos[co])return 'dormant';
     return 'unproposed';
   }
+  // YM文字列(YYYY/MM)を返す — renderNextActionHeatmapと同じ方式
   function parseNAD(r){
     var v=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();if(!v)return null;
-    var m=v.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-    if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
-    m=v.match(/(\d{4})[\/\-](\d{1,2})/);
-    if(m){var yr=parseInt(m[1]),mo=parseInt(m[2]);return new Date(yr,mo-1,new Date(yr,mo,0).getDate());}
+    var m=v.match(/(\d{4})[\/-](\d{1,2})/);
+    if(m)return m[1]+'/'+(m[2].length===1?'0':'')+m[2];
     return null;
   }
   // Build rows
@@ -1757,12 +1756,12 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
     var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
     var status=(col.status>=0?(r[col.status]||''):'').trim();
     var la=(col.la>=0?(r[col.la]||''):'').trim();
-    var naDate=parseNAD(r);
+    var naYMraw=parseNAD(r);
     var naStr=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();
-    var isFuture=!!(naDate&&naDate>=today);
-    var naYM=naDate?(naDate.getFullYear()+'/'+(naDate.getMonth()+1<10?'0':'')+(naDate.getMonth()+1)):'';
+    var naYM=naYMraw||'';
+    var isFuture=!!(naYM&&naYM>=thisYM);
     var isThisMonth=naYM===thisYM;
-    var daysUntil=naDate?Math.ceil((naDate-today)/86400000):null;
+    var daysUntil=null;
     var csKey=getCS(co);
     allRows.push({co:co,mem:mem,nm:nm,cid:cid,tier:tier,status:status,la:la,naDate:naDate,naStr:naStr,isFuture:isFuture,naYM:naYM,isThisMonth:isThisMonth,daysUntil:daysUntil,csKey:csKey});
   });
@@ -1778,8 +1777,8 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   var filteredFuture=applyF(allRows.filter(function(p){return p.isFuture;}));
   var displayRows=window.IS_VIEW==='future'?filteredFuture:filteredAll;
   displayRows.sort(function(a,b){
-    if(a.naDate&&b.naDate)return a.naDate-b.naDate;
-    if(a.naDate)return -1;if(b.naDate)return 1;return 0;
+    if(a.naYM&&b.naYM)return a.naYM.localeCompare(b.naYM);
+    if(a.naYM)return -1;if(b.naYM)return 1;return 0;
   });
   // FS members & tiers
   var fsMems={};allRows.forEach(function(p){if(p.mem)fsMems[p.mem]=true;});
@@ -1854,12 +1853,10 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
       var tn=parseInt((p.tier||'').replace(/[^0-9]/g,''))||0;
       var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc=tcs[tn]||'#888';
       var dispCo=p.co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
-      var naStyle='';var naDisplay=p.naStr||'−';
-      if(p.naDate&&p.isFuture){
-        if(p.daysUntil<=3)naStyle='color:#dc2626;font-weight:700';
-        else if(p.daysUntil<=7)naStyle='color:#ea580c;font-weight:600';
-        else if(p.isThisMonth)naStyle='color:#7c3aed;font-weight:600';
-        naDisplay+=' <span style="font-size:9px;background:rgba(0,0,0,.06);border-radius:3px;padding:1px 4px">残'+p.daysUntil+'日</span>';
+      var naStyle='';var naDisplay=p.naStr||p.naYM||'−';
+      if(p.isFuture){
+        if(p.isThisMonth)naStyle='color:#7c3aed;font-weight:700';
+        else naStyle='color:#0079C0;font-weight:600';
       }
       h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'':'background:#fafafa')+'">';
       h+='<td style="padding:7px 10px;font-weight:600;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+sfAccountLink(dispCo,p.co,'')+'</td>';

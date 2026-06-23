@@ -1909,10 +1909,13 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   });
   h+='<tr style="background:#fafaf9;font-weight:800;border-top:2px solid #d6d3d1"><td style="padding:7px 10px;color:#57534e">合計</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono)">'+t34tot.t+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+t34tot.f+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+t34tot.m+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#10b981">'+t34tot.ac+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#0891b2">'+t34tot.pa+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#f59e0b">'+t34tot.do+'</td><td style="padding:7px 10px;text-align:center;font-family:var(--mono);color:#7c3aed">'+t34tot.un+'</td></tr>';
   h+='</tbody></table></div></div>';
-  // ===== LEAD LIST HEADER =====
+  // ===== LEAD LIST HEADER (500件上限) =====
+  var ROW_LIMIT=500;
+  var shownRows=displayRows.slice(0,ROW_LIMIT);
+  var hiddenCount=displayRows.length-shownRows.length;
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
   h+='<span style="font-size:11px;font-weight:700;color:var(--ink2)">リード一覧</span>';
-  h+='<span style="font-size:11px;color:var(--ink3)"><strong style="color:var(--blue)">'+displayRows.length+'</strong>件</span>';
+  h+='<span style="font-size:11px;color:var(--ink3)"><strong style="color:var(--blue)">'+displayRows.length+'</strong>件'+(hiddenCount>0?' <span style="color:#f59e0b">（上位'+ROW_LIMIT+'件表示）</span>':'')+'</span>';
   h+='</div>';
   // Lead table
   h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
@@ -1922,7 +1925,7 @@ function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   if(!displayRows.length){
     h+='<tr><td colspan="8" style="padding:40px;text-align:center;color:var(--ink3)">該当するリードがありません</td></tr>';
   } else {
-    displayRows.forEach(function(p,idx){
+    shownRows.forEach(function(p,idx){
       var mc=L_MEMBER_COLORS[p.mem]||'#888';
       var cs=CS[p.csKey]||{label:'',color:'#888',bg:'#f3f4f6'};
       var tn=parseInt((p.tier||'').replace(/[^0-9]/g,''))||0;

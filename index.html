@@ -1804,8 +1804,9 @@ function renderLeads(M){
   window._lPropMap=personProposalMap; window._lContMap=personContractMap;
   // 稼働後顧客 = 過去にph=08の案件があったが現在は終了（稼働中ではない）
   var pastClientCos={};
+  var today3=new Date();today3.setHours(0,0,0,0);
+  // acplan_casesから（終了日が過去のph08案件）
   if(window.E_ROWS&&window.E_COL){
-    var today3=new Date();today3.setHours(0,0,0,0);
     E_ROWS.forEach(function(r){
       var mem=eGet(r,'member');if(!isTeamMember(mem))return;
       var ph=eGet(r,'curPh');if(ePh(ph)!==8||ph.indexOf('DEAD')>=0)return;
@@ -1814,6 +1815,20 @@ function renderLeads(M){
       var ed2=new Date(ed.replace(/\//g,'-'));if(isNaN(ed2)||ed2>=today3)return;
       var ac=eGet(r,'account').trim();if(!ac)return;
       pastClientCos[ac]=true;
+    });
+  }
+  // all_casesからも収集（acplan_casesに含まれない終了済み案件をカバー）
+  if(window.RC_ROWS&&window.RC_ROWS.length&&window.RC_COL&&RC_COL.member>=0){
+    var _rcg=function(r,k){var i=RC_COL[k];return(i>=0&&i<r.length)?(r[i]||'').trim():'';};
+    RC_ROWS.forEach(function(r){
+      var mem=_rcg(r,'member');if(!isTeamMember(mem))return;
+      var ph=_rcg(r,'curPh')||_rcg(r,'lastPh');
+      if(!ph||ph.indexOf('DEAD')>=0)return;
+      if(ePh(ph)!==8)return;
+      var ac=_rcg(r,'account').trim();if(!ac)return;
+      var ed=_rcg(r,'endDate');
+      if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today3)pastClientCos[ac]=true;}
+      else{pastClientCos[ac]=true;}
     });
   }
   function isPastClient(r){var co=(r[col.company]||'').trim();return pastClientCos[co]&&!activeCos[co];}

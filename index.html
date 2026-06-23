@@ -1751,7 +1751,34 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
   });
   if(mtgFilt!=='all')h+='<span style="font-size:10px;color:var(--ink3);margin-left:4px">'+filteredCos.length+'社 / 未設定リード '+anyMissingLeads+'名</span>';
   h+='</div>';
+  // ===== 担当者フィルター =====
+  var memFilt=window.ACTIVE_MEM_FILTER||'all';
+  // 全担当者一覧（表示順確定後）
+  var memCounts={};
   filteredCos.forEach(function(co){
+    var cases=coCases[co]||[];
+    var m=cases.length?(cases[0].member||'').split(' ')[0]:'';
+    if(m)memCounts[m]=(memCounts[m]||0)+1;
+  });
+  var memList=Object.keys(memCounts).sort(function(a,b){return memCounts[b]-memCounts[a];});
+  // 担当者フィルターで絞り込み
+  var memFilteredCos=filteredCos.filter(function(co){
+    if(memFilt==='all')return true;
+    var cases=coCases[co]||[];
+    var m=cases.length?(cases[0].member||'').split(' ')[0]:'';
+    return m===memFilt;
+  });
+  h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
+  h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">👤 担当者</span>';
+  var _allMemAct=memFilt==='all';
+  var _abst='padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(_allMemAct?'#0079C0':'#d1d5db')+';background:'+(_allMemAct?'#0079C0':'#fff')+';color:'+(_allMemAct?'#fff':'#374151');
+  h+='<button onclick="isSetActiveMemFilter(this.dataset.m)" data-m="all" style="'+_abst+'">全て <span style="font-size:9px;opacity:.75">'+filteredCos.length+'社</span></button>';
+  memList.forEach(function(m){
+    var isA=memFilt===m;
+    h+='<button onclick="isSetActiveMemFilter(this.dataset.m)" data-m="'+m+'" style="padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(isA?'#0079C0':'#d1d5db')+';background:'+(isA?'#0079C0':'#fff')+';color:'+(isA?'#fff':'#374151')+'">'+m+' <span style="font-size:9px;opacity:.75">'+memCounts[m]+'社</span></button>';
+  });
+  h+='</div>';
+  memFilteredCos.forEach(function(co){
     var leads=coLeads[co];
     var starL=leads.filter(function(r){var fn=getFullName(r);return fn&&starContactMap[co+'__'+fn];});
     var otherL=leads.filter(function(r){var fn=getFullName(r);return !fn||!starContactMap[co+'__'+fn];});
@@ -1995,6 +2022,7 @@ function isSetView(v){window.IS_VIEW=v;renderLeads(document.getElementById('M'))
 function isSetMember(v){window.IS_MEMBER_FILTER=v;renderLeads(document.getElementById('M'));}
 function isSetCS(v){window.IS_CS_FILTER=v;renderLeads(document.getElementById('M'));}
 function isSetActiveMtgFilter(v){window.ACTIVE_MTG_FILTER=v;renderLeads(document.getElementById('M'));}
+function isSetActiveMemFilter(v){window.ACTIVE_MEM_FILTER=v;renderLeads(document.getElementById('M'));}
 // ===== IS PIPELINE VIEW =====
 function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
   var today=new Date();today.setHours(0,0,0,0);

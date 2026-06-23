@@ -1716,6 +1716,167 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
   return h;
 }
 
+// ===== IS PIPELINE VIEW =====
+function renderISPipeline(col,activeCos,anyCasesCos,pastClientCos){
+  var today=new Date();today.setHours(0,0,0,0);
+  var thisYM=today.getFullYear()+'/'+(today.getMonth()+1<10?'0':'')+(today.getMonth()+1);
+  window.IS_VIEW=window.IS_VIEW||'future';
+  window.IS_MEMBER_FILTER=window.IS_MEMBER_FILTER||'all';
+  window.IS_TIER_FILTER=window.IS_TIER_FILTER||'all';
+  window.IS_CS_FILTER=window.IS_CS_FILTER||'all';
+  var CS={
+    active:{label:'🏭 稼働中',color:'#10b981',bg:'#d1fae5'},
+    past:{label:'🔄 稼働後',color:'#0891b2',bg:'#e0f2fe'},
+    dormant:{label:'😴 休眠',color:'#f59e0b',bg:'#fef3c7'},
+    unproposed:{label:'🔍 未提案',color:'#7c3aed',bg:'#ede9fe'}
+  };
+  function getCS(co){
+    if(!co)return 'unproposed';
+    if(activeCos[co])return 'active';
+    if(pastClientCos[co])return 'past';
+    if(anyCasesCos[co])return 'dormant';
+    return 'unproposed';
+  }
+  function parseNAD(r){
+    var v=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();if(!v)return null;
+    var m=v.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
+    m=v.match(/(\d{4})[\/\-](\d{1,2})/);
+    if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,1);
+    return null;
+  }
+  // Build rows
+  var allRows=[];
+  L_DATA.forEach(function(r){
+    var co=(r[col.company]||'').trim();
+    var mem=(col.member>=0?(r[col.member]||''):'').trim();
+    var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+    var fn=(col.firstName>=0?(r[col.firstName]||''):'').trim();
+    var nm=(ln+' '+fn).trim();
+    var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+    var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
+    var status=(col.status>=0?(r[col.status]||''):'').trim();
+    var la=(col.la>=0?(r[col.la]||''):'').trim();
+    var naDate=parseNAD(r);
+    var naStr=(col.nextActionDate>=0?(r[col.nextActionDate]||''):'').trim();
+    var isFuture=!!(naDate&&naDate>=today);
+    var naYM=naDate?(naDate.getFullYear()+'/'+(naDate.getMonth()+1<10?'0':'')+(naDate.getMonth()+1)):'';
+    var isThisMonth=naYM===thisYM;
+    var daysUntil=naDate?Math.ceil((naDate-today)/86400000):null;
+    var csKey=getCS(co);
+    allRows.push({co:co,mem:mem,nm:nm,cid:cid,tier:tier,status:status,la:la,naDate:naDate,naStr:naStr,isFuture:isFuture,naYM:naYM,isThisMonth:isThisMonth,daysUntil:daysUntil,csKey:csKey});
+  });
+  function applyF(rows){
+    return rows.filter(function(p){
+      if(window.IS_MEMBER_FILTER!=='all'&&p.mem!==window.IS_MEMBER_FILTER)return false;
+      if(window.IS_TIER_FILTER!=='all'&&p.tier!==window.IS_TIER_FILTER)return false;
+      if(window.IS_CS_FILTER!=='all'&&p.csKey!==window.IS_CS_FILTER)return false;
+      return true;
+    });
+  }
+  var filteredAll=applyF(allRows);
+  var filteredFuture=applyF(allRows.filter(function(p){return p.isFuture;}));
+  var displayRows=window.IS_VIEW==='future'?filteredFuture:filteredAll;
+  displayRows.sort(function(a,b){
+    if(a.naDate&&b.naDate)return a.naDate-b.naDate;
+    if(a.naDate)return -1;if(b.naDate)return 1;return 0;
+  });
+  // FS members & tiers
+  var fsMems={};allRows.forEach(function(p){if(p.mem)fsMems[p.mem]=true;});
+  var fsList=Object.keys(fsMems).sort(function(a,b){return a.localeCompare(b,'ja');});
+  var tierSet={};var tierList=[];
+  allRows.forEach(function(p){if(p.tier&&!tierSet[p.tier]){tierSet[p.tier]=true;tierList.push(p.tier);}});
+  tierList.sort(function(a,b){var ta=a.replace(/[^0-9]/g,''),tb=b.replace(/[^0-9]/g,'');return ta&&tb?parseInt(ta)-parseInt(tb):a.localeCompare(b,'ja');});
+  // KPI counts
+  var futureCount=applyF(allRows.filter(function(p){return p.isFuture;})).length;
+  var thisMonthCount=applyF(allRows.filter(function(p){return p.isThisMonth;})).length;
+  var csCount={};filteredAll.forEach(function(p){csCount[p.csKey]=(csCount[p.csKey]||0)+1;});
+  var h='<div style="padding:0 24px 32px">';
+  // KPI
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">';
+  [{l:'全リード',v:filteredAll.length,c:'#0079C0'},{l:'アクション予定（未来）',v:futureCount,c:'#7c3aed'},{l:'今月アクション',v:thisMonthCount,c:'#10b981'},{l:'🏭 稼働中企業',v:csCount['active']||0,c:'#10b981'},{l:'😴 休眠',v:csCount['dormant']||0,c:'#f59e0b'},{l:'🔍 未提案',v:csCount['unproposed']||0,c:'#7c3aed'}].forEach(function(k){
+    h+='<div style="background:#fff;border:1.5px solid '+k.c+'33;border-radius:12px;padding:12px 14px;text-align:center"><div style="font-size:9px;color:var(--ink3);margin-bottom:4px">'+k.l+'</div><div style="font-size:24px;font-weight:700;font-family:var(--mono);color:'+k.c+'">'+k.v+'</div></div>';
+  });
+  h+='</div>';
+  // FS summary table
+  h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px"><div style="font-size:12px;font-weight:700;margin-bottom:10px">👤 FSごとの件数</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid var(--bd)">';
+  ['FS担当者','全体','未来アクション','今月','🏭稼働中','🔄稼働後','😴休眠','🔍未提案'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:'+(l==='FS担当者'?'left':'center')+';font-size:9px;color:var(--ink3)">'+l+'</th>';});
+  h+='</tr></thead><tbody>';
+  var tot={t:0,f:0,m:0,ac:0,pa:0,do:0,un:0};
+  fsList.forEach(function(mem){
+    var mr=allRows.filter(function(p){return p.mem===mem;});
+    var mc=L_MEMBER_COLORS[mem]||'#888';
+    var mf=mr.filter(function(p){return p.isFuture;}).length;
+    var mm=mr.filter(function(p){return p.isThisMonth;}).length;
+    var mc2={};mr.forEach(function(p){mc2[p.csKey]=(mc2[p.csKey]||0)+1;});
+    tot.t+=mr.length;tot.f+=mf;tot.m+=mm;tot.ac+=(mc2['active']||0);tot.pa+=(mc2['past']||0);tot.do+=(mc2['dormant']||0);tot.un+=(mc2['unproposed']||0);
+    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04)">';
+    h+='<td style="padding:6px 8px;font-weight:600;color:'+mc+';white-space:nowrap">'+mem+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono)">'+mr.length+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed;font-weight:600">'+mf+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+mm+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+(mc2['active']||'−')+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#0891b2">'+(mc2['past']||'−')+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#f59e0b">'+(mc2['dormant']||'−')+'</td>';
+    h+='<td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+(mc2['unproposed']||'−')+'</td>';
+    h+='</tr>';
+  });
+  h+='<tr style="background:rgba(0,121,192,.06);font-weight:700;border-top:2px solid var(--bd)"><td style="padding:6px 8px">チーム計</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono)">'+tot.t+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+tot.f+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+tot.m+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#10b981">'+tot.ac+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#0891b2">'+tot.pa+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#f59e0b">'+tot.do+'</td><td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:#7c3aed">'+tot.un+'</td></tr>';
+  h+='</tbody></table></div></div>';
+  // Filter bar
+  h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+  h+='<div style="display:flex;border:1px solid var(--bd);border-radius:18px;overflow:hidden">';
+  h+='<div onclick="window.IS_VIEW=\'all\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;font-size:10px;cursor:pointer;font-weight:600;'+(window.IS_VIEW==='all'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">全体</div>';
+  h+='<div onclick="window.IS_VIEW=\'future\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;font-size:10px;cursor:pointer;font-weight:600;'+(window.IS_VIEW==='future'?'background:var(--blue);color:#fff':'color:var(--ink3)')+'">アクション予定（未来）</div>';
+  h+='</div>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_MEMBER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全FS担当者</option>';
+  fsList.forEach(function(m){h+='<option value="'+m+'"'+(window.IS_MEMBER_FILTER===m?' selected':'')+'>'+m+'</option>';});
+  h+='</select>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_TIER_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">全Tier</option>';
+  tierList.forEach(function(t){h+='<option value="'+t+'"'+(window.IS_TIER_FILTER===t?' selected':'')+'>'+t+'</option>';});
+  h+='</select>';
+  h+='<select style="padding:4px 10px;border:1px solid var(--bd);border-radius:18px;font-size:11px" onchange="window.IS_CS_FILTER=this.value;renderLeads(document.getElementById(\'M\'))"><option value="all">接点ステータス 全て</option>';
+  Object.keys(CS).forEach(function(k){h+='<option value="'+k+'"'+(window.IS_CS_FILTER===k?' selected':'')+'>'+CS[k].label+'</option>';});
+  h+='</select>';
+  h+='<span style="margin-left:auto;font-size:11px;color:var(--ink2)"><strong>'+displayRows.length+'</strong>件</span>';
+  h+='</div>';
+  // Lead table
+  h+='<div style="background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h+='<thead><tr style="background:var(--bg);border-bottom:2px solid var(--bd)">';
+  ['企業名','FS担当者','Tier','ステータス','次回アクション予定日','最終活動日','接点ステータス'].forEach(function(l){h+='<th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:600;color:var(--ink3);white-space:nowrap">'+l+'</th>';});
+  h+='</tr></thead><tbody>';
+  if(!displayRows.length){
+    h+='<tr><td colspan="7" style="padding:40px;text-align:center;color:var(--ink3)">該当するリードがありません</td></tr>';
+  } else {
+    displayRows.forEach(function(p,idx){
+      var mc=L_MEMBER_COLORS[p.mem]||'#888';
+      var cs=CS[p.csKey]||{label:'',color:'#888',bg:'#f3f4f6'};
+      var tn=parseInt((p.tier||'').replace(/[^0-9]/g,''))||0;
+      var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc=tcs[tn]||'#888';
+      var dispCo=p.co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+      var naStyle='';var naDisplay=p.naStr||'−';
+      if(p.naDate&&p.isFuture){
+        if(p.daysUntil<=3)naStyle='color:#dc2626;font-weight:700';
+        else if(p.daysUntil<=7)naStyle='color:#ea580c;font-weight:600';
+        else if(p.isThisMonth)naStyle='color:#7c3aed;font-weight:600';
+        naDisplay+=' <span style="font-size:9px;background:rgba(0,0,0,.06);border-radius:3px;padding:1px 4px">残'+p.daysUntil+'日</span>';
+      }
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'':'background:#fafafa')+'">';
+      h+='<td style="padding:7px 10px;font-weight:600;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+sfAccountLink(dispCo,p.co,'')+'</td>';
+      h+='<td style="padding:7px 10px;font-size:10px;font-weight:600;color:'+mc+';white-space:nowrap">'+p.mem+'</td>';
+      h+='<td style="padding:7px 10px;text-align:center">'+(p.tier?'<span style="font-size:9px;font-weight:700;color:'+tc+';padding:2px 6px;background:'+tc+'18;border-radius:4px">'+p.tier+'</span>':'−')+'</td>';
+      h+='<td style="padding:7px 10px;font-size:10px;color:var(--ink2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.status+'</td>';
+      h+='<td style="padding:7px 10px;font-size:11px;font-family:var(--mono);white-space:nowrap;'+naStyle+'">'+naDisplay+'</td>';
+      h+='<td style="padding:7px 10px;font-size:10px;font-family:var(--mono);color:var(--ink3);white-space:nowrap">'+p.la+'</td>';
+      h+='<td style="padding:7px 10px"><span style="font-size:9px;font-weight:600;color:'+cs.color+';background:'+cs.bg+';border-radius:4px;padding:2px 8px;white-space:nowrap">'+cs.label+'</span></td>';
+      h+='</tr>';
+    });
+  }
+  h+='</tbody></table></div></div></div>';
+  return h;
+}
+// ===== END IS PIPELINE VIEW =====
+
 function renderLeads(M){
   if(!L_DATA||!L_DATA.length){M.innerHTML='<div style="padding:40px;text-align:center;color:var(--ink3)">データなし</div>';return;}
   var col=L_COL,today=new Date();today.setHours(0,0,0,0);
@@ -2019,7 +2180,8 @@ function renderLeads(M){
     {id:'pastclient',label:'\uD83D\uDD04 稼働後顧客',cnt:pastClientCount,color:'#0891b2',sub:Object.keys(pastClientCos).filter(function(co){return !activeCos[co];}).length+'社'},
     {id:'dormant',label:'\uD83D\uDE34 休眠リード',cnt:dormantCount,color:'#f59e0b',sub:Object.keys(anyCasesCos).filter(function(co){return !activeCos[co];}).length+'社'},
     {id:'unproposed',label:'\uD83D\uDD0D 未提案リード',cnt:unpropCount,color:'#7c3aed',sub:'商談ゼロ'},
-    {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別'}
+    {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別'},
+    {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定'}
   ];
   tabs.forEach(function(t){
     var act=L_VIEW_MODE===t.id;
@@ -2040,7 +2202,7 @@ function renderLeads(M){
   // 全担当者フィルター: L_DATAから全メンバーを収集
   var allMembersSet={};L_DATA.forEach(function(r){var m=(col.member>=0?(r[col.member]||''):'').trim();if(m)allMembersSet[m]=true;});
   var allMembersSorted=Object.keys(allMembersSet).sort(function(a,b){return a.localeCompare(b,'ja');});
-  if(L_VIEW_MODE!=='analytics'){
+  if(L_VIEW_MODE!=='analytics'&&L_VIEW_MODE!=='ispipeline'){
   h+='<div class="ent-section">';
   h+='<div style="display:flex;gap:8px;padding:0 0 12px;align-items:center;flex-wrap:wrap">';
   h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">絞込:</span>';
@@ -2062,8 +2224,10 @@ function renderLeads(M){
   h+='</div>';
   // ===== LEAD TABLE / VIEW ROUTING =====
   h+='</div>'; // close ent-section (filter bar)
-  } // end if(L_VIEW_MODE!=='analytics')
-  if(L_VIEW_MODE==='analytics'){
+  } // end if(L_VIEW_MODE!=='analytics'&&!=='ispipeline')
+  if(L_VIEW_MODE==='ispipeline'){
+    h+=renderISPipeline(col,activeCos,anyCasesCos,pastClientCos);
+  } else if(L_VIEW_MODE==='analytics'){
     h+=renderAnalyticsView(col,activeCos,anyCasesCos,personProposalMap,personContractMap);
   } else if(L_VIEW_MODE==='active'){
     h+='<div style="padding:0 24px 24px">'+renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,today)+'</div>';

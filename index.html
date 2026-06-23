@@ -1756,8 +1756,8 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     var starL=leads.filter(function(r){var fn=getFullName(r);return fn&&starContactMap[co+'__'+fn];});
     var otherL=leads.filter(function(r){var fn=getFullName(r);return !fn||!starContactMap[co+'__'+fn];});
     var cases=coCases[co]||[];
-    var ckTotal=cases.reduce(function(s,r){return s+eGetN(r,'ck');},0);
-    var mem='';if(cases.length){var mm=eGet(cases[0],'member');mem=mm?mm.split(' ')[0]:'';}
+    var ckTotal=cases.reduce(function(s,r){return s+(r.ck||0);},0);
+    var mem='';if(cases.length){var mm=cases[0].member||'';mem=mm?mm.split(' ')[0]:'';}
     var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
     var _activeAid=leads.length&&col.accountId>=0?(leads[0][col.accountId]||'').trim():'';
     h+='<details style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:8px">';
@@ -1779,8 +1779,8 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     if(cases.length){
       h+='<div style="font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:8px">🔖 稼働中案件</div>';
       cases.forEach(function(cr,ci){
-        var cn=eGet(cr,'name');var ck=eGetN(cr,'ck');var cc=eGet(cr,'custContact');
-        var _sd=eGet(cr,'startDate')||'';
+        var cn=cr.name||'';var ck=cr.ck||0;var cc=cr.custContact||'';
+        var _sd=cr.startDate||'';
         var _start1M='';var _start3M='';
         if(_sd){
           var _sdp=new Date(_sd.replace(/\//g,'-'));
@@ -1791,7 +1791,7 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
             _start3M=_d3.getFullYear()+'/'+((_d3.getMonth()+1<10?'0':'')+(_d3.getMonth()+1))+'/'+(_d3.getDate()<10?'0':'')+_d3.getDate();
           }
         }
-        var _caseKey='circu_case_'+(cn||co+'_'+ci);
+        var _caseKey='circu_case_'+(cr.oppId||cn||co+'_'+ci);
         var _cd=(function(){try{return JSON.parse(localStorage.getItem(_caseKey)||'{}');}catch(e){return {};}}());
         var _ckE=_caseKey.replace(/"/g,'&quot;');
         var _r1id='cr1_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
@@ -1833,7 +1833,7 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
         h+='<div id="'+_linksId+'">';
         _links.forEach(function(lk,li){
           h+='<div id="'+_linksId+'_'+li+'" style="display:flex;align-items:center;gap:4px;margin-bottom:4px">';
-          h+='<input placeholder="ラベル（例：提案資料）" value="'+(lk.label||'')+'" oninput="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="label" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;width:120px">';
+          h+='<select onchange="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="label" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 5px;font-size:10px;width:180px">'+(lk.label==='提案資料（DX）'?'<option value="提案資料（DX）" selected>提案資料（DX）</option>':'<option value="提案資料（DX）">提案資料（DX）</option>')+(lk.label==='提案資料（新規事業）'?'<option value="提案資料（新規事業）" selected>提案資料（新規事業）</option>':'<option value="提案資料（新規事業）">提案資料（新規事業）</option>')+(lk.label==='提案資料（人事）'?'<option value="提案資料（人事）" selected>提案資料（人事）</option>':'<option value="提案資料（人事）">提案資料（人事）</option>')+(lk.label==='提案資料（業務改善）'?'<option value="提案資料（業務改善）" selected>提案資料（業務改善）</option>':'<option value="提案資料（業務改善）">提案資料（業務改善）</option>')+(lk.label==='提案資料（マーケティング）'?'<option value="提案資料（マーケティング）" selected>提案資料（マーケティング）</option>':'<option value="提案資料（マーケティング）">提案資料（マーケティング）</option>')+(lk.label==='提案資料（その他）'?'<option value="提案資料（その他）" selected>提案資料（その他）</option>':'<option value="提案資料（その他）">提案資料（その他）</option>')+(lk.label==='その他資料'?'<option value="その他資料" selected>その他資料</option>':'<option value="その他資料">その他資料</option>')+'</select>';
           h+='<input placeholder="URL（https://...）" value="'+(lk.url||'')+'" oninput="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="url" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
           if(lk.url)h+='<a href="'+lk.url+'" target="_blank" style="font-size:10px;color:var(--blue);white-space:nowrap;text-decoration:none" title="開く">🔗</a>';
           h+='<button onclick="circuRemoveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" style="padding:1px 6px;font-size:9px;border:1px solid #fca5a5;background:#fff;color:#ef4444;border-radius:4px;cursor:pointer">✕</button>';
@@ -1874,9 +1874,21 @@ function circuAddLink(btn){
   var container=document.getElementById(lid);
   if(!container)return;
   var div=document.createElement('div');div.id=lid+'_'+li;div.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:4px';
-  div.innerHTML='<input placeholder="ラベル（例：提案資料）" oninput="circuSaveLink(this)" data-k="'+lsKey.replace(/"/g,'&quot;')+'" data-lid="'+lid+'" data-li="'+li+'" data-f="label" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;width:120px">'
-    +'<input placeholder="URL（https://...）" oninput="circuSaveLink(this)" data-k="'+lsKey.replace(/"/g,'&quot;')+'" data-lid="'+lid+'" data-li="'+li+'" data-f="url" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">'
-    +'<button onclick="circuRemoveLink(this)" data-k="'+lsKey.replace(/"/g,'&quot;')+'" data-lid="'+lid+'" data-li="'+li+'" style="padding:1px 6px;font-size:9px;border:1px solid #fca5a5;background:#fff;color:#ef4444;border-radius:4px;cursor:pointer">✕</button>';
+  // select を DOM で組み立て（文字列エスケープ問題回避）
+  var _sel=document.createElement('select');
+  _sel.onchange=circuSaveLink;_sel.dataset.k=lsKey;_sel.dataset.lid=lid;_sel.dataset.li=li;_sel.dataset.f='label';
+  _sel.style.cssText='border:1px solid #d1d5db;border-radius:4px;padding:2px 5px;font-size:10px;width:180px';
+  [["提案資料（DX）","提案資料（新規事業）","提案資料（人事）","提案資料（業務改善）","提案資料（マーケティング）","提案資料（その他）","その他資料"]][0].split('\0');  // noop
+  ["提案資料（DX）","提案資料（新規事業）","提案資料（人事）","提案資料（業務改善）","提案資料（マーケティング）","提案資料（その他）","その他資料"].forEach(function(o){var op=document.createElement('option');op.value=o;op.textContent=o;_sel.appendChild(op);});
+  div.appendChild(_sel);
+  var _urlIn=document.createElement('input');
+  _urlIn.placeholder='URL（https://...）';_urlIn.oninput=circuSaveLink;_urlIn.dataset.k=lsKey;_urlIn.dataset.lid=lid;_urlIn.dataset.li=li;_urlIn.dataset.f='url';
+  _urlIn.style.cssText='border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1';
+  div.appendChild(_urlIn);
+  var _rmBtn=document.createElement('button');
+  _rmBtn.onclick=circuRemoveLink;_rmBtn.dataset.k=lsKey;_rmBtn.dataset.lid=lid;_rmBtn.dataset.li=li;
+  _rmBtn.textContent='✕';_rmBtn.style.cssText='padding:1px 6px;font-size:9px;border:1px solid #fca5a5;background:#fff;color:#ef4444;border-radius:4px;cursor:pointer';
+  div.appendChild(_rmBtn)
   container.appendChild(div);
 }
 function circuSaveLink(inp){
@@ -2257,7 +2269,8 @@ function renderLeads(M){
       if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today2)return;}
       var ac=eGet(r,'account').trim();if(!ac)return;
       activeCos[ac]=true;
-      if(!coCases[ac])coCases[ac]=[];coCases[ac].push(r);
+      var _nm=eGet(r,'name');var _th=eGet(r,'theme');
+      if(!coCases[ac])coCases[ac]=[];coCases[ac].push({name:_nm||_th||'',ck:eGetN(r,'ck'),custContact:eGet(r,'custContact'),startDate:eGet(r,'startDate'),member:eGet(r,'member'),oppId:eGet(r,'oppId'),theme:_th});
       if(E_COL.custContact>=0){var cc=(r[E_COL.custContact]||'').trim();if(cc){
         cc.split(/[,、；;\/・]/).forEach(function(n){
           var nn=n.trim();if(!nn)return;
@@ -2280,7 +2293,9 @@ function renderLeads(M){
       var ed=_rcg3(r,'endDate');
       if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today2)return;}
       activeCos[ac]=true;
-      if(!coCases[ac])coCases[ac]=[];coCases[ac].push(r);
+      var _rcGetN=function(rr,k){var i=RC_COL[k];if(i<0||i>=rr.length)return 0;var v=parseFloat((rr[i]||'').toString().replace(/[,¥\s]/g,''));return isNaN(v)?0:v;};
+      var _rnm=_rcg3(r,'name');var _rth=_rcg3(r,'theme');
+      if(!coCases[ac])coCases[ac]=[];coCases[ac].push({name:_rnm||_rth||'',ck:_rcGetN(r,'ck'),custContact:_rcg3(r,'custContact'),startDate:_rcg3(r,'startDate'),member:_rcg3(r,'member'),oppId:_rcg3(r,'oppId'),theme:_rth});
       var ccCol=RC_COL.custContact;
       if(ccCol>=0){var cc=(r[ccCol]||'').trim();if(cc){
         cc.split(/[,、；;\/・]/).forEach(function(n){

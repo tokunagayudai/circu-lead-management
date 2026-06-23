@@ -1878,7 +1878,6 @@ function circuAddLink(btn){
   var _sel=document.createElement('select');
   _sel.onchange=circuSaveLink;_sel.dataset.k=lsKey;_sel.dataset.lid=lid;_sel.dataset.li=li;_sel.dataset.f='label';
   _sel.style.cssText='border:1px solid #d1d5db;border-radius:4px;padding:2px 5px;font-size:10px;width:180px';
-  [["提案資料（DX）","提案資料（新規事業）","提案資料（人事）","提案資料（業務改善）","提案資料（マーケティング）","提案資料（その他）","その他資料"]][0].split('\0');  // noop
   ["提案資料（DX）","提案資料（新規事業）","提案資料（人事）","提案資料（業務改善）","提案資料（マーケティング）","提案資料（その他）","その他資料"].forEach(function(o){var op=document.createElement('option');op.value=o;op.textContent=o;_sel.appendChild(op);});
   div.appendChild(_sel);
   var _urlIn=document.createElement('input');

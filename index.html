@@ -1733,21 +1733,20 @@ function renderLeads(M){
   // チームメンバー判定（E_ROWSのmember列）
   var TEAM5_NAMES=['徳永','栫','中村','岡部','福本','飯田','木曽','土田','小林'];
   function isTeamMember(mem){if(!mem)return false;for(var i=0;i<TEAM5_NAMES.length;i++)if(mem.indexOf(TEAM5_NAMES[i])>=0)return true;return false;}
-  // Build active-company sets from E_ROWS (all_cases フェーズ08) — チームメンバーの案件のみ
+  // Build active-company sets from E_ROWS + RC_ROWS — チームメンバーの案件のみ
   var activeCos={};    // 取引先名 → true (現在稼働中: phase08かつ終了日未来)
   var anyCasesCos={};  // 取引先名 → true (過去含め何らかの案件あり = 接点あり)
   window.starContactMap={}; // "会社名__氏名" → true (analytics view からも参照)
   var starContactMap=window.starContactMap;
   var coCases={};        // 取引先名 → [稼働中case rows]
+  var today2=new Date();today2.setHours(0,0,0,0);
+  // E_ROWS(acplan_cases)から接点ありの企業を収集
   if(window.E_ROWS&&window.E_COL){
-    var today2=new Date();today2.setHours(0,0,0,0);
-    // まず全案件（チームメンバーのみ）から接点ありの企業を収集
     E_ROWS.forEach(function(r){
       var mem=eGet(r,'member');if(!isTeamMember(mem))return;
       var ac=eGet(r,'account').trim();if(!ac)return;
       anyCasesCos[ac]=true;
     });
-    // 次に稼働中（phase08・終了日未来・チームメンバー）のみ絞り込み
     E_ROWS.forEach(function(r){
       var mem=eGet(r,'member');if(!isTeamMember(mem))return;
       var ph=eGet(r,'curPh');if(ePh(ph)!==8||ph.indexOf('DEAD')>=0)return;
@@ -1757,11 +1756,34 @@ function renderLeads(M){
       activeCos[ac]=true;
       if(!coCases[ac])coCases[ac]=[];coCases[ac].push(r);
       if(E_COL.custContact>=0){var cc=(r[E_COL.custContact]||'').trim();if(cc){
-        // 「姓 名」「姓名」両方でマップ登録（スペースあり/なし両対応）
         cc.split(/[,、；;\/・]/).forEach(function(n){
           var nn=n.trim();if(!nn)return;
           starContactMap[ac+'__'+nn]=true;
-          starContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;// スペースなしも登録
+          starContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;
+        });
+      }}
+    });
+  }
+  // RC_ROWS(all_cases)からも補完（acplan_casesにph08が含まれない場合をカバー）
+  if(window.RC_ROWS&&window.RC_ROWS.length&&window.RC_COL&&RC_COL.member>=0){
+    var _rcg3=function(r,k){var i=RC_COL[k];return(i>=0&&i<r.length)?(r[i]||'').trim():'';};
+    RC_ROWS.forEach(function(r){
+      var mem=_rcg3(r,'member');if(!isTeamMember(mem))return;
+      var ac=_rcg3(r,'account').trim();if(!ac)return;
+      anyCasesCos[ac]=true;
+      var ph=_rcg3(r,'curPh')||_rcg3(r,'lastPh');
+      if(!ph||ph.indexOf('DEAD')>=0)return;
+      if(ePh(ph)!==8)return;
+      var ed=_rcg3(r,'endDate');
+      if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today2)return;}
+      activeCos[ac]=true;
+      if(!coCases[ac])coCases[ac]=[];coCases[ac].push(r);
+      var ccCol=RC_COL.custContact;
+      if(ccCol>=0){var cc=(r[ccCol]||'').trim();if(cc){
+        cc.split(/[,、；;\/・]/).forEach(function(n){
+          var nn=n.trim();if(!nn)return;
+          starContactMap[ac+'__'+nn]=true;
+          starContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;
         });
       }}
     });

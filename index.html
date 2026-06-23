@@ -1822,6 +1822,25 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
         h+='</div>';
         h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">📝 追加提案メモ</div>';
         h+='<textarea oninput="circuSaveMtg(this.dataset.k,\'proposal\',this.value)" data-k="'+_ckE+'" placeholder="追加提案の内容・ステータスをメモ..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:6px 8px;font-size:10px;resize:vertical;min-height:44px;box-sizing:border-box;font-family:inherit">'+(_cd.proposal||'')+'</textarea>';
+        // 資料リンクセクション
+        var _links=Array.isArray(_cd.links)?_cd.links:[];
+        var _linksId='links_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
+        h+='<div style="margin-top:8px">';
+        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
+        h+='<span style="font-size:9px;font-weight:700;color:#374151">📎 資料リンク</span>';
+        h+='<button onclick="circuAddLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" style="padding:1px 8px;font-size:9px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:8px;cursor:pointer;font-weight:600">＋ 追加</button>';
+        h+='</div>';
+        h+='<div id="'+_linksId+'">';
+        _links.forEach(function(lk,li){
+          h+='<div id="'+_linksId+'_'+li+'" style="display:flex;align-items:center;gap:4px;margin-bottom:4px">';
+          h+='<input placeholder="ラベル（例：提案資料）" value="'+(lk.label||'')+'" oninput="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="label" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;width:120px">';
+          h+='<input placeholder="URL（https://...）" value="'+(lk.url||'')+'" oninput="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="url" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
+          if(lk.url)h+='<a href="'+lk.url+'" target="_blank" style="font-size:10px;color:var(--blue);white-space:nowrap;text-decoration:none" title="開く">🔗</a>';
+          h+='<button onclick="circuRemoveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" style="padding:1px 6px;font-size:9px;border:1px solid #fca5a5;background:#fff;color:#ef4444;border-radius:4px;cursor:pointer">✕</button>';
+          h+='</div>';
+        });
+        h+='</div>';
+        h+='</div>';
         h+='</div>';
       });
     }
@@ -1845,6 +1864,45 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
 
 
 // ===== リードごとの関係値・MTGヘルパー =====
+function circuAddLink(btn){
+  var lsKey=btn.dataset.k;var lid=btn.dataset.lid;
+  var d=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}}());
+  if(!Array.isArray(d.links))d.links=[];
+  var li=d.links.length;
+  d.links.push({label:'',url:''});
+  localStorage.setItem(lsKey,JSON.stringify(d));
+  var container=document.getElementById(lid);
+  if(!container)return;
+  var div=document.createElement('div');div.id=lid+'_'+li;div.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:4px';
+  div.innerHTML='<input placeholder="ラベル（例：提案資料）" oninput="circuSaveLink(this)" data-k="'+lsKey.replace(/"/g,'&quot;')+'" data-lid="'+lid+'" data-li="'+li+'" data-f="label" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;width:120px">'
+    +'<input placeholder="URL（https://...）" oninput="circuSaveLink(this)" data-k="'+lsKey.replace(/"/g,'&quot;')+'" data-lid="'+lid+'" data-li="'+li+'" data-f="url" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">'
+    +'<button onclick="circuRemoveLink(this)" data-k="'+lsKey.replace(/"/g,'&quot;')+'" data-lid="'+lid+'" data-li="'+li+'" style="padding:1px 6px;font-size:9px;border:1px solid #fca5a5;background:#fff;color:#ef4444;border-radius:4px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+}
+function circuSaveLink(inp){
+  var lsKey=inp.dataset.k;var li=parseInt(inp.dataset.li);var field=inp.dataset.f;var lid=inp.dataset.lid;
+  var d=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}}());
+  if(!Array.isArray(d.links))d.links=[];
+  while(d.links.length<=li)d.links.push({label:'',url:''});
+  d.links[li][field]=inp.value;
+  localStorage.setItem(lsKey,JSON.stringify(d));
+  // URLが入力されたら🔗リンクを更新
+  if(field==='url'){
+    var row=document.getElementById(lid+'_'+li);
+    if(row){var a=row.querySelector('a');if(a){a.href=inp.value;}else if(inp.value){var na=document.createElement('a');na.href=inp.value;na.target='_blank';na.style.cssText='font-size:10px;color:var(--blue);white-space:nowrap;text-decoration:none';na.title='開く';na.textContent='🔗';row.insertBefore(na,row.lastElementChild);}}
+  }
+}
+function circuRemoveLink(btn){
+  var lsKey=btn.dataset.k;var li=parseInt(btn.dataset.li);var lid=btn.dataset.lid;
+  var d=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}}());
+  if(Array.isArray(d.links))d.links.splice(li,1);
+  localStorage.setItem(lsKey,JSON.stringify(d));
+  var row=document.getElementById(lid+'_'+li);if(row)row.remove();
+  // インデックス再振り直し
+  var container=document.getElementById(lid);
+  if(container){Array.from(container.children).forEach(function(row,idx){row.id=lid+'_'+idx;row.querySelectorAll('[data-li]').forEach(function(el){el.dataset.li=idx;});});}
+}
+
 function circuCaseDone(el){
   var lsKey=el.dataset.k;var field=el.dataset.f;var elId=el.dataset.id;
   var d=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}}());

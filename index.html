@@ -1627,13 +1627,17 @@ function renderCompanyAccordion(cos,coList,col,accentColor,personProposalMap,per
 }
 
 
-function renderProposalCompanyView(propCos,propCoCases,filtered,col){
+function renderProposalCompanyView(propCos,propCoCases,filtered,col,propContactMap){
   var PH_LABELS={1:'01 初回アポ',2:'02 面談',3:'03 提案',4:'04 人選',5:'05 契約交渉',6:'06 確定',7:'07 稟議中'};
   var PH_COLORS={1:'#6b7280',2:'#0891b2',3:'#7c3aed',4:'#f97316',5:'#dc2626',6:'#059669',7:'#d97706'};
   // 会社ごとにリードをグループ化
   var coLeads={};
   filtered.forEach(function(r){
     var co=(r[col.company]||'').trim();if(!co||!propCos[co])return;
+    // 提案案件の顧客担当者のみ表示
+    var fn=((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();
+    var fnN=fn.replace(/\s+/g,'');
+    if(!propContactMap[co+'__'+fn]&&!propContactMap[co+'__'+fnN])return;
     if(!coLeads[co])coLeads[co]=[];coLeads[co].push(r);
   });
   var cos=Object.keys(coLeads).sort(function(a,b){
@@ -2421,7 +2425,8 @@ function renderLeads(M){
         });
       }}
     });
-    // 提案中案件(ph01-07)の収集
+    // 提案中案件(ph01-07)の収集 + 顧客担当者マップ
+    var propContactMap={};  // "会社名__氏名" → true
     E_ROWS.forEach(function(r){
       var mem=eGet(r,'member');if(!isTeamMember(mem))return;
       var ph=eGet(r,'curPh');var phN=ePh(ph);
@@ -2429,9 +2434,13 @@ function renderLeads(M){
       var ac=eGet(r,'account').trim();if(!ac)return;
       propCos[ac]=true;
       var _nm=eGet(r,'name');var _th=eGet(r,'theme');
+      var _cc=eGet(r,'custContact');
       if(!propCoCases[ac])propCoCases[ac]=[];
-      propCoCases[ac].push({name:_nm||_th||'',ck:eGetN(r,'ck'),phase:ph,phaseN:phN,member:eGet(r,'member'),oppId:eGet(r,'oppId'),theme:_th,closeDate:eGet(r,'closeDate')});
+      propCoCases[ac].push({name:_nm||_th||'',ck:eGetN(r,'ck'),phase:ph,phaseN:phN,member:eGet(r,'member'),oppId:eGet(r,'oppId'),theme:_th,closeDate:eGet(r,'closeDate'),custContact:_cc});
+      // 顧客担当者を propContactMap に登録
+      if(_cc){_cc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;propContactMap[ac+'__'+nn]=true;propContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});}
     });
+    window._propContactMap=propContactMap;
   }
   // RC_ROWS(all_cases)からも補完（acplan_casesにph08が含まれない場合をカバー）
   if(window.RC_ROWS&&window.RC_ROWS.length&&window.RC_COL&&RC_COL.member>=0){
@@ -2747,7 +2756,7 @@ function renderLeads(M){
     } else if(L_VIEW_MODE==='pastclient'){
     h+='<div style="padding:0 24px 24px">'+renderPastClientView(pastClientCos,activeCos,filtered,col,personProposalMap,personContractMap)+'</div>';
   } else if(L_VIEW_MODE==='proposal'){
-    h+='<div style="padding:0 24px 24px">'+renderProposalCompanyView(propCos,propCoCases,filtered,col)+'</div>';
+    h+='<div style="padding:0 24px 24px">'+renderProposalCompanyView(propCos,propCoCases,filtered,col,window._propContactMap||{})+'</div>';
   } else {
     // 全リード: 企業名アコーディオン表示
     var allCos={};

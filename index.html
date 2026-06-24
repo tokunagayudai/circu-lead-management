@@ -2134,6 +2134,160 @@ function circuMtgDoneBtn(co,field,done){
   var key=encodeURIComponent(co).replace(/%/g,'_pct_');
   return '<span id="'+id+'" onclick="circuToggleDone(\''+key+'\',\''+field+'\')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;'+(done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(done?'✅ 完了':'⬜ 未実施')+'</span>';
 }
+// ===== アカプラ (Account Planning) =====
+function _escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function _escA(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+function circuAcpToggle(id){
+  var el=document.getElementById(id);var arr=document.getElementById(id+'_arr');if(!el)return;
+  var open=el.style.display!=='none';el.style.display=open?'none':'block';
+  if(arr)arr.textContent=open?'▶':'▼';
+}
+function circuAcpSaveMemo(el){
+  var coKey=el.dataset.cok;
+  var d={};try{d=JSON.parse(localStorage.getItem(coKey)||'{}');}catch(e){}
+  d.memo=el.value;localStorage.setItem(coKey,JSON.stringify(d));
+}
+function circuAcpSaveRole(el){
+  localStorage.setItem(el.dataset.lsk,el.value);
+}
+function circuAcpSaveLog(lk,li,f,v){
+  var logs=[];try{logs=JSON.parse(localStorage.getItem(lk)||'[]');}catch(e){}
+  if(!logs[li])return;logs[li][f]=v;localStorage.setItem(lk,JSON.stringify(logs));
+}
+function circuAcpRemoveLog(btn){
+  var lk=btn.dataset.lk;var li=parseInt(btn.dataset.li);var cid=btn.dataset.cid;
+  var logs=[];try{logs=JSON.parse(localStorage.getItem(lk)||'[]');}catch(e){}
+  logs.splice(li,1);localStorage.setItem(lk,JSON.stringify(logs));
+  var el=document.getElementById(cid);if(!el)return;
+  el.innerHTML='';logs.forEach(function(lg,i){el.innerHTML+=renderAcpLog(lk,lg,i,cid);});
+}
+function circuAcpAddLog(lk,cid){
+  var logs=[];try{logs=JSON.parse(localStorage.getItem(lk)||'[]');}catch(e){}
+  logs.push({date:'',person:'',content:'',nextAct:'',nextDate:'',id:Date.now()});
+  localStorage.setItem(lk,JSON.stringify(logs));
+  var el=document.getElementById(cid);if(!el)return;
+  el.innerHTML='';logs.forEach(function(lg,i){el.innerHTML+=renderAcpLog(lk,lg,i,cid);});
+}
+function renderAcpLog(lk,log,li,cid){
+  var lkE=_escA(lk);var cidE=_escA(cid);
+  var h='<div style="border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px;background:#f8faff">';
+  h+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:5px">';
+  h+='<input type="date" value="'+_escA(log.date||'')+'" data-lk="'+lkE+'" data-li="'+li+'" data-f="date" onchange="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:110px">';
+  h+='<input type="text" value="'+_escA(log.person||'')+'" placeholder="担当者名" data-lk="'+lkE+'" data-li="'+li+'" data-f="person" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;width:80px">';
+  h+='<button data-lk="'+lkE+'" data-li="'+li+'" data-cid="'+cidE+'" onclick="circuAcpRemoveLog(this)" style="margin-left:auto;font-size:9px;background:none;border:none;color:#ef4444;cursor:pointer;padding:2px 6px;border-radius:3px;border:1px solid #fca5a5">削除</button>';
+  h+='</div>';
+  h+='<textarea data-lk="'+lkE+'" data-li="'+li+'" data-f="content" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" placeholder="接触内容・商談の進捗..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:4px 6px;font-size:10px;resize:vertical;min-height:36px;box-sizing:border-box;font-family:inherit">'+_escH(log.content||'')+'</textarea>';
+  h+='<div style="display:flex;gap:6px;align-items:center;margin-top:5px">';
+  h+='<span style="font-size:9px;color:var(--ink3);white-space:nowrap">→ 次のアクション:</span>';
+  h+='<input type="text" value="'+_escA(log.nextAct||'')+'" placeholder="次にすること" data-lk="'+lkE+'" data-li="'+li+'" data-f="nextAct" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;flex:1">';
+  h+='<input type="date" value="'+_escA(log.nextDate||'')+'" data-lk="'+lkE+'" data-li="'+li+'" data-f="nextDate" onchange="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:110px">';
+  h+='</div>';
+  h+='</div>';
+  return h;
+}
+function renderAcplanView(filtered,col){
+  // Tier1のみ収集
+  var tier1Cos={};
+  filtered.forEach(function(r){
+    var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
+    if(tier!=='Tier1')return;
+    var co=(r[col.company]||'').trim();if(!co)return;
+    if(!tier1Cos[co])tier1Cos[co]=[];tier1Cos[co].push(r);
+  });
+  var coList=Object.keys(tier1Cos).sort(function(a,b){return a.localeCompare(b,'ja');});
+  if(!coList.length)return '<div style="padding:40px;text-align:center;color:var(--ink3)">Tier1リードが見つかりません（絞込条件を確認してください）</div>';
+  var _getFullName=function(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();};
+  var ROLE_COLORS={決裁者:'#b91c1c',キーマン:'#d97706',チャンピオン:'#059669',中立:'#6b7280',反対:'#7c3aed',不明:'#94a3b8'};
+  var h='';
+  h+='<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">';
+  h+='<span style="font-size:13px;font-weight:700;color:#7c3aed">📋 アカプラ — Tier1企業</span>';
+  h+='<span style="font-size:11px;color:var(--ink3)">'+coList.length+'社</span>';
+  h+='</div>';
+  coList.forEach(function(co,ci){
+    var leads=tier1Cos[co];
+    var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    var coKey='circu_acplan_'+co;
+    var acpData={};try{acpData=JSON.parse(localStorage.getItem(coKey)||'{}');}catch(e){}
+    var openId='acp_'+ci;
+    var logKey=coKey+'_logs';
+    var logs=[];try{logs=JSON.parse(localStorage.getItem(logKey)||'[]');}catch(e){}
+    var nextLogs=logs.filter(function(l){return l.nextDate&&l.nextDate>=new Date().toISOString().slice(0,10);});
+    // 組織図: 部署でグループ化
+    var deptMap={};
+    leads.forEach(function(r){
+      var dept=(col.dept>=0?(r[col.dept]||''):'').trim()||'部署不明';
+      if(!deptMap[dept])deptMap[dept]=[];deptMap[dept].push(r);
+    });
+    var deptList=Object.keys(deptMap).sort(function(a,b){
+      if(a==='部署不明')return 1;if(b==='部署不明')return -1;return a.localeCompare(b,'ja');
+    });
+    h+='<div style="border:1px solid #c4b5fd;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 4px rgba(124,58,237,.08)">';
+    // Header
+    h+='<div onclick="circuAcpToggle(\''+openId+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:linear-gradient(135deg,#7c3aed18,#a78bfa10);user-select:none">';
+    h+='<span id="'+openId+'_arr" style="font-size:9px;width:12px;color:#7c3aed;font-weight:700">▶</span>';
+    h+='<span style="font-size:13px;font-weight:700;flex:1">'+_escH(dispCo)+'</span>';
+    h+='<span style="font-size:10px;background:#7c3aed22;color:#7c3aed;border-radius:4px;padding:2px 8px;font-weight:600">'+leads.length+'名</span>';
+    if(nextLogs.length){h+='<span style="font-size:9px;background:#fef3c7;color:#d97706;border-radius:4px;padding:2px 8px;font-weight:600">📅 次アクション '+nextLogs.length+'件</span>';}
+    h+='</div>';
+    // Body (collapsed)
+    h+='<div id="'+openId+'" style="display:none">';
+    // ===== 攻略メモ =====
+    h+='<div style="padding:12px 14px;border-bottom:1px solid #e8e0fc;background:#fdfcff">';
+    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:6px">📝 攻略メモ・戦略</div>';
+    h+='<textarea data-cok="'+_escA(coKey)+'" oninput="circuAcpSaveMemo(this)" placeholder="攻略戦略・課題・アプローチ方針などをメモ..." style="width:100%;border:1px solid #c4b5fd;border-radius:6px;padding:8px;font-size:11px;resize:vertical;min-height:60px;box-sizing:border-box;font-family:inherit;background:#fff;color:var(--ink)">'+_escH(acpData.memo||'')+'</textarea>';
+    h+='</div>';
+    // ===== 組織図 =====
+    h+='<div style="padding:12px 14px;border-bottom:1px solid #e8e0fc">';
+    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:8px">🏢 組織図・ターゲット整理</div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">';
+    deptList.forEach(function(dept){
+      var dLeads=deptMap[dept];
+      h+='<div style="border:1px solid #e2e8f0;border-radius:8px;min-width:150px;max-width:230px;flex:1">';
+      h+='<div style="background:#7c3aed18;padding:5px 10px;font-size:9px;font-weight:700;color:#7c3aed;border-bottom:1px solid #e2e8f0;border-radius:8px 8px 0 0">'+_escH(dept)+'</div>';
+      dLeads.forEach(function(r){
+        var fn=_getFullName(r);
+        var role=(col.role>=0?(r[col.role]||''):'').trim();
+        var cid2=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+        var lsKey='circu_lead_'+(cid2||fn);
+        var lsData={};try{lsData=JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){}
+        var acpRoleLsKey=coKey+'_role_'+fn;
+        var savedRole=localStorage.getItem(acpRoleLsKey);
+        var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
+        var acpRole=savedRole!==null?savedRole:tcat;
+        var relK=lsData.rel||'';var relDef=REL_DEF[relK];
+        var relLabel=relDef?relDef.label:'';var relColor=relDef?relDef.color:'#94a3b8';var relBg=relDef?relDef.bg:'#f1f5f9';
+        var rcColor=ROLE_COLORS[acpRole]||'#94a3b8';
+        h+='<div style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.04)">';
+        h+='<div style="font-size:10px;font-weight:700;margin-bottom:2px">'+_escH(fn)+'</div>';
+        if(role)h+='<div style="font-size:9px;color:var(--ink2);margin-bottom:4px">'+_escH(role)+'</div>';
+        h+='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
+        // Role select
+        h+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:1px 3px;border:1px solid #d1d5db;border-radius:3px;background:#fff;cursor:pointer;max-width:80px">';
+        ['','決裁者','キーマン','チャンピオン','中立','反対','不明'].forEach(function(rv){
+          h+='<option value="'+rv+'"'+(acpRole===rv?' selected':'')+'>'+(rv||'役割未設定')+'</option>';
+        });
+        h+='</select>';
+        if(relLabel)h+='<span style="font-size:8px;font-weight:700;color:'+relColor+';background:'+relBg+';border-radius:3px;padding:1px 5px">'+relLabel+'</span>';
+        h+='</div>';
+        h+='</div>';
+      });
+      h+='</div>';
+    });
+    h+='</div>';
+    h+='</div>'; // close org chart
+    // ===== 接触ログ =====
+    h+='<div style="padding:12px 14px">';
+    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:8px">📞 接触ログ・次のアクション</div>';
+    h+='<button data-lk="'+_escA(logKey)+'" data-cid="'+openId+'_logs" onclick="circuAcpAddLog(this.dataset.lk,this.dataset.cid)" style="font-size:9px;background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;margin-bottom:8px;font-weight:600">+ ログを追加</button>';
+    h+='<div id="'+openId+'_logs">';
+    logs.forEach(function(lg,li){h+=renderAcpLog(logKey,lg,li,openId+'_logs');});
+    h+='</div>';
+    h+='</div>';
+    h+='</div>'; // close body
+    h+='</div>'; // close card
+  });
+  return h;
+}
 // ISパイプライン ハンドラ
 function isSetView(v){window.IS_VIEW=v;renderLeads(document.getElementById('M'));}
 function isSetMember(v){window.IS_MEMBER_FILTER=v;renderLeads(document.getElementById('M'));}
@@ -2700,7 +2854,8 @@ function renderLeads(M){
     {id:'unproposed',label:'\uD83D\uDD0D 未提案リード',cnt:unpropCount,color:'#7c3aed',sub:'商談ゼロ'},
     {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別'},
     {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定'},
-    {id:'proposal',label:'🔥 提案中企業',cnt:Object.keys(propCos).length,color:'#f97316',sub:Object.keys(propCos).length+'社'}
+    {id:'proposal',label:'🔥 提案中企業',cnt:Object.keys(propCos).length,color:'#f97316',sub:Object.keys(propCos).length+'社'},
+    {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:'Tier1企業'}
   ];
   tabs.forEach(function(t){
     var act=L_VIEW_MODE===t.id;
@@ -2721,7 +2876,7 @@ function renderLeads(M){
   // 全担当者フィルター: L_DATAから全メンバーを収集
   var allMembersSet={};L_DATA.forEach(function(r){var m=(col.member>=0?(r[col.member]||''):'').trim();if(m)allMembersSet[m]=true;});
   var allMembersSorted=Object.keys(allMembersSet).sort(function(a,b){return a.localeCompare(b,'ja');});
-  if(L_VIEW_MODE!=='analytics'&&L_VIEW_MODE!=='ispipeline'){
+  if(L_VIEW_MODE!=='analytics'&&L_VIEW_MODE!=='ispipeline'&&L_VIEW_MODE!=='acplan'){
   h+='<div class="ent-section">';
   h+='<div style="display:flex;gap:8px;padding:0 0 12px;align-items:center;flex-wrap:wrap">';
   h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">絞込:</span>';
@@ -2758,6 +2913,8 @@ function renderLeads(M){
     h+='<div style="padding:0 24px 24px">'+renderPastClientView(pastClientCos,activeCos,filtered,col,personProposalMap,personContractMap)+'</div>';
   } else if(L_VIEW_MODE==='proposal'){
     h+='<div style="padding:0 24px 24px">'+renderProposalCompanyView(propCos,propCoCases,filtered,col,window._propContactMap||{})+'</div>';
+  } else if(L_VIEW_MODE==='acplan'){
+    h+='<div style="padding:0 24px 24px">'+renderAcplanView(filtered,col)+'</div>';
   } else {
     // 全リード: 企業名アコーディオン表示
     var allCos={};

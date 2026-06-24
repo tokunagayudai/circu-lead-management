@@ -2137,18 +2137,23 @@ function circuMtgDoneBtn(co,field,done){
 // ===== アカプラ (Account Planning) =====
 function _escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _escA(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+function acpNormCo(name){
+  // Strip company suffixes for grouping comparison
+  return name.replace(/株式会社|㈱|\(株\)/g,'').replace(/(HD|ホールディングス|ホールディング|グループ|holdings)/gi,'').replace(/[（）()\s・]+/g,'').toLowerCase().trim();
+}
 function circuAcpToggle(id){
   var el=document.getElementById(id);var arr=document.getElementById(id+'_arr');if(!el)return;
   var open=el.style.display!=='none';el.style.display=open?'none':'block';
   if(arr)arr.textContent=open?'▶':'▼';
 }
 function circuAcpSaveMemo(el){
-  var coKey=el.dataset.cok;
-  var d={};try{d=JSON.parse(localStorage.getItem(coKey)||'{}');}catch(e){}
+  var coKey=el.dataset.cok;var d={};try{d=JSON.parse(localStorage.getItem(coKey)||'{}');}catch(e){}
   d.memo=el.value;localStorage.setItem(coKey,JSON.stringify(d));
 }
-function circuAcpSaveRole(el){
-  localStorage.setItem(el.dataset.lsk,el.value);
+function circuAcpSaveRole(el){localStorage.setItem(el.dataset.lsk,el.value);}
+function circuAcpSaveGTag(el){
+  localStorage.setItem(el.dataset.gtk,el.value.trim());
+  renderLeads(document.getElementById('M'));
 }
 function circuAcpSaveLog(lk,li,f,v){
   var logs=[];try{logs=JSON.parse(localStorage.getItem(lk)||'[]');}catch(e){}
@@ -2170,23 +2175,21 @@ function circuAcpAddLog(lk,cid){
 }
 function renderAcpLog(lk,log,li,cid){
   var lkE=_escA(lk);var cidE=_escA(cid);
-  var h='<div style="border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px;background:#f8faff">';
+  var h='<div style="border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px;background:#fff">';
   h+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:5px">';
-  h+='<input type="date" value="'+_escA(log.date||'')+'" data-lk="'+lkE+'" data-li="'+li+'" data-f="date" onchange="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:110px">';
-  h+='<input type="text" value="'+_escA(log.person||'')+'" placeholder="担当者名" data-lk="'+lkE+'" data-li="'+li+'" data-f="person" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;width:80px">';
-  h+='<button data-lk="'+lkE+'" data-li="'+li+'" data-cid="'+cidE+'" onclick="circuAcpRemoveLog(this)" style="margin-left:auto;font-size:9px;background:none;border:none;color:#ef4444;cursor:pointer;padding:2px 6px;border-radius:3px;border:1px solid #fca5a5">削除</button>';
+  h+='<input type="date" value="'+_escA(log.date||'')+'" data-lk="'+lkE+'" data-li="'+li+'" data-f="date" onchange="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #cbd5e1;border-radius:4px;width:120px">';
+  h+='<input type="text" value="'+_escA(log.person||'')+'" placeholder="担当者名" data-lk="'+lkE+'" data-li="'+li+'" data-f="person" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:10px;padding:2px 6px;border:1px solid #cbd5e1;border-radius:4px;width:90px">';
+  h+='<button data-lk="'+lkE+'" data-li="'+li+'" data-cid="'+cidE+'" onclick="circuAcpRemoveLog(this)" style="margin-left:auto;font-size:9px;background:#fff;border:1px solid #fca5a5;color:#ef4444;cursor:pointer;padding:2px 8px;border-radius:4px">削除</button>';
   h+='</div>';
-  h+='<textarea data-lk="'+lkE+'" data-li="'+li+'" data-f="content" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" placeholder="接触内容・商談の進捗..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:4px 6px;font-size:10px;resize:vertical;min-height:36px;box-sizing:border-box;font-family:inherit">'+_escH(log.content||'')+'</textarea>';
+  h+='<textarea data-lk="'+lkE+'" data-li="'+li+'" data-f="content" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" placeholder="接触内容・商談の進捗..." style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:5px 7px;font-size:10px;resize:vertical;min-height:36px;box-sizing:border-box;font-family:inherit;color:var(--ink)">'+_escH(log.content||'')+'</textarea>';
   h+='<div style="display:flex;gap:6px;align-items:center;margin-top:5px">';
-  h+='<span style="font-size:9px;color:var(--ink3);white-space:nowrap">→ 次のアクション:</span>';
-  h+='<input type="text" value="'+_escA(log.nextAct||'')+'" placeholder="次にすること" data-lk="'+lkE+'" data-li="'+li+'" data-f="nextAct" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;flex:1">';
-  h+='<input type="date" value="'+_escA(log.nextDate||'')+'" data-lk="'+lkE+'" data-li="'+li+'" data-f="nextDate" onchange="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:9px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;width:110px">';
-  h+='</div>';
-  h+='</div>';
+  h+='<span style="font-size:9px;color:#64748b;white-space:nowrap;font-weight:600">→ 次のアクション:</span>';
+  h+='<input type="text" value="'+_escA(log.nextAct||'')+'" placeholder="次にすること" data-lk="'+lkE+'" data-li="'+li+'" data-f="nextAct" oninput="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:10px;padding:2px 6px;border:1px solid #cbd5e1;border-radius:4px;flex:1">';
+  h+='<input type="date" value="'+_escA(log.nextDate||'')+'" data-lk="'+lkE+'" data-li="'+li+'" data-f="nextDate" onchange="circuAcpSaveLog(this.dataset.lk,parseInt(this.dataset.li),this.dataset.f,this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #cbd5e1;border-radius:4px;width:120px">';
+  h+='</div></div>';
   return h;
 }
 function renderAcplanView(filtered,col){
-  // Tier1のみ収集
   var tier1Cos={};
   filtered.forEach(function(r){
     var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
@@ -2197,22 +2200,94 @@ function renderAcplanView(filtered,col){
   var coList=Object.keys(tier1Cos).sort(function(a,b){return a.localeCompare(b,'ja');});
   if(!coList.length)return '<div style="padding:40px;text-align:center;color:var(--ink3)">Tier1リードが見つかりません（絞込条件を確認してください）</div>';
   var _getFullName=function(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();};
-  var ROLE_COLORS={決裁者:'#b91c1c',キーマン:'#d97706',チャンピオン:'#059669',中立:'#6b7280',反対:'#7c3aed',不明:'#94a3b8'};
+  var ROLE_DEF={
+    決裁者:{color:'#b91c1c',bg:'#fee2e2'},
+    キーマン:{color:'#d97706',bg:'#fef3c7'},
+    チャンピオン:{color:'#059669',bg:'#d1fae5'},
+    中立:{color:'#475569',bg:'#f1f5f9'},
+    反対:{color:'#7c3aed',bg:'#ede9fe'},
+    不明:{color:'#94a3b8',bg:'#f8fafc'}
+  };
+  var DEPT_PALETTE=['#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+  // ===== グループ検出 =====
+  var coNorms={};coList.forEach(function(co){coNorms[co]=acpNormCo(co);});
+  var coGroups={};
+  coList.forEach(function(co){
+    var gtk='circu_acplan_'+co+'_gtag';
+    var saved=localStorage.getItem(gtk);
+    if(saved!==null&&saved!==''){coGroups[co]=saved;return;}
+    var norm=coNorms[co];
+    var bestKey=co;var bestLen=0;
+    coList.forEach(function(other){
+      if(other===co)return;
+      var on=coNorms[other];if(!on||!norm)return;
+      var shorter=norm.length<=on.length?norm:on;
+      var longer=norm.length<=on.length?on:norm;
+      if(shorter.length<3)return;
+      if(longer.indexOf(shorter)===0&&shorter.length>bestLen){bestLen=shorter.length;bestKey=shorter;}
+    });
+    coGroups[co]=bestLen>=3?bestKey:co;
+  });
+  // ソート: グループキー順 → 同グループ内は名前順
+  coList.sort(function(a,b){
+    var ga=coGroups[a],gb=coGroups[b];
+    if(ga!==gb)return ga.localeCompare(gb,'ja');
+    return a.localeCompare(b,'ja');
+  });
+  var today=new Date().toISOString().slice(0,10);
   var h='';
-  h+='<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">';
-  h+='<span style="font-size:13px;font-weight:700;color:#7c3aed">📋 アカプラ — Tier1企業</span>';
-  h+='<span style="font-size:11px;color:var(--ink3)">'+coList.length+'社</span>';
+  h+='<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">';
+  h+='<span style="font-size:14px;font-weight:800;color:#1e293b">📋 アカプラ</span>';
+  h+='<span style="font-size:11px;color:#64748b;background:#f1f5f9;border-radius:4px;padding:2px 8px">Tier1 '+coList.length+'社</span>';
+  h+='<span style="font-size:10px;color:#94a3b8;margin-left:4px">グループ名を設定するとまとめて表示されます</span>';
   h+='</div>';
+  var prevGroup=null;
   coList.forEach(function(co,ci){
     var leads=tier1Cos[co];
     var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
     var coKey='circu_acplan_'+co;
+    var gtagKey=coKey+'_gtag';
     var acpData={};try{acpData=JSON.parse(localStorage.getItem(coKey)||'{}');}catch(e){}
     var openId='acp_'+ci;
     var logKey=coKey+'_logs';
     var logs=[];try{logs=JSON.parse(localStorage.getItem(logKey)||'[]');}catch(e){}
-    var nextLogs=logs.filter(function(l){return l.nextDate&&l.nextDate>=new Date().toISOString().slice(0,10);});
-    // 組織図: 部署でグループ化
+    var nextLogs=logs.filter(function(l){return l.nextDate&&l.nextDate>=today;});
+    var curGroup=coGroups[co];
+    var savedGTag=localStorage.getItem(gtagKey)||'';
+    // グループ区切り表示
+    if(curGroup!==prevGroup){
+      var groupLabel=savedGTag||(curGroup!==co?curGroup:'');
+      if(groupLabel){
+        h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px">';
+        h+='<div style="height:2px;flex:1;background:linear-gradient(90deg,#7c3aed44,transparent)"></div>';
+        h+='<span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:10px;padding:2px 10px">🏢 '+_escH(groupLabel)+' グループ</span>';
+        h+='<div style="height:2px;flex:1;background:linear-gradient(90deg,transparent,#7c3aed44)"></div>';
+        h+='</div>';
+      }
+      prevGroup=curGroup;
+    }
+    // ===== カード =====
+    h+='<div style="border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">';
+    // Header
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0">';
+    h+='<span onclick="circuAcpToggle(\''+openId+'\')" id="'+openId+'_arr" style="font-size:10px;width:14px;color:#7c3aed;font-weight:700;cursor:pointer;user-select:none">▶</span>';
+    h+='<span onclick="circuAcpToggle(\''+openId+'\')" style="font-size:13px;font-weight:700;flex:1;cursor:pointer;user-select:none;color:#0f172a">'+_escH(dispCo)+'</span>';
+    h+='<span style="font-size:10px;background:#e0f2fe;color:#0369a1;border-radius:4px;padding:2px 7px;font-weight:600">'+leads.length+'名</span>';
+    if(nextLogs.length)h+='<span style="font-size:9px;background:#fef3c7;color:#b45309;border-radius:4px;padding:2px 7px;font-weight:700">📅 '+nextLogs.length+'件</span>';
+    // グループタグ入力
+    h+='<span onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:3px;margin-left:4px">';
+    h+='<span style="font-size:9px;color:#94a3b8;white-space:nowrap">グループ:</span>';
+    h+='<input type="text" value="'+_escA(savedGTag)+'" placeholder="例: 〇〇グループ" data-gtk="'+_escA(gtagKey)+'" onchange="circuAcpSaveGTag(this)" onclick="event.stopPropagation()" style="font-size:9px;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;width:100px;background:#fff;color:#334155">';
+    h+='</span>';
+    h+='</div>';
+    // Body (collapsed)
+    h+='<div id="'+openId+'" style="display:none">';
+    // ===== 攻略メモ =====
+    h+='<div style="padding:12px 14px;border-bottom:1px solid #f1f5f9;background:#fafbff">';
+    h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px;letter-spacing:.03em">📝 攻略メモ・戦略</div>';
+    h+='<textarea data-cok="'+_escA(coKey)+'" oninput="circuAcpSaveMemo(this)" placeholder="攻略戦略・課題・アプローチ方針などをメモ..." style="width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-size:11px;resize:vertical;min-height:56px;box-sizing:border-box;font-family:inherit;background:#fff;color:#0f172a;line-height:1.6">'+_escH(acpData.memo||'')+'</textarea>';
+    h+='</div>';
+    // ===== 組織図 =====
     var deptMap={};
     leads.forEach(function(r){
       var dept=(col.dept>=0?(r[col.dept]||''):'').trim()||'部署不明';
@@ -2221,29 +2296,14 @@ function renderAcplanView(filtered,col){
     var deptList=Object.keys(deptMap).sort(function(a,b){
       if(a==='部署不明')return 1;if(b==='部署不明')return -1;return a.localeCompare(b,'ja');
     });
-    h+='<div style="border:1px solid #c4b5fd;border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 4px rgba(124,58,237,.08)">';
-    // Header
-    h+='<div onclick="circuAcpToggle(\''+openId+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:linear-gradient(135deg,#7c3aed18,#a78bfa10);user-select:none">';
-    h+='<span id="'+openId+'_arr" style="font-size:9px;width:12px;color:#7c3aed;font-weight:700">▶</span>';
-    h+='<span style="font-size:13px;font-weight:700;flex:1">'+_escH(dispCo)+'</span>';
-    h+='<span style="font-size:10px;background:#7c3aed22;color:#7c3aed;border-radius:4px;padding:2px 8px;font-weight:600">'+leads.length+'名</span>';
-    if(nextLogs.length){h+='<span style="font-size:9px;background:#fef3c7;color:#d97706;border-radius:4px;padding:2px 8px;font-weight:600">📅 次アクション '+nextLogs.length+'件</span>';}
-    h+='</div>';
-    // Body (collapsed)
-    h+='<div id="'+openId+'" style="display:none">';
-    // ===== 攻略メモ =====
-    h+='<div style="padding:12px 14px;border-bottom:1px solid #e8e0fc;background:#fdfcff">';
-    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:6px">📝 攻略メモ・戦略</div>';
-    h+='<textarea data-cok="'+_escA(coKey)+'" oninput="circuAcpSaveMemo(this)" placeholder="攻略戦略・課題・アプローチ方針などをメモ..." style="width:100%;border:1px solid #c4b5fd;border-radius:6px;padding:8px;font-size:11px;resize:vertical;min-height:60px;box-sizing:border-box;font-family:inherit;background:#fff;color:var(--ink)">'+_escH(acpData.memo||'')+'</textarea>';
-    h+='</div>';
-    // ===== 組織図 =====
-    h+='<div style="padding:12px 14px;border-bottom:1px solid #e8e0fc">';
-    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:8px">🏢 組織図・ターゲット整理</div>';
+    h+='<div style="padding:12px 14px;border-bottom:1px solid #f1f5f9">';
+    h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:10px;letter-spacing:.03em">🏢 組織図・ターゲット整理</div>';
     h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">';
-    deptList.forEach(function(dept){
+    deptList.forEach(function(dept,di){
+      var dc=DEPT_PALETTE[di%DEPT_PALETTE.length];
       var dLeads=deptMap[dept];
-      h+='<div style="border:1px solid #e2e8f0;border-radius:8px;min-width:150px;max-width:230px;flex:1">';
-      h+='<div style="background:#7c3aed18;padding:5px 10px;font-size:9px;font-weight:700;color:#7c3aed;border-bottom:1px solid #e2e8f0;border-radius:8px 8px 0 0">'+_escH(dept)+'</div>';
+      h+='<div style="border:1px solid '+dc+'44;border-top:3px solid '+dc+';border-radius:6px;min-width:145px;max-width:210px;flex:1;background:#fff">';
+      h+='<div style="padding:5px 10px;font-size:9px;font-weight:700;color:'+dc+';border-bottom:1px solid '+dc+'22">'+_escH(dept)+'</div>';
       dLeads.forEach(function(r){
         var fn=_getFullName(r);
         var role=(col.role>=0?(r[col.role]||''):'').trim();
@@ -2255,36 +2315,32 @@ function renderAcplanView(filtered,col){
         var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
         var acpRole=savedRole!==null?savedRole:tcat;
         var relK=lsData.rel||'';var relDef=REL_DEF[relK];
-        var relLabel=relDef?relDef.label:'';var relColor=relDef?relDef.color:'#94a3b8';var relBg=relDef?relDef.bg:'#f1f5f9';
-        var rcColor=ROLE_COLORS[acpRole]||'#94a3b8';
-        h+='<div style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.04)">';
-        h+='<div style="font-size:10px;font-weight:700;margin-bottom:2px">'+_escH(fn)+'</div>';
-        if(role)h+='<div style="font-size:9px;color:var(--ink2);margin-bottom:4px">'+_escH(role)+'</div>';
+        var relLabel=relDef?relDef.label:'';var relColor=relDef?relDef.color:'';var relBg=relDef?relDef.bg:'';
+        var rdef=ROLE_DEF[acpRole];var rcColor=rdef?rdef.color:'#94a3b8';var rcBg=rdef?rdef.bg:'#f8fafc';
+        h+='<div style="padding:7px 10px;border-bottom:1px solid #f1f5f9">';
+        h+='<div style="font-size:10px;font-weight:700;color:#0f172a;margin-bottom:2px">'+_escH(fn)+'</div>';
+        if(role)h+='<div style="font-size:9px;color:#64748b;margin-bottom:5px">'+_escH(role)+'</div>';
         h+='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">';
-        // Role select
-        h+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:1px 3px;border:1px solid #d1d5db;border-radius:3px;background:#fff;cursor:pointer;max-width:80px">';
+        h+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:2px 4px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;cursor:pointer;color:#334155">';
         ['','決裁者','キーマン','チャンピオン','中立','反対','不明'].forEach(function(rv){
           h+='<option value="'+rv+'"'+(acpRole===rv?' selected':'')+'>'+(rv||'役割未設定')+'</option>';
         });
         h+='</select>';
-        if(relLabel)h+='<span style="font-size:8px;font-weight:700;color:'+relColor+';background:'+relBg+';border-radius:3px;padding:1px 5px">'+relLabel+'</span>';
-        h+='</div>';
-        h+='</div>';
+        if(acpRole&&rdef)h+='<span style="font-size:8px;font-weight:700;color:'+rcColor+';background:'+rcBg+';border-radius:3px;padding:1px 6px;border:1px solid '+rcColor+'44">'+_escH(acpRole)+'</span>';
+        if(relLabel)h+='<span style="font-size:8px;font-weight:600;color:'+relColor+';background:'+relBg+';border-radius:3px;padding:1px 5px">'+relLabel+'</span>';
+        h+='</div></div>';
       });
       h+='</div>';
     });
-    h+='</div>';
-    h+='</div>'; // close org chart
+    h+='</div></div>'; // close org chart
     // ===== 接触ログ =====
-    h+='<div style="padding:12px 14px">';
-    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:8px">📞 接触ログ・次のアクション</div>';
-    h+='<button data-lk="'+_escA(logKey)+'" data-cid="'+openId+'_logs" onclick="circuAcpAddLog(this.dataset.lk,this.dataset.cid)" style="font-size:9px;background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;margin-bottom:8px;font-weight:600">+ ログを追加</button>';
+    h+='<div style="padding:12px 14px;background:#fafbff">';
+    h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px;letter-spacing:.03em">📞 接触ログ・次のアクション</div>';
+    h+='<button data-lk="'+_escA(logKey)+'" data-cid="'+openId+'_logs" onclick="circuAcpAddLog(this.dataset.lk,this.dataset.cid)" style="font-size:10px;background:#0f172a;color:#fff;border:none;border-radius:5px;padding:5px 14px;cursor:pointer;margin-bottom:8px;font-weight:600">+ ログを追加</button>';
     h+='<div id="'+openId+'_logs">';
     logs.forEach(function(lg,li){h+=renderAcpLog(logKey,lg,li,openId+'_logs');});
-    h+='</div>';
-    h+='</div>';
-    h+='</div>'; // close body
-    h+='</div>'; // close card
+    h+='</div></div>';
+    h+='</div></div>'; // close body, close card
   });
   return h;
 }

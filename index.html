@@ -1630,45 +1630,40 @@ function renderCompanyAccordion(cos,coList,col,accentColor,personProposalMap,per
 function renderProposalCompanyView(propCos,propCoCases,filtered,col,propContactMap){
   var PH_LABELS={1:'01 初回アポ',2:'02 面談',3:'03 提案',4:'04 人選',5:'05 契約交渉',6:'06 確定',7:'07 稟議中'};
   var PH_COLORS={1:'#6b7280',2:'#0891b2',3:'#7c3aed',4:'#f97316',5:'#dc2626',6:'#059669',7:'#d97706'};
-  // 会社ごとにリードをグループ化
-  var coLeads={};
+  function getFullName(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
+  // 会社ごとにリード辞書を作成（名前→row）
+  var coLeadMap={};  // co → {fn: row, fnN: row}
   filtered.forEach(function(r){
     var co=(r[col.company]||'').trim();if(!co||!propCos[co])return;
-    // 提案案件の顧客担当者のみ表示
-    var fn=((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();
-    var fnN=fn.replace(/\s+/g,'');
-    if(!propContactMap[co+'__'+fn]&&!propContactMap[co+'__'+fnN])return;
-    if(!coLeads[co])coLeads[co]=[];coLeads[co].push(r);
+    var fn=getFullName(r);var fnN=fn.replace(/\s+/g,'');
+    if(!coLeadMap[co])coLeadMap[co]={};
+    coLeadMap[co][fn]=r;coLeadMap[co][fnN]=r;
   });
-  var cos=Object.keys(coLeads).sort(function(a,b){
-    // フェーズが高い（進んでいる）順にソート
-    var pa=propCoCases[a]?Math.max.apply(null,propCoCases[a].map(function(c){return c.phaseN;})):0;
-    var pb=propCoCases[b]?Math.max.apply(null,propCoCases[b].map(function(c){return c.phaseN;})):0;
+  // 表示対象会社（propCoCases に紐づくリードがいるか否かに関わらず全社表示）
+  var allCos=Object.keys(propCoCases).sort(function(a,b){
+    var pa=Math.max.apply(null,propCoCases[a].map(function(c){return c.phaseN;}));
+    var pb=Math.max.apply(null,propCoCases[b].map(function(c){return c.phaseN;}));
     return pb-pa||a.localeCompare(b,'ja');
   });
-  if(!cos.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">提案中企業のリードが見つかりません</div>';
-  function getFullName(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
+  if(!allCos.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">提案中企業が見つかりません</div>';
   // 担当者フィルター
   var memFilt2=window.ACTIVE_MEM_FILTER2||'all';
   var memCounts2={};
-  cos.forEach(function(co){
-    var cases=propCoCases[co]||[];
-    var m=cases.length?(cases[0].member||'').split(' ')[0]:'';
+  allCos.forEach(function(co){
+    var m=(propCoCases[co][0].member||'').split(' ')[0];
     if(m)memCounts2[m]=(memCounts2[m]||0)+1;
   });
   var memList2=Object.keys(memCounts2).sort(function(a,b){return memCounts2[b]-memCounts2[a];});
-  var dispCos=cos.filter(function(co){
+  var dispCos=allCos.filter(function(co){
     if(memFilt2==='all')return true;
-    var cases=propCoCases[co]||[];
-    var m=cases.length?(cases[0].member||'').split(' ')[0]:'';
-    return m===memFilt2;
+    return (propCoCases[co][0].member||'').split(' ')[0]===memFilt2;
   });
   var h='';
-  // 担当者フィルター
+  // 担当者フィルターバー
   h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
   h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">👤 担当者</span>';
   var _abAll='padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(memFilt2==='all'?'#f97316':'#d1d5db')+';background:'+(memFilt2==='all'?'#f97316':'#fff')+';color:'+(memFilt2==='all'?'#fff':'#374151');
-  h+='<button onclick="window.ACTIVE_MEM_FILTER2=\'all\';renderLeads(document.getElementById(\'M\'))" style="'+_abAll+'">全て <span style="font-size:9px;opacity:.75">'+cos.length+'社</span></button>';
+  h+='<button onclick="window.ACTIVE_MEM_FILTER2=this.dataset.m;renderLeads(document.getElementById(\'M\'))" data-m="all" style="'+_abAll+'">全て <span style="font-size:9px;opacity:.75">'+allCos.length+'社</span></button>';
   memList2.forEach(function(m){
     var isA=memFilt2===m;
     var _mst='padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(isA?'#f97316':'#d1d5db')+';background:'+(isA?'#f97316':'#fff')+';color:'+(isA?'#fff':'#374151');
@@ -1676,68 +1671,74 @@ function renderProposalCompanyView(propCos,propCoCases,filtered,col,propContactM
   });
   h+='</div>';
   dispCos.forEach(function(co){
-    var leads=coLeads[co];
     var cases=propCoCases[co]||[];
-    var mem=cases.length?(cases[0].member||'').split(' ')[0]:'';
+    var leadMap=coLeadMap[co]||{};
+    var mem=(cases[0].member||'').split(' ')[0];
     var ckTotal=cases.reduce(function(s,c){return s+(c.ck||0);},0);
     var maxPhN=cases.reduce(function(mx,c){return Math.max(mx,c.phaseN);},0);
     var maxPhColor=PH_COLORS[maxPhN]||'#6b7280';
     var maxPhLabel=PH_LABELS[maxPhN]||'';
     var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
-    h+='<details style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:8px">';
+    // 総ユニークリード数
+    var uniqLeadSet={};
+    cases.forEach(function(c){if(c.custContact){c.custContact.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(nn)uniqLeadSet[nn]=true;});}});
+    var uniqLeadCount=Object.keys(uniqLeadSet).length;
+    h+='<details open style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:8px">';
     h+='<summary style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;background:var(--bg)">';
     h+='<span style="font-size:18px">🔥</span>';
     h+='<span style="font-weight:700;font-size:13px;flex:1">'+dispCo+'</span>';
     if(mem)h+='<span style="font-size:10px;font-weight:600;color:var(--blue)">担当: '+mem+'</span>';
     if(maxPhLabel)h+='<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+maxPhColor+'20;color:'+maxPhColor+'">'+maxPhLabel+'</span>';
-    if(cases.length)h+='<span style="font-size:10px;background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:4px;font-weight:600">案件 '+cases.length+'件'+(ckTotal>0?' / CK '+eFmt(ckTotal)+'万':'')+'</span>';
-    h+='<span style="font-size:10px;color:var(--ink3)">候補 '+leads.length+'名</span>';
+    h+='<span style="font-size:10px;background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:4px;font-weight:600">案件 '+cases.length+'件'+(ckTotal>0?' / CK '+eFmt(ckTotal)+'万':'')+'</span>';
+    if(uniqLeadCount)h+='<span style="font-size:10px;color:var(--ink3)">顧客担当 '+uniqLeadCount+'名</span>';
     h+='</summary>';
     h+='<div style="padding:12px 16px;background:#fff">';
-    // 案件一覧
-    if(cases.length){
-      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
-      cases.forEach(function(c){
-        var pc=PH_COLORS[c.phaseN]||'#6b7280';var pl=PH_LABELS[c.phaseN]||c.phase;
-        h+='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:6px 10px;font-size:10px">';
-        h+='<div style="font-weight:600;margin-bottom:2px">'+c.name+'</div>';
-        h+='<div style="display:flex;gap:6px;align-items:center">';
-        h+='<span style="font-size:9px;font-weight:700;color:'+pc+';background:'+pc+'20;padding:1px 5px;border-radius:3px">'+pl+'</span>';
-        if(c.ck>0)h+='<span style="color:var(--ink3)">CK: '+eFmt(c.ck)+'万</span>';
-        if(c.closeDate)h+='<span style="color:var(--ink3)">受注予定: '+c.closeDate+'</span>';
-        h+='</div></div>';
-      });
+    // 案件ごとに顧客担当者リードを表示
+    cases.sort(function(a,b){return b.phaseN-a.phaseN;}).forEach(function(c){
+      var pc=PH_COLORS[c.phaseN]||'#6b7280';var pl=PH_LABELS[c.phaseN]||c.phase;
+      // 案件ヘッダー
+      h+='<div style="background:'+pc+'0d;border-left:3px solid '+pc+';border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:8px">';
+      h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">';
+      h+='<span style="font-size:11px;font-weight:700;color:#1e293b">'+c.name+'</span>';
+      h+='<span style="font-size:9px;font-weight:700;color:'+pc+';background:'+pc+'20;padding:1px 6px;border-radius:3px">'+pl+'</span>';
+      if(c.ck>0)h+='<span style="font-size:10px;color:var(--ink3)">CK: '+eFmt(c.ck)+'万</span>';
+      if(c.closeDate)h+='<span style="font-size:10px;color:var(--ink3)">受注予定: '+c.closeDate+'</span>';
       h+='</div>';
-    }
-    // リードテーブル
-    h+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
-    h+='<thead><tr style="border-bottom:1px solid var(--bd)">';
-    ['氏名','部署クラス','部署','役職','ターゲット','Tier','メール','電話'].forEach(function(l){h+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
-    h+='</tr></thead><tbody>';
-    leads.forEach(function(r){
-      var fn=getFullName(r);
-      var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
-      var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
-      var deptC=(col.deptClass>=0?(r[col.deptClass]||''):'').trim();
-      var role=(col.role>=0?(r[col.role]||''):'').trim();
-      var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
-      var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
-      var email=(col.email>=0?(r[col.email]||''):'').trim();
-      var phone=(col.phone>=0?(r[col.phone]||''):'').trim()||((col.mobile>=0?(r[col.mobile]||''):'').trim());
-      var tcc=tcat.indexOf('決裁')>=0?'#7c3aed':tcat.indexOf('チャンピオン')>=0?'var(--blue)':tcat.indexOf('キーマン')>=0?'#f97316':'var(--ink3)';
-      var tn=parseInt(tier.replace(/[^0-9]/g,''))||0;var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc2=tcs[tn]||'var(--ink3)';
-      h+='<tr>';
-      h+='<td style="padding:4px 8px;font-weight:600;font-size:11px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
-      h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+deptC+'</td>';
-      h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
-      h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
-      h+='<td style="padding:4px 8px;font-size:9px">'+(tcat?'<span style="color:'+tcc+';font-weight:500">'+tcat+'</span>':'')+'</td>';
-      h+='<td style="padding:4px 8px;text-align:center">'+(tier?'<span style="font-size:9px;font-weight:700;color:'+tc2+';padding:1px 5px;background:'+tc2+'18;border-radius:3px">'+tier+'</span>':'')+'</td>';
-      h+='<td style="padding:4px 8px;font-size:10px;color:var(--blue)">'+(email?'<a href="mailto:'+email+'" style="color:var(--blue);text-decoration:none">'+email+'</a>':'')+'</td>';
-      h+='<td style="padding:4px 8px;font-size:10px;font-family:var(--mono)">'+phone+'</td>';
-      h+='</tr>';
+      // 顧客担当者
+      if(c.custContact){
+        var names=c.custContact.split(/[,、；;\/・]/).map(function(n){return n.trim();}).filter(Boolean);
+        h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+        names.forEach(function(nm){
+          var r2=leadMap[nm]||leadMap[nm.replace(/\s+/g,'')];
+          if(r2){
+            // リードデータあり → 詳細表示
+            var cid2=(col.contactId>=0?(r2[col.contactId]||''):'').trim();
+            var deptC2=(col.deptClass>=0?(r2[col.deptClass]||''):'').trim();
+            var role2=(col.role>=0?(r2[col.role]||''):'').trim();
+            var email2=(col.email>=0?(r2[col.email]||''):'').trim();
+            var tcat2=(col.targetCat>=0?(r2[col.targetCat]||''):'').trim();
+            var tier2=normTier((col.tier>=0?(r2[col.tier]||''):'').trim());
+            var tn2=parseInt(tier2.replace(/[^0-9]/g,''))||0;var tcs2=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc22=tcs2[tn2]||'var(--ink3)';
+            h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:6px 10px;min-width:200px">';
+            h+='<div style="font-size:11px;font-weight:700;margin-bottom:3px">'+sfContactLink(nm,cid2)+'</div>';
+            h+='<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">';
+            if(deptC2)h+='<span style="font-size:9px;color:var(--ink2)">'+deptC2+'</span>';
+            if(role2)h+='<span style="font-size:9px;color:var(--ink3)">'+role2+'</span>';
+            if(tier2)h+='<span style="font-size:9px;font-weight:700;color:'+tc22+';background:'+tc22+'18;padding:0 4px;border-radius:2px">'+tier2+'</span>';
+            if(tcat2)h+='<span style="font-size:9px;color:#7c3aed">'+tcat2+'</span>';
+            h+='</div>';
+            if(email2)h+='<div style="font-size:9px;margin-top:2px"><a href="mailto:'+email2+'" style="color:var(--blue);text-decoration:none">'+email2+'</a></div>';
+            h+='</div>';
+          } else {
+            // リードデータなし → 名前だけ表示
+            h+='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--ink2)">'+nm+'</div>';
+          }
+        });
+        h+='</div>';
+      }
+      h+='</div>';
     });
-    h+='</tbody></table></div></details>';
+    h+='</div></details>';
   });
   return h;
 }

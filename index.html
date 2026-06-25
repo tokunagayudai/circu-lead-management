@@ -1754,7 +1754,7 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
   if(!cos.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">稼働中企業のリードが見つかりません</div>';
   function getFullName(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
   function leadLsKey(fn,cid){return 'circu_lead_'+(cid||fn);}
-  function leadRow(r,isStar){
+  function leadRow(r,isStar,caseName){
     var fn=getFullName(r);
     var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
     var dept=(col.dept>=0?(r[col.dept]||''):'').trim();
@@ -1766,20 +1766,19 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     var phone=(col.phone>=0?(r[col.phone]||''):'').trim()||((col.mobile>=0?(r[col.mobile]||''):'').trim());
     var tcc=tcat.indexOf('決裁')>=0?'#7c3aed':tcat.indexOf('チャンピオン')>=0?'var(--blue)':tcat.indexOf('キーマン')>=0?'#f97316':'var(--ink3)';
     var tn=parseInt(tier.replace(/[^0-9]/g,''))||0;var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc2=tcs[tn]||'var(--ink3)';
-    // リードのlocalStorageキー・データ
     var lsKey=leadLsKey(fn,cid);
     var lsData=(function(){try{return JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){return {};}})();
     var rel=lsData.rel||'';var rd=REL_DEF[rel];
-    var lsKeyE=lsKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var panelId='lp_'+(cid||fn.replace(/[^a-zA-Z0-9]/g,'_'));
-    // 関係値ピル
     var relPillId='rp_'+panelId;
     var relPill='<span id="'+relPillId+'" onclick="circuLeadNextRel(this)" data-lsk="'+lsKey.replace(/"/g,'&quot;')+'" data-rpid="'+relPillId+'" style="cursor:pointer;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;border:1.5px solid '+(rd?rd.color:'#d1d5db')+';background:'+(rd?rd.bg:'#fff')+';color:'+(rd?rd.color:'#9ca3af')+';white-space:nowrap;user-select:none">'+(rd?rd.label:'未設定')+'</span>';
-    var h='<tr style="'+(isStar?'background:rgba(245,158,11,.06)':'')+'">';
-    h+='<td style="padding:4px 8px;text-align:center;width:20px">'+(isStar?'⭐':'')+'</td>';
+    var cnDisp=caseName?'<span style="font-size:9px;color:#1d4ed8;font-weight:500;display:block;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+caseName.replace(/"/g,'&quot;')+'">'+caseName+'</span>':'';
+    var h='<tr style="'+(isStar?'background:rgba(245,158,11,.06)':'')+';border-bottom:1px solid rgba(0,0,0,.04)">';
+    h+='<td style="padding:4px 8px;text-align:center;width:18px">'+(isStar?'⭐':'')+'</td>';
     h+='<td style="padding:4px 8px;font-weight:'+(isStar?'700':'600')+';font-size:11px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:140px">'+cnDisp+'</td>';
     h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+deptC+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
+    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
     h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
     h+='<td style="padding:4px 8px;font-size:9px">'+(tcat?'<span style="color:'+tcc+';font-weight:500">'+tcat+'</span>':'')+'</td>';
     h+='<td style="padding:4px 8px;text-align:center">'+(tier?'<span style="font-size:9px;font-weight:700;color:'+tc2+';padding:1px 5px;background:'+tc2+'18;border-radius:3px">'+tier+'</span>':'')+'</td>';
@@ -1877,32 +1876,47 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     var mem='';if(cases.length){var mm=cases[0].member||'';mem=mm?mm.split(' ')[0]:'';}
     var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
     var _activeAid=leads.length&&col.accountId>=0?(leads[0][col.accountId]||'').trim():'';
-    h+='<details style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:8px">';
-    h+='<summary style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;background:var(--bg)">';
-    h+='<span style="font-size:18px">🏭</span>';
-    h+='<span style="font-weight:700;font-size:13px;flex:1">'+sfAccountLink(dispCo,co,_activeAid)+'</span>';
-    if(mem)h+='<span style="font-size:10px;font-weight:600;color:var(--blue)">担当: '+mem+'</span>';
-    if(cases.length){h+='<span style="font-size:10px;background:#ecfdf5;color:#065f46;padding:2px 8px;border-radius:4px;font-weight:600">稼働 '+cases.length+'件'+(ckTotal>0?' / CK '+eFmt(ckTotal)+'万':'')+'</span>';}
-    if(starL.length)h+='<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600">⭐ スター '+starL.length+'名</span>';
-    h+='<span style="font-size:10px;color:var(--ink3)">候補 '+otherL.length+'名</span>';
-    // 関係値セレクター
+    // 案件名マップ: 人名 → 案件名
+    var fnToCaseName={};
+    cases.forEach(function(cr){
+      if(!cr.custContact)return;
+      var cn=cr.name||'';
+      cr.custContact.split(/[,、；;\/・]/).forEach(function(n){
+        var nn=n.trim();if(!nn)return;
+        fnToCaseName[nn]=fnToCaseName[nn]||cn;
+        fnToCaseName[nn.replace(/\s+/g,'')]=fnToCaseName[nn.replace(/\s+/g,'')]||cn;
+      });
+    });
+    // 関係値
     var _rel=circuGetRel(co);var _rd=REL_DEF[_rel];
     var _coEsc=co.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    h+='<span onclick="event.stopPropagation();circuNextRel(\''+_coEsc+'\')" style="cursor:pointer;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;border:1.5px solid '+(_rd?_rd.color:'#d1d5db')+';background:'+(_rd?_rd.bg:'#fff')+';color:'+(_rd?_rd.color:'#9ca3af')+';white-space:nowrap;user-select:none" title="クリックで関係値を変更">'+(_rd?_rd.label:'関係値 未設定')+'</span>';
-    h+='</summary>';
-    h+='<div style="padding:12px 16px;background:#fff">';
-    // ===== スターリード（先に表示） =====
+    // 企業ヘッダー（トグルなし）
+    h+='<div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:10px">';
+    h+='<div style="padding:9px 16px;display:flex;align-items:center;gap:10px;background:var(--bg);border-bottom:1px solid var(--bd)">';
+    h+='<span style="font-size:16px">🏭</span>';
+    h+='<span style="font-weight:700;font-size:13px;flex:1">'+sfAccountLink(dispCo,co,_activeAid)+'</span>';
+    if(mem)h+='<span style="font-size:10px;font-weight:600;color:var(--blue)">担当: '+mem+'</span>';
+    if(cases.length)h+='<span style="font-size:10px;background:#ecfdf5;color:#065f46;padding:2px 8px;border-radius:4px;font-weight:600">稼働 '+cases.length+'件'+(ckTotal>0?' / CK '+eFmt(ckTotal)+'万':'')+'</span>';
+    if(starL.length)h+='<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-weight:600">⭐ スター '+starL.length+'名</span>';
+    h+='<span onclick="circuNextRel(\''+_coEsc+'\')" style="cursor:pointer;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;border:1.5px solid '+(_rd?_rd.color:'#d1d5db')+';background:'+(_rd?_rd.bg:'#fff')+';color:'+(_rd?_rd.color:'#9ca3af')+';white-space:nowrap;user-select:none">'+(_rd?_rd.label:'関係値 未設定')+'</span>';
+    h+='</div>';
+    h+='<div style="padding:10px 16px;background:#fff">';
+    // ===== リード一覧 =====
     h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:'+(cases.length?'12px':'0')+'px">';
-    h+='<thead><tr style="border-bottom:1px solid var(--bd)">';
-    ['','氏名','部署クラス','部署','役職','ターゲット','Tier','関係値','メール','電話'].forEach(function(l){h+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
+    h+='<thead><tr style="border-bottom:1.5px solid var(--bd);background:#f8fafc">';
+    ['','氏名','案件名','部署クラス','部署','役職','ターゲット','Tier','関係値','メール','電話'].forEach(function(l){h+='<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink2);font-weight:600">'+l+'</th>';});
     h+='</tr></thead><tbody>';
     if(starL.length){
-      h+='<tr><td colspan="10" style="padding:4px 8px 2px;font-size:10px;font-weight:600;color:#92400e;background:#fffbeb">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
-      starL.forEach(function(r){h+=leadRow(r,true);});
+      h+='<tr><td colspan="11" style="padding:4px 8px 2px;font-size:10px;font-weight:600;color:#92400e;background:#fffbeb">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
+      starL.forEach(function(r){
+        var fn=getFullName(r);
+        var cn=fnToCaseName[fn]||fnToCaseName[fn.replace(/\s+/g,'')]||'';
+        h+=leadRow(r,true,cn);
+      });
     }
     if(otherL.length){
-      h+='<tr><td colspan="10" style="padding:6px 8px 2px;font-size:10px;font-weight:600;color:var(--ink2)">👥 その他アプローチ候補</td></tr>';
-      otherL.forEach(function(r){h+=leadRow(r,false);});
+      h+='<tr><td colspan="11" style="padding:6px 8px 2px;font-size:10px;font-weight:600;color:var(--ink2)">👥 その他アプローチ候補</td></tr>';
+      otherL.forEach(function(r){h+=leadRow(r,false,'');});
     }
     h+='</tbody></table>';
     // ===== 稼働中案件 + 案件ごとMTGトラッカー =====
@@ -1974,7 +1988,7 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
         h+='</div>';
       });
     }
-    h+='</div></details>';
+    h+='</div></div>';
   });
   return h;
 }

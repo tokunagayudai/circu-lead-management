@@ -2835,8 +2835,9 @@ function renderLeads(M){
   if(_mMaxL>0){
     h+='<div style="margin-bottom:16px">';
     h+='<div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
-    [['T1','#0079C0'],['T2','#1a7f37'],['T3','#bf8700'],['T4','#888888']].forEach(function(p){
-      h+='<span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--ink2)"><span style="width:10px;height:10px;background:'+p[1]+';border-radius:2px;display:inline-block"></span>'+p[0]+'</span>';
+    var _tChartCols=[['T1','#1d4ed8'],['T2','#60a5fa'],['T3','#bae6fd'],['T4','#e2e8f0']];
+    _tChartCols.forEach(function(p){
+      h+='<span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--ink2)"><span style="width:10px;height:10px;background:'+p[1]+';border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.08)"></span>'+p[0]+'</span>';
     });
     h+='</div>';
     activeMembers.forEach(function(m){
@@ -2844,17 +2845,17 @@ function renderLeads(M){
       var total=d.leads||0;
       h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
       h+='<div style="width:52px;font-size:10px;font-weight:700;color:var(--ink);text-align:right;flex-shrink:0">'+m.split(' ')[0]+'</div>';
-      h+='<div style="flex:1;height:18px;display:flex;border-radius:4px;overflow:hidden;background:#f1f5f9;position:relative">';
+      h+='<div style="flex:1;height:20px;display:flex;border-radius:5px;overflow:hidden;background:#f1f5f9;border:1px solid #e5ecf3">';
       if(total>0){
         var _leftover=100;
-        [['t1','#0079C0'],['t2','#1a7f37'],['t3','#bf8700'],['t4','#888888']].forEach(function(seg,si){
+        [['t1','#1d4ed8'],['t2','#60a5fa'],['t3','#bae6fd'],['t4','#e2e8f0']].forEach(function(seg,si){
           var cnt=d[seg[0]]||0;
           var pct=si<3?Math.round(cnt/total*100):_leftover;
-          if(pct>0&&cnt>0){h+='<div style="width:'+pct+'%;background:'+seg[1]+';transition:width .3s" title="'+seg[0].toUpperCase()+': '+cnt+'"></div>';_leftover-=pct;}
+          if(pct>0&&cnt>0){h+='<div style="width:'+pct+'%;background:'+seg[1]+'" title="'+seg[0].toUpperCase()+': '+cnt+'"></div>';_leftover-=pct;}
         });
       }
       h+='</div>';
-      h+='<div style="font-size:10px;font-family:var(--mono);color:var(--ink3);width:40px;flex-shrink:0;text-align:right">'+total+'</div>';
+      h+='<div style="font-size:10px;font-family:var(--mono);color:var(--ink2);width:40px;flex-shrink:0;text-align:right;font-weight:600">'+total+'</div>';
       h+='</div>';
     });
     h+='</div>';

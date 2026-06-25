@@ -190,6 +190,21 @@
 .memo-tag{font-size:7px;padding:1px 4px;border-radius:3px;cursor:pointer;margin-left:2px}
 .memo-tag.has{background:#e0f2fe;color:#0ea5e9}.memo-tag.empty{background:var(--bg);color:var(--ink3)}
 .memo-preview{position:absolute;z-index:999;background:#003d5e;color:#fff;font-size:10px;padding:8px 10px;border-radius:6px;max-width:220px;line-height:1.5;pointer-events:none;white-space:pre-wrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+/* ── 稼働中リード: company cards & lead table ── */
+.co-lead-card{border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:box-shadow .15s}
+.co-lead-card:hover{box-shadow:0 5px 20px rgba(0,0,0,.10)}
+.co-lead-hdr{padding:11px 18px;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f5f9ff 0%,#edf4fb 100%);border-bottom:1px solid var(--bd);border-left:4px solid transparent}
+.co-lead-hdr.rl-fire{border-left-color:#ef4444;background:linear-gradient(135deg,#fff5f5 0%,#fef2f2 100%)}
+.co-lead-hdr.rl-close{border-left-color:#0079C0;background:linear-gradient(135deg,#f0f7ff 0%,#e8f3fc 100%)}
+.co-lead-hdr.rl-good{border-left-color:#22a047;background:linear-gradient(135deg,#f0faf3 0%,#e8f7ee 100%)}
+.co-lead-hdr.rl-normal{border-left-color:#94a3b8}
+.lead-tbl{width:100%;border-collapse:collapse}
+.lead-tbl th{padding:7px 10px;text-align:left;font-size:9px;color:var(--ink3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:#f7f9fc;border-bottom:2px solid #e5ecf3;white-space:nowrap}
+.lead-tbl td{padding:10px 10px;border-bottom:1px solid #f0f4f8;vertical-align:middle}
+.lead-tbl tr.lr:hover td{background:#f0f7ff}
+.lead-tbl tr.lr-s td{background:#fffef7;border-left:3px solid #f59e0b}
+.lead-tbl tr.lr-s:hover td{background:#fefce8}
+.lead-tbl tr.lr-sh td{background:#f1f5f9;padding:6px 10px;font-size:10px;font-weight:700;color:var(--ink2);letter-spacing:.2px}
 /* List view */
 .list-view{padding:8px 24px}
 .list-table{width:100%;border-collapse:collapse;background:var(--bg2);border-radius:10px;overflow:hidden;border:1px solid var(--bd)}
@@ -1772,19 +1787,19 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     var panelId='lp_'+(cid||fn.replace(/[^a-zA-Z0-9]/g,'_'));
     var relPillId='rp_'+panelId;
     var relPill='<span id="'+relPillId+'" onclick="circuLeadNextRel(this)" data-lsk="'+lsKey.replace(/"/g,'&quot;')+'" data-rpid="'+relPillId+'" style="cursor:pointer;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;border:1.5px solid '+(rd?rd.color:'#d1d5db')+';background:'+(rd?rd.bg:'#fff')+';color:'+(rd?rd.color:'#9ca3af')+';white-space:nowrap;user-select:none">'+(rd?rd.label:'未設定')+'</span>';
-    var cnDisp=caseName?'<span style="font-size:9px;color:#1d4ed8;font-weight:500;display:block;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+caseName.replace(/"/g,'&quot;')+'">'+caseName+'</span>':'';
-    var h='<tr style="'+(isStar?'background:rgba(245,158,11,.06)':'')+';border-bottom:1px solid rgba(0,0,0,.04)">';
-    h+='<td style="padding:4px 8px;text-align:center;width:18px">'+(isStar?'⭐':'')+'</td>';
-    h+='<td style="padding:4px 8px;font-weight:'+(isStar?'700':'600')+';font-size:11px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:140px">'+cnDisp+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+deptC+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
-    h+='<td style="padding:4px 8px;font-size:9px">'+(tcat?'<span style="color:'+tcc+';font-weight:500">'+tcat+'</span>':'')+'</td>';
-    h+='<td style="padding:4px 8px;text-align:center">'+(tier?'<span style="font-size:9px;font-weight:700;color:'+tc2+';padding:1px 5px;background:'+tc2+'18;border-radius:3px">'+tier+'</span>':'')+'</td>';
-    h+='<td style="padding:4px 8px">'+relPill+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;color:var(--blue)">'+(email?'<a href="mailto:'+email+'" style="color:var(--blue);text-decoration:none">'+email+'</a>':'')+'</td>';
-    h+='<td style="padding:4px 8px;font-size:10px;font-family:var(--mono)">'+phone+'</td>';
+    var cnDisp=caseName?'<span style="font-size:9px;color:#1d4ed8;font-weight:600;display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#eff6ff;padding:1px 6px;border-radius:4px;margin-top:1px" title="'+caseName.replace(/"/g,'&quot;')+'">'+caseName+'</span>':'';
+    var h='<tr class="'+(isStar?'lr-s':'lr')+'">';
+    h+='<td style="text-align:center;width:18px;font-size:12px">'+(isStar?'⭐':'')+'</td>';
+    h+='<td style="font-weight:700;font-size:12px;white-space:nowrap;color:var(--ink)">'+sfContactLink(fn,cid)+'</td>';
+    h+='<td style="max-width:160px">'+cnDisp+'</td>';
+    h+='<td style="font-size:9px;color:var(--ink3);white-space:nowrap">'+deptC+'</td>';
+    h+='<td style="font-size:10px;color:var(--ink2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dept+'</td>';
+    h+='<td style="font-size:10px;color:var(--ink2);white-space:nowrap">'+role+'</td>';
+    h+='<td>'+(tcat?'<span style="font-size:10px;color:'+tcc+';font-weight:600;padding:2px 8px;background:'+tcc+'14;border-radius:10px;white-space:nowrap">'+tcat+'</span>':'')+'</td>';
+    h+='<td style="text-align:center">'+(tier?'<span style="font-size:10px;font-weight:800;color:'+tc2+';padding:2px 8px;background:'+tc2+'18;border-radius:5px">'+tier+'</span>':'')+'</td>';
+    h+='<td>'+relPill+'</td>';
+    h+='<td style="font-size:9px;color:var(--ink3)">'+(email?'<a href="mailto:'+email+'" style="color:var(--ink3);text-decoration:none" title="'+email+'">'+email.replace(/(.{18}).+/,'$1…')+'</a>':'')+'</td>';
+    h+='<td style="font-size:9px;color:var(--ink3);font-family:var(--mono);white-space:nowrap">'+phone+'</td>';
     h+='</tr>';
     return h;
   }
@@ -1890,9 +1905,10 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     // 関係値
     var _rel=circuGetRel(co);var _rd=REL_DEF[_rel];
     var _coEsc=co.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var _rlClass=_rel==='fire'?'rl-fire':_rel==='close'?'rl-close':_rel==='good'?'rl-good':'rl-normal';
     // 企業ヘッダー（トグルなし）
-    h+='<div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:10px">';
-    h+='<div style="padding:9px 16px;display:flex;align-items:center;gap:10px;background:var(--bg);border-bottom:1px solid var(--bd)">';
+    h+='<div class="co-lead-card">';
+    h+='<div class="co-lead-hdr '+_rlClass+'">';
     h+='<span style="font-size:16px">🏭</span>';
     h+='<span style="font-weight:700;font-size:13px;flex:1">'+sfAccountLink(dispCo,co,_activeAid)+'</span>';
     if(mem)h+='<span style="font-size:10px;font-weight:600;color:var(--blue)">担当: '+mem+'</span>';
@@ -1917,12 +1933,12 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     h+='</div>';
     h+='<div style="padding:10px 16px;background:#fff">';
     // ===== リード一覧 =====
-    h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:0">';
-    h+='<thead><tr style="border-bottom:1.5px solid var(--bd);background:#f8fafc">';
-    ['','氏名','案件名','部署クラス','部署','役職','ターゲット','Tier','関係値','メール','電話'].forEach(function(l){h+='<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink2);font-weight:600">'+l+'</th>';});
+    h+='<table class="lead-tbl">';
+    h+='<thead><tr>';
+    ['','氏名','案件名','部署クラス','部署','役職','ターゲット','Tier','関係値','メール','電話'].forEach(function(l){h+='<th>'+l+'</th>';});
     h+='</tr></thead><tbody>';
     if(starL.length){
-      h+='<tr><td colspan="11" style="padding:4px 8px 2px;font-size:10px;font-weight:600;color:#92400e;background:#fffbeb">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
+      h+='<tr class="lr-sh"><td colspan="11">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
       starL.forEach(function(r){
         var fn=getFullName(r);
         var cn=fnToCaseName[fn]||fnToCaseName[fn.replace(/\s+/g,'')]||'';

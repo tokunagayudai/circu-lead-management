@@ -1902,7 +1902,7 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     h+='</div>';
     h+='<div style="padding:10px 16px;background:#fff">';
     // ===== リード一覧 =====
-    h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:'+(cases.length?'12px':'0')+'px">';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:0">';
     h+='<thead><tr style="border-bottom:1.5px solid var(--bd);background:#f8fafc">';
     ['','氏名','案件名','部署クラス','部署','役職','ターゲット','Tier','関係値','メール','電話'].forEach(function(l){h+='<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink2);font-weight:600">'+l+'</th>';});
     h+='</tr></thead><tbody>';
@@ -1919,75 +1919,6 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
       otherL.forEach(function(r){h+=leadRow(r,false,'');});
     }
     h+='</tbody></table>';
-    // ===== 稼働中案件 + 案件ごとMTGトラッカー =====
-    if(cases.length){
-      h+='<div style="font-size:10px;font-weight:600;color:var(--ink2);margin-bottom:8px">🔖 稼働中案件</div>';
-      cases.forEach(function(cr,ci){
-        var cn=cr.name||'';var ck=cr.ck||0;var cc=cr.custContact||'';
-        var _sd=cr.startDate||'';
-        var _start1M='';var _start3M='';
-        if(_sd){
-          var _sdp=new Date(_sd.replace(/\//g,'-'));
-          if(!isNaN(_sdp)){
-            var _d1=new Date(_sdp);_d1.setMonth(_d1.getMonth()+1);
-            var _d3=new Date(_sdp);_d3.setMonth(_d3.getMonth()+3);
-            _start1M=_d1.getFullYear()+'/'+((_d1.getMonth()+1<10?'0':'')+(_d1.getMonth()+1))+'/'+(_d1.getDate()<10?'0':'')+_d1.getDate();
-            _start3M=_d3.getFullYear()+'/'+((_d3.getMonth()+1<10?'0':'')+(_d3.getMonth()+1))+'/'+(_d3.getDate()<10?'0':'')+_d3.getDate();
-          }
-        }
-        var _caseKey='circu_case_'+(cr.oppId||cn||co+'_'+ci);
-        var _cd=(function(){try{return JSON.parse(localStorage.getItem(_caseKey)||'{}');}catch(e){return {};}}());
-        var _ckE=_caseKey.replace(/"/g,'&quot;');
-        var _r1id='cr1_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
-        var _r3id='cr3_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
-        var _r1done=!!_cd.r1_done;var _r3done=!!_cd.r3_done;
-        var _miss=(!_cd.r1_date||!_cd.r3_date)?'<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:8px;margin-left:6px">MTG未設定あり</span>':'';
-        h+='<div style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:8px">';
-        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
-        h+='<span style="font-size:11px;font-weight:700;color:#1d4ed8">'+cn+'</span>';
-        if(ck>0)h+='<span style="font-size:10px;color:var(--ink3)">CK: '+eFmt(ck)+'万</span>';
-        if(cc)h+='<span style="font-size:10px;color:var(--blue)">顧客担当: '+cc+'</span>';
-        if(_sd)h+='<span style="font-size:10px;color:var(--ink3)">契約開始: '+_sd+'</span>';
-        h+=_miss;
-        h+='</div>';
-        h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-        h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
-        h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">1ヶ月レビュー'+(_start1M?' <span style="color:#6b7280;font-weight:400">目安: '+_start1M+'</span>':'')+'</div>';
-        h+='<div style="display:flex;align-items:center;gap:6px">';
-        h+='<input type="date" value="'+(_cd.r1_date||'')+'" oninput="circuSaveMtg(this.dataset.k,\'r1_date\',this.value)" data-k="'+_ckE+'" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-        h+='<span id="'+_r1id+'" onclick="circuCaseDone(this)" data-k="'+_ckE+'" data-f="r1_done" data-id="'+_r1id+'" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(_r1done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(_r1done?'✅ 完了':'⬜ 未実施')+'</span>';
-        h+='</div></div>';
-        h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
-        h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">3ヶ月レビュー'+(_start3M?' <span style="color:#6b7280;font-weight:400">目安: '+_start3M+'</span>':'')+'</div>';
-        h+='<div style="display:flex;align-items:center;gap:6px">';
-        h+='<input type="date" value="'+(_cd.r3_date||'')+'" oninput="circuSaveMtg(this.dataset.k,\'r3_date\',this.value)" data-k="'+_ckE+'" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-        h+='<span id="'+_r3id+'" onclick="circuCaseDone(this)" data-k="'+_ckE+'" data-f="r3_done" data-id="'+_r3id+'" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(_r3done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(_r3done?'✅ 完了':'⬜ 未実施')+'</span>';
-        h+='</div></div>';
-        h+='</div>';
-        h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">📝 追加提案メモ</div>';
-        h+='<textarea oninput="circuSaveMtg(this.dataset.k,\'proposal\',this.value)" data-k="'+_ckE+'" placeholder="追加提案の内容・ステータスをメモ..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:6px 8px;font-size:10px;resize:vertical;min-height:44px;box-sizing:border-box;font-family:inherit">'+(_cd.proposal||'')+'</textarea>';
-        // 資料リンクセクション
-        var _links=(Array.isArray(_cd.links)?_cd.links:[]).filter(function(lk){return lk.url;});
-        var _linksId='links_'+co.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ci;
-        h+='<div style="margin-top:8px">';
-        h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
-        h+='<span style="font-size:9px;font-weight:700;color:#374151">📎 資料リンク</span>';
-        h+='<button onclick="circuAddLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" style="padding:1px 8px;font-size:9px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:8px;cursor:pointer;font-weight:600">＋ 追加</button>';
-        h+='</div>';
-        h+='<div id="'+_linksId+'">';
-        _links.forEach(function(lk,li){
-          h+='<div id="'+_linksId+'_'+li+'" style="display:flex;align-items:center;gap:4px;margin-bottom:4px">';
-          h+='<select onchange="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="label" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 5px;font-size:10px;width:180px">'+(lk.label==='提案資料（DX）'?'<option value="提案資料（DX）" selected>提案資料（DX）</option>':'<option value="提案資料（DX）">提案資料（DX）</option>')+(lk.label==='提案資料（新規事業）'?'<option value="提案資料（新規事業）" selected>提案資料（新規事業）</option>':'<option value="提案資料（新規事業）">提案資料（新規事業）</option>')+(lk.label==='提案資料（人事）'?'<option value="提案資料（人事）" selected>提案資料（人事）</option>':'<option value="提案資料（人事）">提案資料（人事）</option>')+(lk.label==='提案資料（業務改善）'?'<option value="提案資料（業務改善）" selected>提案資料（業務改善）</option>':'<option value="提案資料（業務改善）">提案資料（業務改善）</option>')+(lk.label==='提案資料（マーケティング）'?'<option value="提案資料（マーケティング）" selected>提案資料（マーケティング）</option>':'<option value="提案資料（マーケティング）">提案資料（マーケティング）</option>')+(lk.label==='提案資料（その他）'?'<option value="提案資料（その他）" selected>提案資料（その他）</option>':'<option value="提案資料（その他）">提案資料（その他）</option>')+(lk.label==='その他資料'?'<option value="その他資料" selected>その他資料</option>':'<option value="その他資料">その他資料</option>')+'</select>';
-          h+='<input placeholder="URL（https://...）" value="'+(lk.url||'')+'" oninput="circuSaveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" data-f="url" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-          if(lk.url)h+='<a href="'+lk.url+'" target="_blank" style="font-size:10px;color:var(--blue);white-space:nowrap;text-decoration:none" title="開く">🔗</a>';
-          h+='<button onclick="circuRemoveLink(this)" data-k="'+_ckE+'" data-lid="'+_linksId+'" data-li="'+li+'" style="padding:1px 6px;font-size:9px;border:1px solid #fca5a5;background:#fff;color:#ef4444;border-radius:4px;cursor:pointer">✕</button>';
-          h+='</div>';
-        });
-        h+='</div>';
-        h+='</div>';
-        h+='</div>';
-      });
-    }
     h+='</div></div>';
   });
   return h;

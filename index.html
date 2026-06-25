@@ -745,6 +745,25 @@ function renderRecyclePipeline(){
     h+='<div style="font-size:9px;color:var(--ink3)">'+s.sub+'</div></div>';
   });
   h+='</div>';
+  // ===== 月別バーチャート =====
+  var _pMoTot={};months.forEach(function(mo){_pMoTot[mo]=0;TEAM5.forEach(function(m){_pMoTot[mo]+=(rcByMemMo[m][mo]||[]).length;});});
+  var _pMaxMo=0;months.forEach(function(mo){if((_pMoTot[mo]||0)>_pMaxMo)_pMaxMo=_pMoTot[mo]||0;});
+  if(_pMaxMo>0){
+    h+='<div style="background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:14px;border:1px solid #e5ecf3">';
+    h+='<div style="font-size:10px;font-weight:700;color:var(--ink2);margin-bottom:12px;padding-left:8px;border-left:3px solid #0079C0">月別リサイクル候補件数（チーム計）</div>';
+    h+='<div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:0 4px">';
+    months.forEach(function(mo){
+      var cnt=_pMoTot[mo]||0;
+      var barH=cnt>0?Math.max(4,Math.round(cnt/_pMaxMo*56)):0;
+      var isNear=(months.indexOf(mo)<=1);
+      h+='<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">';
+      h+='<div style="font-size:9px;font-family:var(--mono);color:'+(cnt>0?'var(--ink)':'var(--ink3)')+';font-weight:600">'+cnt+'</div>';
+      h+='<div style="width:100%;background:'+(isNear?'#0079C0':'#93c5fd')+';border-radius:3px 3px 0 0;height:'+barH+'px"></div>';
+      h+='<div style="font-size:9px;color:var(--ink3);font-weight:'+(isNear?'700':'400')+';color:'+(isNear?'var(--ink2)':'var(--ink3)')+'">'+mo.slice(5)+'月</div>';
+      h+='</div>';
+    });
+    h+='</div></div>';
+  }
   // Member × Month heatmap table
   h+='<div style="overflow-x:auto"><table class="ent-table" style="width:100%;min-width:500px">';
   var totNoDate=TEAM5.reduce(function(s,m){return s+(rcByMemMo[m]['日付未設定']||[]).length;},0);
@@ -2811,6 +2830,35 @@ function renderLeads(M){
   h+='<div style="padding:0 24px 20px">';
   h+='<div class="ent-section">';
   h+='<div class="es-title">📊 担当者別リード数サマリー</div>';
+  // ===== Tier積み上げ横棒チャート =====
+  var _mMaxL=0;activeMembers.forEach(function(m){var d=byMember[m]||{leads:0};if(d.leads>_mMaxL)_mMaxL=d.leads;});
+  if(_mMaxL>0){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;align-items:center">';
+    [['T1','#0079C0'],['T2','#1a7f37'],['T3','#bf8700'],['T4','#888888']].forEach(function(p){
+      h+='<span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--ink2)"><span style="width:10px;height:10px;background:'+p[1]+';border-radius:2px;display:inline-block"></span>'+p[0]+'</span>';
+    });
+    h+='</div>';
+    activeMembers.forEach(function(m){
+      var d=byMember[m]||{leads:0,t1:0,t2:0,t3:0,t4:0};
+      var total=d.leads||0;
+      h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
+      h+='<div style="width:52px;font-size:10px;font-weight:700;color:var(--ink);text-align:right;flex-shrink:0">'+m.split(' ')[0]+'</div>';
+      h+='<div style="flex:1;height:18px;display:flex;border-radius:4px;overflow:hidden;background:#f1f5f9;position:relative">';
+      if(total>0){
+        var _leftover=100;
+        [['t1','#0079C0'],['t2','#1a7f37'],['t3','#bf8700'],['t4','#888888']].forEach(function(seg,si){
+          var cnt=d[seg[0]]||0;
+          var pct=si<3?Math.round(cnt/total*100):_leftover;
+          if(pct>0&&cnt>0){h+='<div style="width:'+pct+'%;background:'+seg[1]+';transition:width .3s" title="'+seg[0].toUpperCase()+': '+cnt+'"></div>';_leftover-=pct;}
+        });
+      }
+      h+='</div>';
+      h+='<div style="font-size:10px;font-family:var(--mono);color:var(--ink3);width:40px;flex-shrink:0;text-align:right">'+total+'</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
   h+='<div style="overflow-x:auto"><table class="ent-table" style="width:100%">';
   h+='<thead><tr>';
   h+='<th style="text-align:left">担当者</th>';

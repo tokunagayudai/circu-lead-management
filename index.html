@@ -31,18 +31,16 @@
 .topnav .tn-back:hover{background:rgba(255,255,255,.28)}
 @media(max-width:640px){.topnav .tn-sub,.topnav .tn-portal-name{display:none}}
 .tn-section{display:flex;flex-direction:column;padding:4px 16px;position:relative;min-width:0}
-.tn-section.biz{background:rgba(239,68,68,.08);border-right:1px solid rgba(255,255,255,.05)}
-.tn-section.ap{background:rgba(14,165,233,.06)}
-.tn-section.biz::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#ef4444}
-.tn-section.ap::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#0ea5e9}
-.tn-section .tn-label{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.8px;font-weight:700;margin-top:4px;margin-bottom:2px;text-transform:uppercase}
-.tn-section.biz .tn-label{color:#ef4444}.tn-section.ap .tn-label{color:#0ea5e9}
+.tn-section.biz{background:rgba(255,255,255,.04);border-right:1px solid rgba(255,255,255,.08)}
+.tn-section.ap{background:rgba(255,255,255,.04)}
+.tn-section.biz::before,.tn-section.ap::before{display:none}
+.tn-section .tn-label{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.8px;font-weight:700;margin-top:4px;margin-bottom:2px;text-transform:uppercase}
+.tn-section.biz .tn-label,.tn-section.ap .tn-label{color:rgba(255,255,255,.45)}
 .tn-section .tn-btns{display:flex;gap:4px}
 .topnav .tn-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.55);transition:.15s;border:none;background:none;white-space:nowrap}
-.topnav .tn-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
-.tn-section.biz .tn-btn.act{color:#fff;background:#ef4444}
-.tn-section.ap .tn-btn.act{color:#fff;background:#0ea5e9}
-.tn-section.ld{background:rgba(16,185,129,.06);border-left:1px solid rgba(255,255,255,.05)}.tn-section.ld::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#10b981}.tn-section.ld .tn-label{color:#10b981}.tn-section.ld .tn-btn.act{color:#fff;background:#10b981}
+.topnav .tn-btn:hover{color:#fff;background:rgba(255,255,255,.1)}
+.tn-section.biz .tn-btn.act,.tn-section.ap .tn-btn.act{color:#fff;background:rgba(255,255,255,.2)}
+.tn-section.ld{background:rgba(255,255,255,.04);border-left:1px solid rgba(255,255,255,.08)}.tn-section.ld::before{display:none}.tn-section.ld .tn-label{color:rgba(255,255,255,.45)}.tn-section.ld .tn-btn.act{color:#fff;background:rgba(255,255,255,.2)}
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 24px 8px;flex-wrap:wrap;gap:8px}
 .title{font-size:18px;font-weight:700}.sub{font-size:11px;color:var(--ink3);margin-top:2px}
 .filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -228,8 +226,8 @@
 .ent-kpi .ek-val{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-.5px;line-height:1.1}
 .ent-kpi .ek-sub{font-size:10px;color:var(--ink3);margin-top:4px}.ent-kpi .ek-rate{font-size:11px;font-weight:600;margin-top:2px}
 .ent-kpi .ek-rate.up{color:var(--grn)}.ent-kpi .ek-rate.down{color:var(--red)}
-.ent-section{margin:8px 24px;background:var(--bg2);border-radius:10px;padding:16px;border:1px solid var(--bd)}
-.ent-section .es-title{font-size:12px;font-weight:700;margin-bottom:10px}
+.ent-section{margin:8px 24px;background:var(--bg2);border-radius:12px;padding:18px;border:1px solid var(--bd);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.ent-section .es-title{font-size:13px;font-weight:700;margin-bottom:12px;padding-left:10px;border-left:3px solid var(--blue)}
 .ent-table{width:100%;border-collapse:collapse;font-size:11px}
 .ent-table th{text-align:left;padding:6px 8px;color:var(--ink3);font-size:9px;font-weight:600;border-bottom:1px solid var(--bd)}
 .ent-table td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.03)}.ent-table tr:hover{background:rgba(0,121,192,.03)}
@@ -2869,9 +2867,9 @@ function renderLeads(M){
       var tc=tierColors[t]||'#888';
       var pct=tierTotal>0?Math.round(d.leads/tierTotal*100):0;
       var coN=Object.keys(d.companies).length;
-      h+='<div style="background:'+tc+'12;border:2px solid '+tc+'44;border-radius:10px;padding:12px;text-align:center">';
-      h+='<div style="font-size:11px;font-weight:700;color:'+tc+'">'+t+'</div>';
-      h+='<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:'+tc+';line-height:1.2;margin:6px 0 2px">'+d.leads+'</div>';
+      h+='<div style="background:#fff;border:1.5px solid '+tc+'30;border-top:3px solid '+tc+';border-radius:10px;padding:14px;text-align:center">';
+      h+='<div style="font-size:10px;font-weight:700;color:'+tc+';text-transform:uppercase;letter-spacing:.5px">'+t+'</div>';
+      h+='<div style="font-size:30px;font-weight:800;font-family:var(--mono);color:var(--ink);line-height:1.2;margin:6px 0 2px">'+d.leads+'</div>';
       h+='<div style="font-size:10px;color:var(--ink3)">'+coN+'社 / '+pct+'%</div>';
       h+='</div>';
     });
@@ -2901,14 +2899,14 @@ function renderLeads(M){
     var act=L_VIEW_MODE===t.id;
     var tc=t.color;
     h+='<div onclick="L_VIEW_MODE=\''+t.id+'\';L_ACTIVE_ONLY=(\''+t.id+'\'===\'active\');renderLeads(document.getElementById(\'M\'))" ';
-    h+='style="background:'+(act?tc+'20':'#fff')+';border:2px solid '+(act?tc:tc+'44')+';border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s">';
-    h+='<div style="font-size:11px;font-weight:700;color:'+tc+'">'+t.label+'</div>';
+    h+='style="background:'+(act?tc+'18':'#fff')+';border:2px solid '+(act?tc:'#e2e8f0')+';border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:'+(act?'0 3px 10px '+tc+'30':'0 1px 3px rgba(0,0,0,.04)')+'">';
+    h+='<div style="font-size:11px;font-weight:700;color:'+(act?tc:'var(--ink2)')+'">'+t.label+'</div>';
     if(t.cnt!==null){
-      h+='<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:'+(act?tc:'var(--ink)')+';line-height:1.2;margin:6px 0 2px">'+t.cnt+'</div>';
+      h+='<div style="font-size:28px;font-weight:800;font-family:var(--mono);color:'+(act?tc:'var(--ink)')+';line-height:1.2;margin:6px 0 2px">'+t.cnt+'</div>';
     }else{
-      h+='<div style="font-size:24px;margin:6px 0 2px">\uD83D\uDCCA</div>';
+      h+='<div style="font-size:22px;margin:6px 0 2px;opacity:'+(act?1:.4)+'">\uD83D\uDCCA</div>';
     }
-    h+='<div style="font-size:10px;color:var(--ink3)">'+t.sub+'</div>';
+    h+='<div style="font-size:10px;color:'+(act?tc+'cc':'var(--ink3)')+'">'+t.sub+'</div>';
     h+='</div>';
   });
   h+='</div></div>';

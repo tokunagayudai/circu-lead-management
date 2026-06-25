@@ -1775,8 +1775,6 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     // 関係値ピル
     var relPillId='rp_'+panelId;
     var relPill='<span id="'+relPillId+'" onclick="circuLeadNextRel(this)" data-lsk="'+lsKey.replace(/"/g,'&quot;')+'" data-rpid="'+relPillId+'" style="cursor:pointer;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;border:1.5px solid '+(rd?rd.color:'#d1d5db')+';background:'+(rd?rd.bg:'#fff')+';color:'+(rd?rd.color:'#9ca3af')+';white-space:nowrap;user-select:none">'+(rd?rd.label:'未設定')+'</span>';
-    // MTGトグル
-    var mtgBadge='<span onclick="circuLeadToggleMtgPanel(this.dataset.pid)" data-pid="'+panelId+'" style="cursor:pointer;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;white-space:nowrap">📋 MTG</span>';
     var h='<tr style="'+(isStar?'background:rgba(245,158,11,.06)':'')+'">';
     h+='<td style="padding:4px 8px;text-align:center;width:20px">'+(isStar?'⭐':'')+'</td>';
     h+='<td style="padding:4px 8px;font-weight:'+(isStar?'700':'600')+';font-size:11px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
@@ -1786,34 +1784,9 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     h+='<td style="padding:4px 8px;font-size:9px">'+(tcat?'<span style="color:'+tcc+';font-weight:500">'+tcat+'</span>':'')+'</td>';
     h+='<td style="padding:4px 8px;text-align:center">'+(tier?'<span style="font-size:9px;font-weight:700;color:'+tc2+';padding:1px 5px;background:'+tc2+'18;border-radius:3px">'+tier+'</span>':'')+'</td>';
     h+='<td style="padding:4px 8px">'+relPill+'</td>';
-    h+='<td style="padding:4px 8px">'+mtgBadge+'</td>';
     h+='<td style="padding:4px 8px;font-size:10px;color:var(--blue)">'+(email?'<a href="mailto:'+email+'" style="color:var(--blue);text-decoration:none">'+email+'</a>':'')+'</td>';
     h+='<td style="padding:4px 8px;font-size:10px;font-family:var(--mono)">'+phone+'</td>';
     h+='</tr>';
-    // MTGパネル行（デフォルト非表示）
-    h+='<tr id="'+panelId+'" style="display:none">';
-    h+='<td colspan="11" style="padding:0 8px 8px 32px">';
-    h+='<div style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 14px">';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-    // 1ヶ月レビュー
-    h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
-    h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">1ヶ月レビュー</div>';
-    h+='<div style="display:flex;align-items:center;gap:6px">';
-    h+='<input type="date" value="'+(lsData.r1_date||'')+'" oninput="circuLeadSave(\''+lsKeyE+'\',\'r1_date\',this.value)" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-    h+='<span id="r1done_'+panelId+'" onclick="circuLeadToggleDone(\''+lsKeyE+'\',\'r1_done\',\'r1done_'+panelId+'\')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(lsData.r1_done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(lsData.r1_done?'✅ 完了':'⬜ 未実施')+'</span>';
-    h+='</div></div>';
-    // 3ヶ月レビュー
-    h+='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px">';
-    h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">3ヶ月レビュー</div>';
-    h+='<div style="display:flex;align-items:center;gap:6px">';
-    h+='<input type="date" value="'+(lsData.r3_date||'')+'" oninput="circuLeadSave(\''+lsKeyE+'\',\'r3_date\',this.value)" style="border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:10px;flex:1">';
-    h+='<span id="r3done_'+panelId+'" onclick="circuLeadToggleDone(\''+lsKeyE+'\',\'r3_done\',\'r3done_'+panelId+'\')" style="cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;'+(lsData.r3_done?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#6b7280')+'">'+(lsData.r3_done?'✅ 完了':'⬜ 未実施')+'</span>';
-    h+='</div></div>';
-    h+='</div>';
-    // 追加提案
-    h+='<div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:4px">📝 追加提案メモ</div>';
-    h+='<textarea oninput="circuLeadSave(\''+lsKeyE+'\',\'proposal\',this.value)" placeholder="追加提案の内容・ステータスをメモ..." style="width:100%;border:1px solid #d1d5db;border-radius:4px;padding:6px 8px;font-size:10px;resize:vertical;min-height:44px;box-sizing:border-box;font-family:inherit">'+(lsData.proposal||'')+'</textarea>';
-    h+='</div></td></tr>';
     return h;
   }
   var h='';
@@ -1921,14 +1894,14 @@ function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,t
     // ===== スターリード（先に表示） =====
     h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:'+(cases.length?'12px':'0')+'px">';
     h+='<thead><tr style="border-bottom:1px solid var(--bd)">';
-    ['','氏名','部署クラス','部署','役職','ターゲット','Tier','関係値','MTG','メール','電話'].forEach(function(l){h+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
+    ['','氏名','部署クラス','部署','役職','ターゲット','Tier','関係値','メール','電話'].forEach(function(l){h+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:var(--ink2)">'+l+'</th>';});
     h+='</tr></thead><tbody>';
     if(starL.length){
-      h+='<tr><td colspan="11" style="padding:4px 8px 2px;font-size:10px;font-weight:600;color:#92400e;background:#fffbeb">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
+      h+='<tr><td colspan="10" style="padding:4px 8px 2px;font-size:10px;font-weight:600;color:#92400e;background:#fffbeb">⭐ スターリード（稼働中案件の顧客担当者）</td></tr>';
       starL.forEach(function(r){h+=leadRow(r,true);});
     }
     if(otherL.length){
-      h+='<tr><td colspan="11" style="padding:6px 8px 2px;font-size:10px;font-weight:600;color:var(--ink2)">👥 その他アプローチ候補</td></tr>';
+      h+='<tr><td colspan="10" style="padding:6px 8px 2px;font-size:10px;font-weight:600;color:var(--ink2)">👥 その他アプローチ候補</td></tr>';
       otherL.forEach(function(r){h+=leadRow(r,false);});
     }
     h+='</tbody></table>';

@@ -1775,6 +1775,99 @@ function renderProposalCompanyView(propCos,propCoCases,filtered,col,propContactM
   return h;
 }
 
+function renderProposalContactView(propCos,propCoCases,filtered,col){
+  var PH_LABELS={1:'01 初回アポ',2:'02 面談',3:'03 提案',4:'04 人選',5:'05 契約交渉',6:'06 確定',7:'07 稟議中'};
+  var PH_COLORS={1:'#6b7280',2:'#0891b2',3:'#7c3aed',4:'#f97316',5:'#dc2626',6:'#059669',7:'#d97706'};
+  function getFullName(r){return((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
+
+  // Step1: build entries from propCoCases (contact → company → cases)
+  var entries={};  // "co__fn" → {fn,co,cases[],maxPhN,member,leadRow}
+  Object.keys(propCoCases).forEach(function(co){
+    propCoCases[co].forEach(function(c){
+      if(!c.custContact)return;
+      c.custContact.split(/[,、；;\/・]/).forEach(function(n){
+        var nn=n.trim();if(!nn)return;
+        var key=co+'__'+nn;
+        if(!entries[key])entries[key]={fn:nn,co:co,cases:[],maxPhN:0,member:c.member,leadRow:null};
+        entries[key].cases.push(c);
+        if(c.phaseN>entries[key].maxPhN){entries[key].maxPhN=c.phaseN;entries[key].member=c.member;}
+      });
+    });
+  });
+
+  // Step2: match lead rows from filtered
+  var coLeadMap2={};
+  filtered.forEach(function(r){
+    var co=(r[col.company]||'').trim();if(!propCos[co])return;
+    var fn=getFullName(r);var fnN=fn.replace(/\s+/g,'');
+    if(!coLeadMap2[co])coLeadMap2[co]={};
+    coLeadMap2[co][fn]=r;coLeadMap2[co][fnN]=r;
+  });
+  Object.keys(entries).forEach(function(key){
+    var e=entries[key];
+    var lm=coLeadMap2[e.co]||{};
+    e.leadRow=lm[e.fn]||lm[e.fn.replace(/\s+/g,'')]||null;
+    // fallback: try partial match
+    if(!e.leadRow){Object.keys(lm).forEach(function(k){if(!e.leadRow&&(k.indexOf(e.fn)>=0||e.fn.indexOf(k)>=0)&&lm[k])e.leadRow=lm[k];});}
+  });
+
+  var all=Object.values(entries).sort(function(a,b){return b.maxPhN-a.maxPhN||a.co.localeCompare(b.co,'ja')||a.fn.localeCompare(b.fn,'ja');});
+  if(!all.length)return '<div style="padding:20px;text-align:center;color:var(--ink3)">提案中担当者が見つかりません</div>';
+
+  // member filter
+  var memFilt3=window.PROP_MEM_FILTER||'all';
+  var memCnt3={};all.forEach(function(e){var m=(e.member||'').split(' ')[0];if(m)memCnt3[m]=(memCnt3[m]||0)+1;});
+  var memList3=Object.keys(memCnt3).sort(function(a,b){return memCnt3[b]-memCnt3[a];});
+  var disp=all.filter(function(e){if(memFilt3==='all')return true;return(e.member||'').split(' ')[0]===memFilt3;});
+  var ac='#f97316';
+  var h='';
+  // filter bar
+  h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
+  h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">👤 担当者</span>';
+  var _bAll='padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(memFilt3==='all'?ac:'#d1d5db')+';background:'+(memFilt3==='all'?ac:'#fff')+';color:'+(memFilt3==='all'?'#fff':'#374151');
+  h+='<button onclick="window.PROP_MEM_FILTER=\'all\';renderLeads(document.getElementById(\'M\'))" style="'+_bAll+'">全て <span style="font-size:9px;opacity:.75">'+all.length+'名</span></button>';
+  memList3.forEach(function(m){var isA=memFilt3===m;var _bs='padding:4px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(isA?ac:'#d1d5db')+';background:'+(isA?ac:'#fff')+';color:'+(isA?'#fff':'#374151');h+='<button onclick="window.PROP_MEM_FILTER=this.dataset.m;renderLeads(document.getElementById(\'M\'))" data-m="'+m+'" style="'+_bs+'">'+m+' <span style="font-size:9px;opacity:.75">'+memCnt3[m]+'名</span></button>';});
+  h+='</div>';
+
+  // table
+  h+='<div style="overflow-x:auto"><table class="lead-tbl">';
+  h+='<thead><tr>';
+  ['氏名','会社','Tier','部署クラス','役職','ターゲット','担当者','案件（フェーズ）','メール'].forEach(function(c){h+='<th>'+c+'</th>';});
+  h+='</tr></thead><tbody>';
+  disp.forEach(function(e){
+    var r2=e.leadRow;
+    var fn=e.fn;
+    var co=e.co;
+    var cid=r2&&col.contactId>=0?(r2[col.contactId]||'').trim():'';
+    var tier=r2?normTier((col.tier>=0?(r2[col.tier]||''):'').trim()):'';
+    var deptC=r2&&col.deptClass>=0?(r2[col.deptClass]||'').trim():'';
+    var role=r2&&col.role>=0?(r2[col.role]||'').trim():'';
+    var tcat=r2&&col.targetCat>=0?(r2[col.targetCat]||'').trim():'';
+    var email=r2&&col.email>=0?(r2[col.email]||'').trim():'';
+    var mem=(e.member||'').split(' ')[0];
+    var tn=parseInt((tier||'').replace(/[^0-9]/g,''))||0;
+    var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];var tc2=tcs[tn]||'var(--ink3)';
+    var tcc=tcat.indexOf('決裁')>=0?'#7c3aed':tcat.indexOf('チャンピオン')>=0?'var(--blue)':tcat.indexOf('キーマン')>=0?'#f97316':'var(--ink3)';
+    var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    // case pills
+    var casesSorted=e.cases.slice().sort(function(a,b){return b.phaseN-a.phaseN;});
+    var casePills=casesSorted.map(function(c){var pc=PH_COLORS[c.phaseN]||'#6b7280';var pl=PH_LABELS[c.phaseN]||c.phase;return '<span style="display:inline-block;font-size:9px;font-weight:700;color:'+pc+';background:'+pc+'18;border:1px solid '+pc+'40;padding:1px 7px;border-radius:4px;margin:1px;white-space:nowrap">'+pl+(c.name?'<span style="font-weight:400;opacity:.8"> '+_escH(c.name.slice(0,12))+'</span>':'')+'</span>';}).join('');
+    h+='<tr class="lr">';
+    h+='<td style="font-weight:700;font-size:12px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
+    h+='<td style="font-size:10px;color:var(--ink2);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+_escH(dispCo)+'</td>';
+    h+='<td style="text-align:center">'+(tier?'<span style="font-size:10px;font-weight:800;color:'+tc2+';padding:2px 8px;background:'+tc2+'18;border-radius:5px">'+tier+'</span>':'')+'</td>';
+    h+='<td style="font-size:9px;color:var(--ink3)">'+_escH(deptC)+'</td>';
+    h+='<td style="font-size:10px;color:var(--ink2)">'+_escH(role)+'</td>';
+    h+='<td>'+(tcat?'<span style="font-size:9px;color:'+tcc+';font-weight:600;padding:1px 7px;background:'+tcc+'14;border-radius:10px">'+_escH(tcat)+'</span>':'')+'</td>';
+    h+='<td style="font-size:10px;color:var(--blue);white-space:nowrap">'+_escH(mem)+'</td>';
+    h+='<td style="min-width:180px">'+casePills+'</td>';
+    h+='<td style="font-size:9px;color:var(--ink3)">'+(email?'<a href="mailto:'+email+'" style="color:var(--ink3);text-decoration:none">'+_escH(email.replace(/(.{20}).+/,'$1…'))+'</a>':'')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+
 function renderActiveCompanyView(activeCos,starContactMap,coCases,filtered,col,today){
   // Group leads by company
   var coLeads={};
@@ -3133,7 +3226,7 @@ function renderLeads(M){
     {id:'unproposed',label:'\uD83D\uDD0D 未提案リード',cnt:unpropCount,color:'#7c3aed',sub:'商談ゼロ'},
     {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別'},
     {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定'},
-    {id:'proposal',label:'🔥 提案中企業',cnt:Object.keys(propCos).length,color:'#f97316',sub:Object.keys(propCos).length+'社'},
+    {id:'proposal',label:'🔥 提案中担当者',cnt:(function(){var s={};Object.values(propCoCases).forEach(function(cs){cs.forEach(function(c){if(c.custContact)c.custContact.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(nn)s[nn]=true;});});});return Object.keys(s).length;})(),color:'#f97316',sub:Object.keys(propCos).length+'社'},
     {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:'Tier1企業'},
     {id:'listbuilder',label:'📤 リスト作成',cnt:null,color:'#0891b2',sub:'CSV出力'}
   ];
@@ -3192,7 +3285,7 @@ function renderLeads(M){
     } else if(L_VIEW_MODE==='pastclient'){
     h+='<div style="padding:0 24px 24px">'+renderPastClientView(pastClientCos,activeCos,filtered,col,personProposalMap,personContractMap)+'</div>';
   } else if(L_VIEW_MODE==='proposal'){
-    h+='<div style="padding:0 24px 24px">'+renderProposalCompanyView(propCos,propCoCases,filtered,col,window._propContactMap||{})+'</div>';
+    h+='<div style="padding:0 24px 24px">'+renderProposalContactView(propCos,propCoCases,filtered,col)+'</div>';
   } else if(L_VIEW_MODE==='acplan'){
     h+='<div style="padding:0 24px 24px">'+renderAcplanView(filtered,col)+'</div>';
   } else if(L_VIEW_MODE==='listbuilder'){

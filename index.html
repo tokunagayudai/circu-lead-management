@@ -2508,7 +2508,7 @@ function renderAcplanView(filtered,col){
   if(window.E_ROWS&&window.E_COL){
     E_ROWS.forEach(function(rc){
       var ac=eGet(rc,'account').trim();if(!ac)return;
-      var mem=eGet(rc,'member');if(!isTeamMember(mem))return;
+      var mem=eGet(rc,'member');if(!mem)return;
       if(!coCaseInfo[ac])coCaseInfo[ac]={cnt:0,recentDate:''};
       coCaseInfo[ac].cnt++;
       var d=eGet(rc,'apDate')||eGet(rc,'mendanDate');

@@ -2217,7 +2217,7 @@ function renderAcpLog(lk,log,li,cid){
   return h;
 }
 function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, pastClientCos, recentCaseCos, today){
-  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:'all',rel:'all'};
+  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:'all',rel:'all',targetCat:'all'};
   var F=window.L_LIST_FILTERS;
   var data=window.L_DATA||[];
   var col2=col;
@@ -2232,7 +2232,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     var email=(col2.email>=0?(r[col2.email]||''):'').trim();
     var tier=normTier((col2.tier>=0?(r[col2.tier]||''):'').trim());
     var mem=(col2.member>=0?(r[col2.member]||''):'').trim();
-    var role=(col2.role>=0?(r[col2.role]||''):'').trim();
+    var tcat2=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();
     if(F.pastclient&&!(pastClientCos[co]&&!activeCos[co]))return false;
     if(F.starContact&&!starContactMap[co+'__'+fn]&&!starContactMap[co+'__'+fn.replace(/\s+/g,'')])return false;
     if(F.anyCase&&!anyCasesCos[co])return false;
@@ -2244,6 +2244,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
+    if(F.targetCat&&F.targetCat!=='all'&&tcat2!==F.targetCat)return false;
     return true;
   });
 
@@ -2251,6 +2252,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   window._listBuilderCol=col2;
 
   var allMems2={};data.forEach(function(r){var m=(col2.member>=0?(r[col2.member]||''):'').trim();if(m)allMems2[m]=true;});
+  var allTcats={};data.forEach(function(r){var t=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();if(t)allTcats[t]=true;});
 
   var h='<div style="padding:0 24px 24px">';
 
@@ -2293,8 +2295,12 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='<option value="all"'+((!F.rel||F.rel==='all')?' selected':'')+'>💬 全関係値</option>';
   [['fire','🔥 Hot'],['close','🤝 商談近い'],['good','👍 良好'],['normal','😐 普通']].forEach(function(rv){h+='<option value="'+rv[0]+'"'+(F.rel===rv[0]?' selected':'')+'>'+rv[1]+'</option>';});
   h+='</select>';
+  h+='<select onchange="window.L_LIST_FILTERS.targetCat=this.value;renderLeads(document.getElementById(\'M\'))" style="padding:5px 10px;border-radius:8px;border:1px solid var(--bd);font-size:11px;background:#fff">';
+  h+='<option value="all"'+((!F.targetCat||F.targetCat==='all')?' selected':'')+'>🎯 全ターゲット</option>';
+  Object.keys(allTcats).sort(function(a,b){return a.localeCompare(b,'ja');}).forEach(function(t){h+='<option value="'+_escA(t)+'"'+(F.targetCat===t?' selected':'')+'>'+_escH(t)+'</option>';});
+  h+='</select>';
   if(Object.values(F).some(function(v){return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!=='all');})){
-    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:\'all\',rel:\'all\'};renderLeads(document.getElementById(\'M\'))" style="padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ リセット</button>';
+    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:\'all\',rel:\'all\',targetCat:\'all\'};renderLeads(document.getElementById(\'M\'))" style="padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ リセット</button>';
   }
   h+='</div></div>';
 

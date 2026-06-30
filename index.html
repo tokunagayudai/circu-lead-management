@@ -205,6 +205,20 @@
 .lead-tbl tr.lr-sh td{background:#f1f5f9;padding:6px 10px;font-size:10px;font-weight:700;color:var(--ink2);letter-spacing:.2px}
 /* List view */
 .list-view{padding:8px 24px}
+/* アカプラ ツリー */
+.acpt-row{display:flex;gap:0;align-items:flex-start;overflow-x:auto;padding-bottom:8px}
+.acpt-col{flex:0 0 176px;display:flex;flex-direction:column;align-items:center;position:relative;padding:0 5px}
+.acpt-stub{position:relative;width:100%;height:14px;flex-shrink:0}
+.acpt-stub::after{content:'';position:absolute;left:50%;top:0;width:2px;height:100%;background:#cbd5e1;transform:translateX(-50%);z-index:1}
+.acpt-stub::before{content:'';position:absolute;left:0;right:0;top:50%;height:2px;background:#cbd5e1;z-index:0}
+.acpt-col:first-child .acpt-stub::before{left:50%}
+.acpt-col:last-child .acpt-stub::before{right:50%}
+.acpt-col:only-child .acpt-stub{visibility:hidden}
+.acpt-vline{width:2px;height:10px;background:#d1d5db;margin:0 auto;flex-shrink:0}
+.acpt-persons{width:100%;position:relative;padding-left:8px}
+.acpt-persons::before{content:'';position:absolute;left:3px;top:0;bottom:14px;width:2px;background:#e8ecf0}
+.acpt-person{position:relative;margin-bottom:5px}
+.acpt-person::before{content:'';position:absolute;left:-8px;top:17px;width:8px;height:2px;background:#e8ecf0}
 .list-table{width:100%;border-collapse:collapse;background:var(--bg2);border-radius:10px;overflow:hidden;border:1px solid var(--bd)}
 .list-table th{font-size:9px;font-weight:600;color:var(--ink3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);background:var(--bg)}
 .list-table td{font-size:11px;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.03)}
@@ -2630,13 +2644,22 @@ function renderAcplanView(filtered,col){
         return a.localeCompare(b,'ja');
       });
       h+='<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9">';
-      h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（部署列はドラッグで並び替え可）</span></div>';
-      h+='<div id="'+openId+'_depts" data-dok="'+_escA(deptOrderKey)+'" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">';
+      h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（部署列はドラッグで並び替え可）</span></div>';
+      // 企業ノード → 部署行への縦線
+      h+='<div style="width:2px;height:12px;background:#cbd5e1;margin:0 auto"></div>';
+      h+='<div class="acpt-row" id="'+openId+'_depts" data-dok="'+_escA(deptOrderKey)+'">';
       deptList.forEach(function(dept,di){
         var dc=DEPT_PALETTE[di%DEPT_PALETTE.length];
         var dLeads=deptMap[dept];
-        h+='<div draggable="true" data-dept="'+_escA(dept)+'" ondragstart="circuAcpDragStart(event)" ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(openId+'_depts')+'\',\''+_escA(deptOrderKey)+'\')" style="border:1px solid '+dc+'44;border-top:3px solid '+dc+';border-radius:6px;min-width:140px;max-width:200px;flex:1;background:#fff;cursor:grab">';
-        h+='<div style="padding:4px 9px;font-size:9px;font-weight:700;color:'+dc+';border-bottom:1px solid '+dc+'22;display:flex;align-items:center;gap:4px"><span style="color:'+dc+'88">⠿</span>'+_escH(dept)+'</div>';
+        h+='<div draggable="true" data-dept="'+_escA(dept)+'" ondragstart="circuAcpDragStart(event)" ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(openId+'_depts')+'\',\''+_escA(deptOrderKey)+'\')" class="acpt-col">';
+        h+='<div class="acpt-stub"></div>';
+        // 部署ノード
+        h+='<div style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
+        h+='<div style="font-size:9px;font-weight:700;color:'+dc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:.6">⠿</span> '+_escH(dept)+'</div>';
+        h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
+        h+='</div>';
+        h+='<div class="acpt-vline"></div>';
+        h+='<div class="acpt-persons">';
         dLeads.forEach(function(r){
           var fn=_getFullName(r);
           var role=(col.role>=0?(r[col.role]||''):'').trim();
@@ -2657,7 +2680,7 @@ function renderAcplanView(filtered,col){
           var personMemo=localStorage.getItem(personMemoKey)||'';
           var ckKey=co+'__'+fn;
           var isChecked=!!checkedKeys[ckKey];
-          h+='<div style="padding:8px 9px;border-bottom:1px solid #f1f5f9">';
+          h+='<div class="acpt-person"><div style="padding:7px 8px;border:1px solid #e8ecf0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)">';
           // Top row: photo + info + checkbox
           h+='<div style="display:flex;align-items:flex-start;gap:6px">';
           // Photo/avatar
@@ -2684,11 +2707,12 @@ function renderAcplanView(filtered,col){
           h+='</div>';
           // Person memo (compact)
           h+='<textarea data-pmk="'+_escA(personMemoKey)+'" oninput="circuAcpSavePersonMemo(this)" placeholder="メモ..." style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:3px 5px;font-size:9px;resize:none;min-height:28px;max-height:60px;box-sizing:border-box;font-family:inherit;background:#fafbff;color:#334155;line-height:1.4;overflow-y:auto">'+_escH(personMemo)+'</textarea>';
-          h+='</div></div></div>';
+          h+='</div></div></div></div>';  // name+info, flex, card, acpt-person
         });
-        h+='</div>';
+        h+='</div>';  // acpt-persons
+        h+='</div>';  // acpt-col
       });
-      h+='</div></div>';
+      h+='</div></div>';  // acpt-row + section
       // 接触ログ
       h+='<div style="padding:10px 12px;background:#fafbff">';
       h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:7px">📞 接触ログ・次のアクション</div>';

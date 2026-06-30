@@ -2221,6 +2221,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   var F=window.L_LIST_FILTERS;
   var data=window.L_DATA||[];
   var col2=col;
+  var getFullName=function(r){return((col2.lastName>=0?(r[col2.lastName]||''):'').trim()+' '+(col2.firstName>=0?(r[col2.firstName]||''):'').trim()).trim()||((col2.fullName>=0?(r[col2.fullName]||''):'').trim());};
   var mmExclude=(function(){try{return JSON.parse(localStorage.getItem('circu_mm_exclude')||'[]');}catch(e){return [];}}());
   var mmSet={};mmExclude.forEach(function(v){if(v)mmSet[v.toLowerCase().trim()]=true;});
 

@@ -2280,21 +2280,24 @@ function circuAcpClearChecked(){
   Object.keys(localStorage).filter(function(k){return k.indexOf('circu_check_')===0;}).forEach(function(k){localStorage.removeItem(k);});
   renderLeads(document.getElementById('M'));
 }
-// 部署列ドラッグ並び替え
+// 部署列ドラッグ並び替え（ヘッダーのみ）
 var _acpDragSrc=null;
 function circuAcpDragStart(e){
-  _acpDragSrc=e.currentTarget;
+  e.stopPropagation();
+  _acpDragSrc=e.currentTarget.closest('.acpt-col')||e.currentTarget;
   e.dataTransfer.effectAllowed='move';
-  e.dataTransfer.setData('text/plain',e.currentTarget.dataset.dept);
+  e.dataTransfer.setData('text/plain',_acpDragSrc.dataset.dept||'');
   setTimeout(function(){if(_acpDragSrc)_acpDragSrc.style.opacity='0.4';},0);
 }
 function circuAcpDragOver(e){
+  if(_acpPersonDragSrc)return;  // person drag 中は無視
   e.preventDefault();e.dataTransfer.dropEffect='move';
   var target=e.currentTarget;
   if(target===_acpDragSrc||!target.dataset.dept)return;
   target.style.outline='2px dashed #7c3aed';
 }
 function circuAcpDrop(e,containerId,deptOrderKey){
+  if(_acpPersonDragSrc)return;
   e.preventDefault();
   var target=e.currentTarget;
   if(target.dataset&&target.style)target.style.outline='';
@@ -2302,17 +2305,52 @@ function circuAcpDrop(e,containerId,deptOrderKey){
   if(_acpDragSrc)_acpDragSrc.style.opacity='';
   var container=document.getElementById(containerId);
   if(!container)return;
-  // Re-order DOM
   var kids=Array.from(container.children);
   var srcIdx=kids.indexOf(_acpDragSrc);
   var tgtIdx=kids.indexOf(target);
   if(srcIdx<0||tgtIdx<0)return;
   if(srcIdx<tgtIdx)container.insertBefore(_acpDragSrc,target.nextSibling);
   else container.insertBefore(_acpDragSrc,target);
-  // Save new order
   var newOrder=Array.from(container.children).map(function(el){return el.dataset.dept||'';}).filter(Boolean);
   localStorage.setItem(deptOrderKey,JSON.stringify(newOrder));
   _acpDragSrc=null;
+}
+// 人物カード縦ドラッグ並び替え
+var _acpPersonDragSrc=null;
+function circuAcpPersonDragStart(e){
+  e.stopPropagation();
+  _acpPersonDragSrc=e.currentTarget;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',e.currentTarget.dataset.pname||'');
+  setTimeout(function(){if(_acpPersonDragSrc)_acpPersonDragSrc.style.opacity='0.4';},0);
+}
+function circuAcpPersonDragOver(e){
+  e.preventDefault();e.stopPropagation();
+  e.dataTransfer.dropEffect='move';
+  if(e.currentTarget!==_acpPersonDragSrc)e.currentTarget.style.outline='2px dashed #0079C0';
+}
+function circuAcpPersonDrop(e,personOrderKey){
+  e.preventDefault();e.stopPropagation();
+  var target=e.currentTarget;
+  if(target.style)target.style.outline='';
+  if(!_acpPersonDragSrc||_acpPersonDragSrc===target)return;
+  if(_acpPersonDragSrc)_acpPersonDragSrc.style.opacity='';
+  var container=target.closest('.acpt-persons');
+  if(!container)return;
+  var kids=Array.from(container.children);
+  var srcIdx=kids.indexOf(_acpPersonDragSrc);
+  var tgtIdx=kids.indexOf(target);
+  if(srcIdx<0||tgtIdx<0)return;
+  if(srcIdx<tgtIdx)container.insertBefore(_acpPersonDragSrc,target.nextSibling);
+  else container.insertBefore(_acpPersonDragSrc,target);
+  var newOrder=Array.from(container.children).map(function(el){return el.dataset.pname||'';}).filter(Boolean);
+  localStorage.setItem(personOrderKey,JSON.stringify(newOrder));
+  _acpPersonDragSrc=null;
+}
+function circuAcpPersonDragEnd(e){
+  if(_acpPersonDragSrc)_acpPersonDragSrc.style.opacity='';
+  _acpPersonDragSrc=null;
+  document.querySelectorAll('.acpt-person').forEach(function(el){el.style.outline='';});
 }
 function circuAcpSaveLog(lk,li,f,v){
   var logs=[];try{logs=JSON.parse(localStorage.getItem(lk)||'[]');}catch(e){}
@@ -2644,17 +2682,26 @@ function renderAcplanView(filtered,col){
         return a.localeCompare(b,'ja');
       });
       h+='<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9">';
-      h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（部署列はドラッグで並び替え可）</span></div>';
-      // 企業ノード → 部署行への縦線
+      h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（部署：横ドラッグ / 顧客：縦ドラッグで並び替え）</span></div>';
       h+='<div style="width:2px;height:12px;background:#cbd5e1;margin:0 auto"></div>';
       h+='<div class="acpt-row" id="'+openId+'_depts" data-dok="'+_escA(deptOrderKey)+'">';
       deptList.forEach(function(dept,di){
         var dc=DEPT_PALETTE[di%DEPT_PALETTE.length];
         var dLeads=deptMap[dept];
-        h+='<div draggable="true" data-dept="'+_escA(dept)+'" ondragstart="circuAcpDragStart(event)" ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(openId+'_depts')+'\',\''+_escA(deptOrderKey)+'\')" class="acpt-col">';
+        // 顧客の保存順を読み込みソート
+        var personOrderKey=coKey+'_porder_'+dept;
+        var savedPersonOrder=[];try{savedPersonOrder=JSON.parse(localStorage.getItem(personOrderKey)||'[]');}catch(e){}
+        dLeads=dLeads.slice().sort(function(a,b){
+          var fa=_getFullName(a),fb=_getFullName(b);
+          var ia=savedPersonOrder.indexOf(fa),ib=savedPersonOrder.indexOf(fb);
+          if(ia>=0&&ib>=0)return ia-ib;
+          if(ia>=0)return -1;if(ib>=0)return 1;return 0;
+        });
+        // 列は dragover/drop だけ持つ（draggable はヘッダーに移動）
+        h+='<div data-dept="'+_escA(dept)+'" ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(openId+'_depts')+'\',\''+_escA(deptOrderKey)+'\')" class="acpt-col">';
         h+='<div class="acpt-stub"></div>';
-        // 部署ノード
-        h+='<div style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
+        // 部署ノード（ここだけ draggable）
+        h+='<div draggable="true" ondragstart="circuAcpDragStart(event)" style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
         h+='<div style="font-size:9px;font-weight:700;color:'+dc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:.6">⠿</span> '+_escH(dept)+'</div>';
         h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
         h+='</div>';
@@ -2680,7 +2727,8 @@ function renderAcplanView(filtered,col){
           var personMemo=localStorage.getItem(personMemoKey)||'';
           var ckKey=co+'__'+fn;
           var isChecked=!!checkedKeys[ckKey];
-          h+='<div class="acpt-person"><div style="padding:7px 8px;border:1px solid #e8ecf0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)">';
+          h+='<div class="acpt-person" draggable="true" data-pname="'+_escA(fn)+'" ondragstart="circuAcpPersonDragStart(event)" ondragover="circuAcpPersonDragOver(event)" ondrop="circuAcpPersonDrop(event,\''+_escA(personOrderKey)+'\')" ondragend="circuAcpPersonDragEnd(event)">';
+          h+='<div style="padding:7px 8px;border:1px solid #e8ecf0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)">';
           // Top row: photo + info + checkbox
           h+='<div style="display:flex;align-items:flex-start;gap:6px">';
           // Photo/avatar

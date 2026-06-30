@@ -2241,6 +2241,31 @@ function circuAcpSaveGTag(el){
   localStorage.setItem(el.dataset.gtk,el.value.trim());
   renderLeads(document.getElementById('M'));
 }
+function circuAcpPhotoClick(pKey){
+  var inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=function(e){var f=e.target.files[0];if(!f)return;if(f.size>600000){alert('600KB以下の画像を選択してください');return;}var rd=new FileReader();rd.onload=function(ev){localStorage.setItem(pKey,ev.target.result);renderLeads(document.getElementById('M'));};rd.readAsDataURL(f);};
+  inp.click();
+}
+function circuAcpSavePersonMemo(el){localStorage.setItem(el.dataset.pmk,el.value);}
+function circuAcpToggleCheck(el,key){
+  if(el.checked)localStorage.setItem('circu_check_'+key,'1');
+  else localStorage.removeItem('circu_check_'+key);
+  var allK=Object.keys(localStorage).filter(function(k){return k.indexOf('circu_check_')===0;});
+  var bar=document.getElementById('acpCheckedBar');
+  if(bar){bar.style.display=allK.length?'flex':'none';var cnt=document.getElementById('acpCheckedCnt');if(cnt)cnt.textContent=allK.length;}
+}
+function circuAcpExportChecked(){
+  var col=window.L_COL;if(!col||!window.L_DATA)return;
+  var gfn=function(r){return((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();};
+  var cmap={};Object.keys(localStorage).filter(function(k){return k.indexOf('circu_check_')===0;}).forEach(function(k){cmap[k.slice(12)]=true;});
+  window._listBuilderFiltered=window.L_DATA.filter(function(r){var co=(r[col.company]||'').trim();var fn=gfn(r);return cmap[co+'__'+fn];});
+  window._listBuilderCol=col;
+  listBuilderDownloadCSV();
+}
+function circuAcpClearChecked(){
+  Object.keys(localStorage).filter(function(k){return k.indexOf('circu_check_')===0;}).forEach(function(k){localStorage.removeItem(k);});
+  renderLeads(document.getElementById('M'));
+}
 // 部署列ドラッグ並び替え
 var _acpDragSrc=null;
 function circuAcpDragStart(e){
@@ -2478,6 +2503,22 @@ function renderAcplanView(filtered,col){
   var ROLE_DEF={決裁者:{color:'#b91c1c',bg:'#fee2e2'},キーマン:{color:'#d97706',bg:'#fef3c7'},チャンピオン:{color:'#059669',bg:'#d1fae5'},中立:{color:'#475569',bg:'#f1f5f9'},反対:{color:'#7c3aed',bg:'#ede9fe'},不明:{color:'#94a3b8',bg:'#f8fafc'}};
   var DEPT_PALETTE=['#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
   var today=new Date().toISOString().slice(0,10);
+  // 企業ごとの案件数・直近商談日をE_ROWSから事前計算
+  var coCaseInfo={};  // co → {cnt, recentDate}
+  if(window.E_ROWS&&window.E_COL){
+    E_ROWS.forEach(function(rc){
+      var ac=eGet(rc,'account').trim();if(!ac)return;
+      var mem=eGet(rc,'member');if(!isTeamMember(mem))return;
+      if(!coCaseInfo[ac])coCaseInfo[ac]={cnt:0,recentDate:''};
+      coCaseInfo[ac].cnt++;
+      var d=eGet(rc,'apDate')||eGet(rc,'mendanDate');
+      if(d&&d>coCaseInfo[ac].recentDate)coCaseInfo[ac].recentDate=d;
+    });
+  }
+  // チェック済みリスト
+  var checkedKeys={};
+  Object.keys(localStorage).filter(function(k){return k.indexOf('circu_check_')===0;}).forEach(function(k){checkedKeys[k.slice(12)]=true;});
+  var totalChecked=Object.keys(checkedKeys).length;
   // ===== FS（担当者）ごとに集計 =====
   var coMember={};
   coList.forEach(function(co){
@@ -2501,6 +2542,13 @@ function renderAcplanView(filtered,col){
     });
   });
   var h='';
+  // 選択済みバー
+  h+='<div id="acpCheckedBar" style="display:'+(totalChecked?'flex':'none')+';position:sticky;top:0;z-index:100;background:#0079C0;color:#fff;align-items:center;gap:10px;padding:8px 16px;border-radius:8px;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,121,192,.3)">';
+  h+='<span style="font-weight:700;font-size:13px"><span id="acpCheckedCnt">'+totalChecked+'</span>件を選択中</span>';
+  h+='<button onclick="circuAcpExportChecked()" style="padding:5px 16px;background:#fff;color:#0079C0;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">⬇ CSVエクスポート</button>';
+  h+='<button onclick="circuAcpClearChecked()" style="padding:5px 12px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;font-size:10px;cursor:pointer">✕ 全解除</button>';
+  h+='<span style="font-size:10px;opacity:.75;margin-left:4px">チェックをつけた顧客をCSVで一括出力</span>';
+  h+='</div>';
   h+='<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">';
   h+='<span style="font-size:14px;font-weight:800;color:#1e293b">📋 アカプラ</span>';
   h+='<span style="font-size:11px;color:#64748b;background:#f1f5f9;border-radius:4px;padding:2px 8px">Tier1 '+coList.length+'社 / '+memberList.length+'FS</span>';
@@ -2552,6 +2600,9 @@ function renderAcplanView(filtered,col){
       h+='<span onclick="circuAcpToggle(\''+openId+'\')" id="'+openId+'_arr" style="font-size:10px;width:14px;color:#7c3aed;font-weight:700;cursor:pointer;user-select:none">▶</span>';
       h+='<span onclick="circuAcpToggle(\''+openId+'\')" style="font-size:12px;font-weight:700;flex:1;cursor:pointer;user-select:none;color:#0f172a">'+_escH(dispCo)+'</span>';
       h+='<span style="font-size:10px;background:#e0f2fe;color:#0369a1;border-radius:4px;padding:2px 7px;font-weight:600">'+leads.length+'名</span>';
+      var _ci=coCaseInfo[co]||{};
+      if(_ci.cnt)h+='<span style="font-size:10px;background:#f0fdf4;color:#166534;border-radius:4px;padding:2px 7px;font-weight:600">案件 '+_ci.cnt+'件</span>';
+      if(_ci.recentDate)h+='<span style="font-size:10px;background:#f8fafc;color:#475569;border-radius:4px;padding:2px 7px">直近: '+_ci.recentDate.slice(0,7)+'</span>';
       if(nextLogs.length)h+='<span style="font-size:9px;background:#fef3c7;color:#b45309;border-radius:4px;padding:2px 7px;font-weight:700">📅 '+nextLogs.length+'件</span>';
       h+='<span onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:3px;margin-left:4px">';
       h+='<span style="font-size:9px;color:#94a3b8;white-space:nowrap">グループ:</span>';
@@ -2590,6 +2641,8 @@ function renderAcplanView(filtered,col){
           var fn=_getFullName(r);
           var role=(col.role>=0?(r[col.role]||''):'').trim();
           var cid2=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+          var mobile=(col.mobile>=0?(r[col.mobile]||''):'').trim();
+          var email=(col.email>=0?(r[col.email]||''):'').trim();
           var lsKey='circu_lead_'+(cid2||fn);
           var lsData={};try{lsData=JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){}
           var acpRoleLsKey=coKey+'_role_'+fn;
@@ -2598,16 +2651,40 @@ function renderAcplanView(filtered,col){
           var acpRole=savedRole!==null?savedRole:tcat;
           var relK=lsData.rel||'';var relDef=REL_DEF[relK];
           var rdef=ROLE_DEF[acpRole];
-          h+='<div style="padding:6px 9px;border-bottom:1px solid #f1f5f9">';
-          h+='<div style="font-size:10px;font-weight:700;color:#0f172a;margin-bottom:1px">'+_escH(fn)+'</div>';
-          if(role)h+='<div style="font-size:9px;color:#64748b;margin-bottom:4px">'+_escH(role)+'</div>';
-          h+='<div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap">';
+          var photoKey='circu_photo_'+co+'__'+fn;
+          var photo=localStorage.getItem(photoKey)||'';
+          var personMemoKey=coKey+'_pmemo_'+fn;
+          var personMemo=localStorage.getItem(personMemoKey)||'';
+          var ckKey=co+'__'+fn;
+          var isChecked=!!checkedKeys[ckKey];
+          h+='<div style="padding:8px 9px;border-bottom:1px solid #f1f5f9">';
+          // Top row: photo + info + checkbox
+          h+='<div style="display:flex;align-items:flex-start;gap:6px">';
+          // Photo/avatar
+          if(photo){
+            h+='<img src="'+photo+'" onclick="circuAcpPhotoClick(\''+_escA(photoKey)+'\')" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid #e2e8f0" title="クリックで変更">';
+          }else{
+            h+='<div onclick="circuAcpPhotoClick(\''+_escA(photoKey)+'\')" style="width:34px;height:34px;border-radius:50%;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#cbd5e1" title="クリックして写真追加">';
+            h+='<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>';
+          }
+          // Name + badges
+          h+='<div style="flex:1;min-width:0">';
+          h+='<div style="display:flex;align-items:center;gap:3px;margin-bottom:1px">';
+          h+='<span style="font-size:10px;font-weight:700;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(fn)+'</span>';
+          if(mobile)h+='<span style="font-size:8px;color:#0891b2;background:#e0f2fe;border-radius:3px;padding:0 4px;font-weight:700;flex-shrink:0">📱</span>';
+          h+='<input type="checkbox" '+(isChecked?'checked':'')+' onchange="circuAcpToggleCheck(this,\''+_escA(ckKey)+'\')" style="width:14px;height:14px;cursor:pointer;accent-color:#0079C0;flex-shrink:0" title="選択してCSVエクスポート">';
+          h+='</div>';
+          if(role)h+='<div style="font-size:9px;color:#64748b;margin-bottom:3px">'+_escH(role)+'</div>';
+          h+='<div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-bottom:4px">';
           h+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:1px 3px;border:1px solid #cbd5e1;border-radius:3px;background:#fff;cursor:pointer;color:#334155">';
           ['','決裁者','キーマン','チャンピオン','中立','反対','不明'].forEach(function(rv){h+='<option value="'+rv+'"'+(acpRole===rv?' selected':'')+'>'+(rv||'役割未設定')+'</option>';});
           h+='</select>';
           if(acpRole&&rdef)h+='<span style="font-size:8px;font-weight:700;color:'+rdef.color+';background:'+rdef.bg+';border-radius:3px;padding:1px 5px;border:1px solid '+rdef.color+'44">'+_escH(acpRole)+'</span>';
           if(relDef)h+='<span style="font-size:8px;font-weight:600;color:'+relDef.color+';background:'+relDef.bg+';border-radius:3px;padding:1px 4px">'+relDef.label+'</span>';
-          h+='</div></div>';
+          h+='</div>';
+          // Person memo (compact)
+          h+='<textarea data-pmk="'+_escA(personMemoKey)+'" oninput="circuAcpSavePersonMemo(this)" placeholder="メモ..." style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:3px 5px;font-size:9px;resize:none;min-height:28px;max-height:60px;box-sizing:border-box;font-family:inherit;background:#fafbff;color:#334155;line-height:1.4;overflow-y:auto">'+_escH(personMemo)+'</textarea>';
+          h+='</div></div></div>';
         });
         h+='</div>';
       });

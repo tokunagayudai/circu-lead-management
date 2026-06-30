@@ -2670,7 +2670,7 @@ function renderAcplanView(filtered,col){
       h+='</div>';
       // 組織図
       var deptMap={};
-      leads.forEach(function(r){var dept=(col.dept>=0?(r[col.dept]||''):'').trim()||'部署不明';if(!deptMap[dept])deptMap[dept]=[];deptMap[dept].push(r);});
+      leads.forEach(function(r){var dept=(col.dept>=0?(r[col.dept]||''):'').trim().replace(/[　\s]+/g,' ')||'部署不明';if(!deptMap[dept])deptMap[dept]=[];deptMap[dept].push(r);});
       // 保存された部署順を取得（ドラッグ並び替え対応）
       var deptOrderKey=coKey+'_deptorder';
       var savedDeptOrder=[];try{savedDeptOrder=JSON.parse(localStorage.getItem(deptOrderKey)||'[]');}catch(e){}

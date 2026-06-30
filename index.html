@@ -1661,7 +1661,7 @@ function renderCompanyAccordion(cos,coList,col,accentColor,personProposalMap,per
 
 function renderProposalCompanyView(propCos,propCoCases,filtered,col,propContactMap){
   var PH_LABELS={1:'01 初回アポ',2:'02 面談',3:'03 提案',4:'04 人選',5:'05 契約交渉',6:'06 確定',7:'07 稟議中'};
-  var PH_COLORS={1:'#6b7280',2:'#0891b2',3:'#7c3aed',4:'#f97316',5:'#dc2626',6:'#059669',7:'#d97706'};
+  var PH_COLORS={1:'#94a3b8',2:'#0ea5e9',3:'#8b5cf6',4:'#f97316',5:'#ef4444',6:'#10b981',7:'#f59e0b'};
   function getFullName(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
   // 会社ごとにリード辞書を作成（名前→row）
   var coLeadMap={};  // co → {fn: row, fnN: row}
@@ -1777,7 +1777,7 @@ function renderProposalCompanyView(propCos,propCoCases,filtered,col,propContactM
 
 function renderProposalContactView(propCos,propCoCases,filtered,col){
   var PH_LABELS={1:'01 初回アポ',2:'02 面談',3:'03 提案',4:'04 人選',5:'05 契約交渉',6:'06 確定',7:'07 稟議中'};
-  var PH_COLORS={1:'#6b7280',2:'#0891b2',3:'#7c3aed',4:'#f97316',5:'#dc2626',6:'#059669',7:'#d97706'};
+  var PH_COLORS={1:'#94a3b8',2:'#0ea5e9',3:'#8b5cf6',4:'#f97316',5:'#ef4444',6:'#10b981',7:'#f59e0b'};
   function getFullName(r){return((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();}
 
   // Step1: build entries from propCoCases (contact → company → cases)
@@ -1851,7 +1851,7 @@ function renderProposalContactView(propCos,propCoCases,filtered,col){
     var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
     // case pills
     var casesSorted=e.cases.slice().sort(function(a,b){return b.phaseN-a.phaseN;});
-    var casePills=casesSorted.map(function(c){var pc=PH_COLORS[c.phaseN]||'#6b7280';var pl=PH_LABELS[c.phaseN]||c.phase;return '<span style="display:inline-block;font-size:9px;font-weight:700;color:'+pc+';background:'+pc+'18;border:1px solid '+pc+'40;padding:1px 7px;border-radius:4px;margin:1px;white-space:nowrap">'+pl+(c.name?'<span style="font-weight:400;opacity:.8"> '+_escH(c.name.slice(0,12))+'</span>':'')+'</span>';}).join('');
+    var casePills=casesSorted.map(function(c){var pc=PH_COLORS[c.phaseN]||'#94a3b8';var pl=PH_LABELS[c.phaseN]||c.phase;var nm=c.name?c.name.replace(/\d{8}_?/g,'').slice(0,8):'';return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid '+pc+';border-radius:0 4px 4px 0;padding:2px 7px;margin:1px 2px;white-space:nowrap"><span style="font-weight:700;color:#334155">'+pl+'</span>'+(nm?'<span style="color:#94a3b8;font-weight:400">'+_escH(nm)+'</span>':'')+'</span>';}).join('');
     h+='<tr class="lr">';
     h+='<td style="font-weight:700;font-size:12px;white-space:nowrap">'+sfContactLink(fn,cid)+'</td>';
     h+='<td style="font-size:10px;color:var(--ink2);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+_escH(dispCo)+'</td>';

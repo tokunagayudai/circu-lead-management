@@ -2468,10 +2468,21 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   var mmExclude=(function(){try{return JSON.parse(localStorage.getItem('circu_mm_exclude')||'[]');}catch(e){return [];}}());
   var mmSet={};mmExclude.forEach(function(v){if(v)mmSet[v.toLowerCase().trim()]=true;});
 
-  // 案件キーワード用: 企業ごとの案件名テキストを事前構築
-  var coKeywordsMap={};
-  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(rc){var ac=eGet(rc,'account').trim();if(!ac)return;if(!coKeywordsMap[ac])coKeywordsMap[ac]='';coKeywordsMap[ac]+=' '+(eGet(rc,'caseType')||'');});}
-  if(window.RC_ROWS&&window.RC_COL){var _rcgK=function(r,k){var i=RC_COL[k];return(i>=0&&i<r.length)?(r[i]||'').trim():'';};RC_ROWS.forEach(function(rc){var ac=_rcgK(rc,'account').trim();if(!ac)return;if(!coKeywordsMap[ac])coKeywordsMap[ac]='';coKeywordsMap[ac]+=' '+(_rcgK(rc,'caseType')||'');});}
+  // 案件キーワード用: 人単位（custContact）で案件種別テキストをマップ
+  var personCaseTypeMap={};
+  if(window.RC_ROWS&&window.RC_COL&&RC_COL.caseType>=0){
+    var _rcgK=function(r,k){var i=RC_COL[k];return(i>=0&&i<r.length)?(r[i]||'').trim():'';};
+    RC_ROWS.forEach(function(rc){
+      var ct=(rc[RC_COL.caseType]||'').trim();if(!ct)return;
+      var cc=_rcgK(rc,'custContact');if(!cc)return;
+      cc.split(/[,、；;\/・]/).forEach(function(n){
+        var nn=n.trim();if(!nn)return;
+        var nnN=nn.replace(/\s+/g,'');
+        if(!personCaseTypeMap[nn])personCaseTypeMap[nn]='';personCaseTypeMap[nn]+=' '+ct;
+        if(!personCaseTypeMap[nnN])personCaseTypeMap[nnN]='';personCaseTypeMap[nnN]+=' '+ct;
+      });
+    });
+  }
 
   // Apply filters
   var filtered2=data.filter(function(r){
@@ -2493,7 +2504,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
     if(F.targetCat&&F.targetCat!=='all'&&tcat2!==F.targetCat)return false;
-    if(F.keyword){var _kw=F.keyword.toLowerCase();var _ct=(coKeywordsMap[co]||'').toLowerCase();if(F.keywordMode==='include'&&_ct.indexOf(_kw)<0)return false;if(F.keywordMode==='exclude'&&_ct.indexOf(_kw)>=0)return false;}
+    if(F.keyword){var _kw=F.keyword.toLowerCase();var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');var _ct=(personCaseTypeMap[_fn2]||personCaseTypeMap[_fn2N]||'').toLowerCase();if(F.keywordMode==='include'&&_ct.indexOf(_kw)<0)return false;if(F.keywordMode==='exclude'&&_ct.indexOf(_kw)>=0)return false;}
     return true;
   });
 

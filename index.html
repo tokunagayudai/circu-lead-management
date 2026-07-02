@@ -2504,7 +2504,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
     if(F.targetCat&&F.targetCat!=='all'&&tcat2!==F.targetCat)return false;
-    if(F.keyword){var _kw=F.keyword.toLowerCase();var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');var _ct=(personCaseTypeMap[_fn2]||personCaseTypeMap[_fn2N]||'').toLowerCase();if(F.keywordMode==='include'&&_ct.indexOf(_kw)<0)return false;if(F.keywordMode==='exclude'&&_ct.indexOf(_kw)>=0)return false;}
+    if(F.keyword){var _kws=F.keyword.split(/[,、]/).map(function(k){return k.trim().toLowerCase();}).filter(Boolean);if(_kws.length){var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');var _ct=(personCaseTypeMap[_fn2]||personCaseTypeMap[_fn2N]||'').toLowerCase();if(F.keywordMode==='include'&&!_kws.some(function(k){return _ct.indexOf(k)>=0;}))return false;if(F.keywordMode==='exclude'&&_kws.some(function(k){return _ct.indexOf(k)>=0;}))return false;}}
     return true;
   });
 
@@ -2567,7 +2567,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'include\';window.L_LIST_FILTERS.keyword=document.getElementById(\'lbKwInput\').value.trim();renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(kmInc?'#0079C0':'#d1d5db')+';background:'+(kmInc?'#0079C0':'#fff')+';color:'+(kmInc?'#fff':'#374151')+'">含む</button>';
   h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'exclude\';window.L_LIST_FILTERS.keyword=document.getElementById(\'lbKwInput\').value.trim();renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(!kmInc?'#ef4444':'#d1d5db')+';background:'+(!kmInc?'#ef4444':'#fff')+';color:'+(!kmInc?'#fff':'#374151')+'">含まない</button>';
   h+='<button onclick="window.L_LIST_FILTERS.keyword=document.getElementById(\'lbKwInput\').value.trim();renderLeads(document.getElementById(\'M\'))" style="padding:4px 14px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #0079C0;background:#0079C0;color:#fff">適用</button>';
-  if(F.keyword)h+='<span style="font-size:10px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-weight:600">「'+_escH(F.keyword)+'」を'+( kmInc?'含む':'含まない')+'</span>';
+  if(F.keyword){var _kwList=F.keyword.split(/[,、]/).map(function(k){return k.trim();}).filter(Boolean);h+='<span style="font-size:10px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-weight:600">'+_kwList.map(function(k){return'「'+_escH(k)+'」';}).join('または')+'を'+(kmInc?'含む':'含まない')+'</span>';}
   h+='</div>';
   if(Object.values(F).some(function(v){return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!=='all');})){
     h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:\'all\',rel:\'all\',targetCat:\'all\',keyword:\'\',keywordMode:\'include\'};renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';

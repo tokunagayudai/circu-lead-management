@@ -3653,8 +3653,9 @@ function showRcDrawer(key){
   document.getElementById('rc-drawer-overlay').classList.add('open');
 }
 function closeRcDrawer(){
-  var dr=document.getElementById('rc-drawer');if(dr)dr.classList.remove('open');
-  var ov=document.getElementById('rc-drawer-overlay');if(ov)ov.classList.remove('open');
+  // .open クラスで開く場合とインラインstyle(right:0)で開く場合の両方に対応してリセット
+  var dr=document.getElementById('rc-drawer');if(dr){dr.classList.remove('open');dr.style.right='';}
+  var ov=document.getElementById('rc-drawer-overlay');if(ov){ov.classList.remove('open');ov.style.display='';}
 }
 // ===== END LEAD MANAGEMENT MODULE =====
 

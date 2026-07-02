@@ -2426,6 +2426,39 @@ function renderAcpLog(lk,log,li,cid){
   h+='</div></div>';
   return h;
 }
+function circuLbNameClick(el,idx){
+  var existPop=document.getElementById('_lbCPop');
+  if(existPop){var wasIdx=existPop.dataset.idx;existPop.remove();if(wasIdx==idx)return;}
+  var rows=window._listBuilderFiltered;var col=window._listBuilderCol;
+  if(!rows||!col||idx>=rows.length)return;
+  var r=rows[idx];
+  var fn=((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim()||(col.name>=0?(r[col.name]||''):'').trim();
+  var co=(col.company>=0?(r[col.company]||''):'').trim();
+  var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+  var fnNo=fn.replace(/\s+/g,'');
+  var cases=[];
+  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(rc){var cc=eGet(rc,'custContact');if(!cc)return;if(cc.indexOf(fn)<0&&cc.replace(/\s+/g,'').indexOf(fnNo)<0)return;cases.push({name:eGet(rc,'name'),phase:eGet(rc,'curPh'),member:eGet(rc,'member'),oppId:eGet(rc,'oppId')});});}
+  var SFO2='https://circulation.lightning.force.com/lightning/r/Opportunity/';
+  var SFC2='https://circulation.lightning.force.com/lightning/r/Contact/';
+  var phC2=function(ph){var n=ePh(ph);return{1:'#94a3b8',2:'#0ea5e9',3:'#f59e0b',4:'#f97316',5:'#ef4444',7:'#10b981',8:'#6366f1'}[n]||'#cbd5e1';};
+  var pop=document.createElement('div');
+  pop.id='_lbCPop';pop.dataset.idx=idx;
+  pop.style.cssText='position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.18);width:320px;max-height:440px;overflow-y:auto;font-family:var(--sans)';
+  var h2='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+  h2+='<div><div style="font-weight:700;font-size:13px;color:#0f172a">'+_escH(fn)+'</div><div style="font-size:10px;color:#64748b;margin-top:1px">'+_escH(co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱'))+'</div></div>';
+  h2+='<button onclick="document.getElementById(\'_lbCPop\').remove()" style="background:none;border:none;cursor:pointer;font-size:14px;color:#94a3b8;padding:0 0 0 8px">✕</button>';
+  h2+='</div>';
+  if(cid){h2+='<a href="'+SFC2+cid+'/view" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#0079C0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;text-decoration:none;margin-bottom:10px">🔗 Salesforceで開く</a><br>';}
+  h2+='<div style="font-size:10px;font-weight:600;color:#475569;margin:8px 0 6px">📁 紐づく案件（'+cases.length+'件）</div>';
+  if(!cases.length){h2+='<div style="font-size:10px;color:#94a3b8;padding:4px 0">案件データなし</div>';}
+  else{cases.forEach(function(c){var pc=phC2(c.phase);h2+='<div style="border:1px solid #f1f5f9;border-left:3px solid '+pc+';border-radius:0 6px 6px 0;padding:6px 8px;margin-bottom:4px;background:#fafafa">';if(c.oppId){h2+='<a href="'+SFO2+c.oppId+'/view" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:#0079C0;text-decoration:none;display:block;margin-bottom:3px">'+_escH(c.name||'（名称なし）')+' ↗</a>';}else{h2+='<div style="font-size:11px;font-weight:600;color:#334155;margin-bottom:3px">'+_escH(c.name||'（名称なし）')+'</div>';}h2+='<div style="display:flex;gap:5px;align-items:center"><span style="font-size:9px;font-weight:700;color:'+pc+';background:'+pc+'18;border-radius:4px;padding:1px 5px">'+_escH(c.phase||'不明')+'</span>'+(c.member?'<span style="font-size:9px;color:#64748b">'+_escH(c.member.split(' ')[0])+'</span>':'')+'</div></div>';});}
+  pop.innerHTML=h2;document.body.appendChild(pop);
+  var rect=el.getBoundingClientRect();var pw=320;
+  var left=Math.min(rect.left,window.innerWidth-pw-10);
+  var top=rect.bottom+4;if(top+440>window.innerHeight)top=rect.top-440;
+  pop.style.left=Math.max(8,left)+'px';pop.style.top=Math.max(8,top)+'px';
+  setTimeout(function(){function hnd(e){if(!pop.contains(e.target)&&e.target!==el){pop.remove();document.removeEventListener('click',hnd);}}document.addEventListener('click',hnd);},0);
+}
 function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, pastClientCos, recentCaseCos, today){
   if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:'all',rel:'all',targetCat:'all',keyword:'',keywordMode:'include'};
   var F=window.L_LIST_FILTERS;
@@ -2561,7 +2594,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     h+='<thead><tr>';
     ['氏名','会社名','Tier','部署クラス','部署','役職','ターゲット','担当者','関係値','メール','電話'].forEach(function(c){h+='<th>'+c+'</th>';});
     h+='</tr></thead><tbody>';
-    preview.forEach(function(r){
+    preview.forEach(function(r,idx){
       var fn=getFullName(r);
       var co=(col2.company>=0?(r[col2.company]||''):'').trim();
       var tier=normTier((col2.tier>=0?(r[col2.tier]||''):'').trim());
@@ -2578,7 +2611,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
       var tcc2=tcat.indexOf('決裁')>=0?'#7c3aed':tcat.indexOf('チャンピオン')>=0?'var(--blue)':tcat.indexOf('キーマン')>=0?'#f97316':'var(--ink3)';
       var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
       h+='<tr class="lr">';
-      h+='<td style="font-weight:700;font-size:12px;white-space:nowrap">'+_escH(fn)+'</td>';
+      h+='<td style="font-weight:700;font-size:12px;white-space:nowrap"><span onclick="circuLbNameClick(this,'+idx+')" style="cursor:pointer;border-bottom:1.5px dotted #0079C0;color:inherit">'+_escH(fn)+'</span></td>';
       h+='<td style="font-size:10px;color:var(--ink2);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">'+_escH(dispCo)+'</td>';
       h+='<td style="text-align:center">'+(tier?'<span style="font-size:10px;font-weight:800;color:'+tc2+';padding:2px 8px;background:'+tc2+'18;border-radius:5px">'+tier+'</span>':'')+'</td>';
       h+='<td style="font-size:9px;color:var(--ink3)">'+_escH(deptC)+'</td>';

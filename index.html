@@ -3313,7 +3313,7 @@ function renderLeads(M){
     var mem=(col.member>=0?(r[col.member]||''):'').trim()||'未設定';
     var co=(r[col.company]||'').trim();
     var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim())||'未分類';
-    if(!byMember[mem])byMember[mem]={leads:0,companies:{},active:0,star:0,t1:0,t2:0,t3:0,t4:0};
+    if(!byMember[mem])byMember[mem]={leads:0,companies:{},active:0,star:0,t1:0,t2:0,t3:0,t4:0,t1co:{},t2co:{},t3co:{},t4co:{}};
     byMember[mem].leads++;
     if(co)byMember[mem].companies[co]=true;
     if(activeCos[co])byMember[mem].active++;
@@ -3322,7 +3322,7 @@ function renderLeads(M){
     var _fn2=(col.firstName>=0?(r[col.firstName]||''):'').trim();
     var fnWithSp=(_ln+' '+_fn2).trim();var fnNoSp=(_ln+_fn2).trim();
     if(co&&(starContactMap[co+'__'+fnWithSp]||starContactMap[co+'__'+fnNoSp]))byMember[mem].star++;
-    if(tier==='Tier1')byMember[mem].t1++;else if(tier==='Tier2')byMember[mem].t2++;else if(tier==='Tier3')byMember[mem].t3++;else if(tier==='Tier4')byMember[mem].t4++;
+    if(tier==='Tier1'){byMember[mem].t1++;if(co)byMember[mem].t1co[co]=1;}else if(tier==='Tier2'){byMember[mem].t2++;if(co)byMember[mem].t2co[co]=1;}else if(tier==='Tier3'){byMember[mem].t3++;if(co)byMember[mem].t3co[co]=1;}else if(tier==='Tier4'){byMember[mem].t4++;if(co)byMember[mem].t4co[co]=1;}
     // 担当者別リード明細（企業展開ドロワー用）
     if(!window._memLeadDetail[mem])window._memLeadDetail[mem]=[];
     window._memLeadDetail[mem].push({co:co,nm:fnWithSp||(col.name>=0?(r[col.name]||'').trim():''),cid:(col.contactId>=0?(r[col.contactId]||'').trim():''),dept:(col.dept>=0?(r[col.dept]||'').trim():''),tier:tier,email:(col.email>=0?(r[col.email]||'').trim():'')});
@@ -3399,12 +3399,19 @@ function renderLeads(M){
   h+='</tr></thead><tbody>';
   // Team total row
   var totStar=0,totActLead=0,totProp=0,totRc=0,totT1=0,totT2=0,totT3=0,totT4=0;
-  activeMembers.forEach(function(m){var d=byMember[m]||{};totStar+=(d.star||0);totActLead+=(d.active||0);totT1+=(d.t1||0);totT2+=(d.t2||0);totT3+=(d.t3||0);totT4+=(d.t4||0);});
+  var totT1co={},totT2co={},totT3co={},totT4co={};
+  activeMembers.forEach(function(m){var d=byMember[m]||{};totStar+=(d.star||0);totActLead+=(d.active||0);totT1+=(d.t1||0);totT2+=(d.t2||0);totT3+=(d.t3||0);totT4+=(d.t4||0);
+    Object.keys(d.t1co||{}).forEach(function(c){totT1co[c]=1;});Object.keys(d.t2co||{}).forEach(function(c){totT2co[c]=1;});Object.keys(d.t3co||{}).forEach(function(c){totT3co[c]=1;});Object.keys(d.t4co||{}).forEach(function(c){totT4co[c]=1;});});
   Object.values(memberProposal).forEach(function(v){totProp+=v;});Object.values(memberRecycle).forEach(function(v){totRc+=v;});
   function mn(v){return v?v:'−';}
+  // Tierセル: リード数 + 社数（2段表示）
+  function tierCell(n,coCnt,color){
+    if(!n)return '<td style="text-align:right;font-family:var(--mono);font-size:10px;color:'+color+'">−</td>';
+    return '<td style="text-align:right;color:'+color+';padding-top:3px;padding-bottom:3px"><div style="font-family:var(--mono);font-size:11px;font-weight:700;line-height:1.15">'+n+'</div><div style="font-size:8px;color:var(--ink3);font-weight:500;line-height:1.15">'+coCnt+'社</div></td>';
+  }
   h+='<tr style="background:rgba(16,185,129,.08);font-weight:700">';
   h+='<td>チーム合計</td><td style="text-align:right;font-family:var(--mono)">'+teamTotal.companies+'</td><td style="text-align:right;font-family:var(--mono)">'+teamTotal.leads+'</td>';
-  h+='<td style="text-align:right;font-family:var(--mono);color:#0079C0">'+mn(totT1)+'</td><td style="text-align:right;font-family:var(--mono);color:#1a7f37">'+mn(totT2)+'</td><td style="text-align:right;font-family:var(--mono);color:#bf8700">'+mn(totT3)+'</td><td style="text-align:right;font-family:var(--mono);color:#888">'+mn(totT4)+'</td>';
+  h+=tierCell(totT1,Object.keys(totT1co).length,'#0079C0')+tierCell(totT2,Object.keys(totT2co).length,'#1a7f37')+tierCell(totT3,Object.keys(totT3co).length,'#bf8700')+tierCell(totT4,Object.keys(totT4co).length,'#888');
   h+='<td style="text-align:right;font-family:var(--mono);color:#f59e0b">'+mn(totStar)+'</td><td style="text-align:right;font-family:var(--mono);color:var(--grn)">'+mn(totActLead)+'</td>';
   h+='<td style="text-align:right;font-family:var(--mono);color:var(--blue)">'+mn(totProp)+'</td><td style="text-align:right;font-family:var(--mono);color:#7c3aed">'+mn(totRc)+'</td>';
   h+='</tr>';
@@ -3416,10 +3423,7 @@ function renderLeads(M){
     h+='<td style="font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;background:'+mc+';border-radius:50%;margin-right:5px;vertical-align:middle"></span>'+m+' <span style="font-size:9px;color:var(--blue)">▸企業</span></td>';
     h+='<td style="text-align:right;font-family:var(--mono)">'+Object.keys(d.companies).length+'</td>';
     h+='<td style="text-align:right;font-family:var(--mono)">'+d.leads+'</td>';
-    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#0079C0">'+mn(d.t1)+'</td>';
-    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#1a7f37">'+mn(d.t2)+'</td>';
-    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#bf8700">'+mn(d.t3)+'</td>';
-    h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#888">'+mn(d.t4)+'</td>';
+    h+=tierCell(d.t1,Object.keys(d.t1co||{}).length,'#0079C0')+tierCell(d.t2,Object.keys(d.t2co||{}).length,'#1a7f37')+tierCell(d.t3,Object.keys(d.t3co||{}).length,'#bf8700')+tierCell(d.t4,Object.keys(d.t4co||{}).length,'#888');
     h+='<td style="text-align:right;font-family:var(--mono);color:#f59e0b">'+mn(d.star)+'</td>';
     h+='<td style="text-align:right;font-family:var(--mono);color:var(--grn)">'+mn(d.active)+'</td>';
     h+='<td style="text-align:right;font-family:var(--mono);color:var(--blue)">'+mn(pr)+'</td>';

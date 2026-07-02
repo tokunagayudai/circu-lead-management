@@ -1126,6 +1126,48 @@ function showAnalyticsDrawer(key,title){
   var dr=document.getElementById('rc-drawer');var ov=document.getElementById('rc-drawer-overlay');
   dr.style.right='0';ov.style.display='block';
 }
+// 担当者行クリック → その担当者の「企業（アカウント）→ 配下リード」を右パネルに表示
+function showMemberLeadsDrawer(mem){
+  _ensureRcDrawer();
+  var rows=(window._memLeadDetail&&window._memLeadDetail[mem])||[];
+  document.getElementById('rc-drawer-title').textContent=mem+' の担当リード（企業別）';
+  // 企業ごとにグループ化
+  var coMap={};
+  rows.forEach(function(r){var c=r.co||'（企業名未設定）';if(!coMap[c])coMap[c]=[];coMap[c].push(r);});
+  var coKeys=Object.keys(coMap).sort(function(a,b){return coMap[b].length-coMap[a].length||a.localeCompare(b,'ja');});
+  var tcs=['','#0079C0','#1a7f37','#bf8700','#7c3aed'];
+  var h='<div style="padding:6px 16px 2px;font-size:10px;color:var(--ink3)">'+rows.length+'名 / '+coKeys.length+'社</div>';
+  h+='<div style="padding:0 8px 16px">';
+  coKeys.forEach(function(co,ci){
+    var leads=coMap[co];
+    var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    h+='<div style="border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;overflow:hidden">';
+    h+='<div onclick="(function(el){var b=el.parentNode.querySelector(\'.mlco-body\');var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';el.querySelector(\'.mlco-arrow\').textContent=open?\'▶\':\'▼\';})(this)" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;background:var(--blue-l);user-select:none">';
+    h+='<span class="mlco-arrow" style="font-size:9px;color:var(--ink3);width:12px">'+(ci===0?'▼':'▶')+'</span>';
+    h+='<span style="font-size:11px;font-weight:700;flex:1">'+sfAccountLink(dispCo,co,'')+'</span>';
+    h+='<span style="font-size:10px;color:var(--ink3)">'+leads.length+'名</span>';
+    h+='</div>';
+    h+='<div class="mlco-body" style="display:'+(ci===0?'block':'none')+';border-top:1px solid var(--bd)">';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--bg)">';
+    ['氏名(SF)','部署','Tier','メール'].forEach(function(l){h+='<th style="padding:5px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--bd)">'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    leads.forEach(function(r,li){
+      var tn=parseInt((r.tier||'').replace(/[^0-9]/g,''))||0;var tc=tcs[tn]||'#888';
+      h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(li%2===0?'':'background:var(--bg)')+'">';
+      h+='<td style="padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">'+sfContactLink(r.nm||'(氏名なし)',r.cid)+'</td>';
+      h+='<td style="padding:5px 8px;font-size:9px;color:var(--ink2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+r.dept+'">'+r.dept+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center">'+(r.tier?'<span style="font-size:9px;font-weight:700;color:'+tc+';padding:1px 5px;background:'+tc+'18;border-radius:3px">'+r.tier+'</span>':'')+'</td>';
+      h+='<td style="padding:5px 8px;font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+(r.email?'<a href="mailto:'+r.email+'" style="color:var(--blue);text-decoration:none">'+r.email+'</a>':'')+'</td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table></div></div>';
+  });
+  if(!coKeys.length)h+='<div style="padding:20px;text-align:center;color:var(--ink3);font-size:11px">リードがありません</div>';
+  h+='</div>';
+  document.getElementById('rc-drawer-body').innerHTML=h;
+  var dr=document.getElementById('rc-drawer');var ov=document.getElementById('rc-drawer-overlay');
+  dr.style.right='0';ov.style.display='block';
+}
 function renderAnalyticsView(col,activeCos,anyCasesCos,personProposalMap,personContractMap){
   var KOBAYASHI='小林 暁飛';
   var TEAM5_N=['徳永','栫','中村','岡部','福本','飯田','木曽','土田','小林'];
@@ -3252,6 +3294,7 @@ function renderLeads(M){
   });
   // Per-member stats (L_DATAベース — 全リード)
   var byMember={};var tierMap={};
+  window._memLeadDetail={}; // member → [{co,nm,cid,dept,tier,email}]（担当者行クリックの企業展開用）
   // Tier別 + 提案中/リサイクル per member用にE_ROWSからも集計
   var memberProposal={};// member → 提案中件数
   var memberRecycle={};// member → リサイクル件数
@@ -3280,6 +3323,9 @@ function renderLeads(M){
     var fnWithSp=(_ln+' '+_fn2).trim();var fnNoSp=(_ln+_fn2).trim();
     if(co&&(starContactMap[co+'__'+fnWithSp]||starContactMap[co+'__'+fnNoSp]))byMember[mem].star++;
     if(tier==='Tier1')byMember[mem].t1++;else if(tier==='Tier2')byMember[mem].t2++;else if(tier==='Tier3')byMember[mem].t3++;else if(tier==='Tier4')byMember[mem].t4++;
+    // 担当者別リード明細（企業展開ドロワー用）
+    if(!window._memLeadDetail[mem])window._memLeadDetail[mem]=[];
+    window._memLeadDetail[mem].push({co:co,nm:fnWithSp||(col.name>=0?(r[col.name]||'').trim():''),cid:(col.contactId>=0?(r[col.contactId]||'').trim():''),dept:(col.dept>=0?(r[col.dept]||'').trim():''),tier:tier,email:(col.email>=0?(r[col.email]||'').trim():'')});
     if(!tierMap[tier])tierMap[tier]={leads:0,companies:{}};
     tierMap[tier].leads++;if(co)tierMap[tier].companies[co]=true;
   });
@@ -3366,8 +3412,8 @@ function renderLeads(M){
     var d=byMember[m]||{leads:0,companies:{},active:0,star:0,t1:0,t2:0,t3:0,t4:0};
     var mc=L_MEMBER_COLORS[m]||'#888';
     var pr=memberProposal[m]||0,rc=memberRecycle[m]||0;
-    h+='<tr>';
-    h+='<td style="font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;background:'+mc+';border-radius:50%;margin-right:5px;vertical-align:middle"></span>'+m+'</td>';
+    h+='<tr onclick="showMemberLeadsDrawer(\''+m.replace(/'/g,"\\'")+'\')" style="cursor:pointer" onmouseover="this.style.background=\'var(--blue-l)\'" onmouseout="this.style.background=\'\'" title="クリックで担当企業（アカウント）とリードを表示">';
+    h+='<td style="font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;background:'+mc+';border-radius:50%;margin-right:5px;vertical-align:middle"></span>'+m+' <span style="font-size:9px;color:var(--blue)">▸企業</span></td>';
     h+='<td style="text-align:right;font-family:var(--mono)">'+Object.keys(d.companies).length+'</td>';
     h+='<td style="text-align:right;font-family:var(--mono)">'+d.leads+'</td>';
     h+='<td style="text-align:right;font-family:var(--mono);font-size:10px;color:#0079C0">'+mn(d.t1)+'</td>';

@@ -2436,8 +2436,9 @@ function circuLbNameClick(el,idx){
   var co=(col.company>=0?(r[col.company]||''):'').trim();
   var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
   var fnNo=fn.replace(/\s+/g,'');
-  var cases=[];
-  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(rc){var cc=eGet(rc,'custContact');if(!cc)return;if(cc.indexOf(fn)<0&&cc.replace(/\s+/g,'').indexOf(fnNo)<0)return;cases.push({name:eGet(rc,'name'),phase:eGet(rc,'curPh'),member:eGet(rc,'member'),oppId:eGet(rc,'oppId')});});}
+  var cases=[];var _seenOpp={};
+  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(rc){var cc=eGet(rc,'custContact');if(!cc)return;if(cc.indexOf(fn)<0&&cc.replace(/\s+/g,'').indexOf(fnNo)<0)return;var oid=eGet(rc,'oppId');if(oid&&_seenOpp[oid])return;if(oid)_seenOpp[oid]=true;cases.push({name:eGet(rc,'name'),phase:eGet(rc,'curPh'),member:eGet(rc,'member'),oppId:oid});});}
+  if(window.RC_ROWS&&window.RC_COL){var _rg=function(r,k){var i=RC_COL[k];return(i>=0&&i<r.length)?(r[i]||'').trim():'';};RC_ROWS.forEach(function(rc){var cc=_rg(rc,'custContact');if(!cc)return;if(cc.indexOf(fn)<0&&cc.replace(/\s+/g,'').indexOf(fnNo)<0)return;var oid=_rg(rc,'oppId');if(oid&&_seenOpp[oid])return;if(oid)_seenOpp[oid]=true;cases.push({name:_rg(rc,'name'),phase:_rg(rc,'curPh'),member:_rg(rc,'member'),oppId:oid});});}
   var SFO2='https://circulation.lightning.force.com/lightning/r/Opportunity/';
   var SFC2='https://circulation.lightning.force.com/lightning/r/Contact/';
   var phC2=function(ph){var n=ePh(ph);return{1:'#94a3b8',2:'#0ea5e9',3:'#f59e0b',4:'#f97316',5:'#ef4444',7:'#10b981',8:'#6366f1'}[n]||'#cbd5e1';};

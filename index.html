@@ -789,6 +789,11 @@ function renderRecyclePipeline(){
   var totNoDate=TEAM5.reduce(function(s,m){return s+(rcByMemMo[m]['日付未設定']||[]).length;},0);
   var maxCellN=0;months.forEach(function(mo){TEAM5.forEach(function(m){var n=(rcByMemMo[m][mo]||[]).length;if(n>maxCellN)maxCellN=n;});});
 
+  // 会社→Tierマップ（L_DATAから）※ drawer data より前に必要
+  var coTierMap={};
+  if(window.L_DATA&&window.L_COL){var _lc=window.L_COL;L_DATA.forEach(function(r){var co=(_lc.company>=0?(r[_lc.company]||''):'').trim();var t=normTier((_lc.tier>=0?(r[_lc.tier]||''):'').trim());if(co&&t&&!coTierMap[co])coTierMap[co]=t;});}
+  var TIER_C={'Tier1':'#3b82f6','Tier2':'#10b981','Tier3':'#f59e0b','Tier4':'#8b5cf6'};
+
   // Store drawer data
   window._rcDrawerData={};
   var allRcRows=[];TEAM5.forEach(function(m){allRcRows=allRcRows.concat(byMem[m].recycles||[]);});
@@ -805,10 +810,6 @@ function renderRecyclePipeline(){
   // チーム全体 Tier別
   ['Tier1','Tier2','Tier3','Tier4'].forEach(function(t){var tr=allRcRows.filter(function(r){return coTierMap[rcGet(r,'account').trim()]===t;});if(tr.length)window._rcDrawerData['team__'+t]={title:'チーム全体 / '+t+' リサイクル ('+tr.length+'件)',rows:tr,isRecycleCase:true};});
 
-  // 会社→Tierマップ（L_DATAから）
-  var coTierMap={};
-  if(window.L_DATA&&window.L_COL){var _lc=window.L_COL;L_DATA.forEach(function(r){var co=(_lc.company>=0?(r[_lc.company]||''):'').trim();var t=normTier((_lc.tier>=0?(r[_lc.tier]||''):'').trim());if(co&&t&&!coTierMap[co])coTierMap[co]=t;});}
-  var TIER_C={'Tier1':'#3b82f6','Tier2':'#10b981','Tier3':'#f59e0b','Tier4':'#8b5cf6'};
   function tierDots(rows){
     var tc={};rows.forEach(function(r){var ac=rcGet(r,'account').trim();var t=coTierMap[ac]||'?';tc[t]=(tc[t]||0)+1;});
     var out='';['Tier1','Tier2','Tier3','Tier4'].forEach(function(t){if(!tc[t])return;var c=TIER_C[t];out+='<span style="font-size:9px;font-weight:700;color:'+c+';white-space:nowrap">●'+tc[t]+'</span>';});

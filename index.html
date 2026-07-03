@@ -815,43 +815,87 @@ function renderRecyclePipeline(){
     return '<td style="padding:8px;text-align:center"><button onclick="showRcDrawer(\''+key+'\')" style="background:none;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;transition:.15s" onmouseenter="this.style.background=\'#f1f5f9\'" onmouseleave="this.style.background=\'none\'"><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+numColor+'">'+n+'</div><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:3px">'+dots+'</div></button></td>';
   }
 
-  h+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">';
-  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px">';
-  // Header
-  h+='<thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">';
-  h+='<th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#475569;white-space:nowrap">担当者</th>';
-  h+='<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;color:#1d4ed8">提案中</th>';
-  months.forEach(function(mo){var isCur=(mo===nowMo);h+='<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;color:'+(isCur?'#1d4ed8':'#475569')+';background:'+(isCur?'#eff6ff':'')+'">'+mo.slice(5)+'月'+(isCur?'<br><span style="font-size:8px;font-weight:400;color:#93c5fd">今月</span>':'')+'</th>';});
-  h+='<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:600;color:#94a3b8">日付未設定</th>';
-  h+='<th style="padding:10px 14px;text-align:center;font-size:10px;font-weight:700;color:#15803d">過去稼働</th>';
-  h+='</tr></thead><tbody>';
-  // Team total row
-  h+='<tr style="background:linear-gradient(to right,#f0fdf4,#f8fafc);border-bottom:2px solid #e2e8f0;font-weight:700">';
-  h+='<td style="padding:10px 14px;font-size:12px;font-weight:700;color:#334155">チーム計</td>';
-  h+='<td style="padding:10px 8px;text-align:center;font-size:14px;font-weight:800;font-family:var(--mono);color:#1d4ed8">'+totA+'</td>';
-  months.forEach(function(mo){var isCur=(mo===nowMo);var cnt=totByMo[mo];h+='<td style="padding:10px 8px;text-align:center;background:'+(isCur?'#eff6ff':'')+'"><span style="font-size:14px;font-weight:800;font-family:var(--mono);color:'+(cnt?(isCur?'#1d4ed8':'#334155'):'#cbd5e1')+'\">'+(cnt||'—')+'</span></td>';});
-  h+='<td style="padding:10px 8px;text-align:center;font-size:13px;font-family:var(--mono);color:#94a3b8">'+(totNoDate||'—')+'</td>';
-  h+='<td style="padding:10px 14px;text-align:center;font-size:14px;font-weight:800;font-family:var(--mono);color:#15803d">'+totP+'</td>';
-  h+='</tr>';
-  // Per-member rows
-  TEAM5.forEach(function(mk,ri){
+  // ドーナツグラフ生成
+  function makePie(slices,sz){
+    var tot=slices.reduce(function(s,x){return s+x.v;},0);
+    if(!tot)return '<svg width="'+sz+'" height="'+sz+'"><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+(sz/2-5)+'" fill="#f1f5f9"/></svg>';
+    var cx=sz/2,cy=sz/2,r=sz/2-5,ir=r*0.54,a=-Math.PI/2;
+    var svg='<svg width="'+sz+'" height="'+sz+'">';
+    slices.forEach(function(sl){
+      if(!sl.v)return;
+      var da=sl.v/tot*2*Math.PI,ea=a+da,laf=da>Math.PI?1:0;
+      var x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a),x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
+      var xi1=cx+ir*Math.cos(a),yi1=cy+ir*Math.sin(a),xi2=cx+ir*Math.cos(ea),yi2=cy+ir*Math.sin(ea);
+      svg+='<path d="M '+x1+' '+y1+' A '+r+' '+r+' 0 '+laf+' 1 '+x2+' '+y2+' L '+xi2+' '+yi2+' A '+ir+' '+ir+' 0 '+laf+' 0 '+xi1+' '+yi1+' Z" fill="'+sl.c+'" stroke="#fff" stroke-width="2.5"/>';
+      a=ea;
+    });
+    svg+='</svg>';
+    return svg;
+  }
+
+  // 担当者別 Tierグラフ
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:16px">';
+  TEAM5.forEach(function(mk){
     var d=byMem[mk];var mc=E_MEMBER_COLORS[mk]||'#888';
+    var tc={Tier1:0,Tier2:0,Tier3:0,Tier4:0,other:0};
+    d.recycles.forEach(function(r){var t=coTierMap[rcGet(r,'account').trim()];if(t&&tc[t]!==undefined)tc[t]++;else tc.other++;});
+    var tot=d.recycles.length;
     var near2=(rcByMemMo[mk][months[0]]||[]).length+(rcByMemMo[mk][months[1]]||[]).length;
     var hasAlert=d.active.length<3&&near2<2;
-    h+='<tr style="border-bottom:1px solid #f1f5f9;'+(hasAlert?'background:rgba(254,202,202,.15)':ri%2===0?'':'background:#fafbfc')+'">';
-    h+='<td style="padding:10px 14px;white-space:nowrap">';
-    h+='<div style="display:flex;align-items:center;gap:7px">';
-    h+='<span style="width:10px;height:10px;background:'+mc+';border-radius:50%;flex-shrink:0"></span>';
-    h+='<span style="font-size:12px;font-weight:600;color:#1e293b">'+mk.split(' ')[0]+'</span>';
-    if(hasAlert)h+='<span style="font-size:9px;font-weight:700;color:#ef4444;background:#fee2e2;padding:1px 6px;border-radius:10px">要注意</span>';
-    h+='</div></td>';
-    h+='<td style="padding:10px 8px;text-align:center;font-size:13px;font-weight:700;font-family:var(--mono);color:'+(d.active.length?'#1d4ed8':'#94a3b8')+'">'+(d.active.length||'—')+'</td>';
+    var slices=[
+      {v:tc.Tier1,c:'#0079C0'},{v:tc.Tier2,c:'#1a7f37'},
+      {v:tc.Tier3,c:'#bf8700'},{v:tc.Tier4,c:'#7c3aed'},{v:tc.other,c:'#e2e8f0'}
+    ];
+    h+='<div style="background:#fff;border:1px solid '+(hasAlert?'#fca5a5':'#e2e8f0')+';border-radius:12px;padding:14px 12px;text-align:center">';
+    // 名前
+    h+='<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:10px">';
+    h+='<span style="width:9px;height:9px;background:'+mc+';border-radius:50%"></span>';
+    h+='<span style="font-size:13px;font-weight:700;color:#1e293b">'+mk.split(' ')[0]+'</span>';
+    if(hasAlert)h+='<span style="font-size:8px;font-weight:700;color:#ef4444;background:#fee2e2;padding:1px 5px;border-radius:8px">要注意</span>';
+    h+='</div>';
+    // ドーナツ + 中央数字
+    h+='<div style="position:relative;display:inline-block">';
+    h+=makePie(slices,100);
+    h+='<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">';
+    h+='<div style="font-size:18px;font-weight:800;font-family:var(--mono);color:#1e293b;line-height:1">'+tot+'</div>';
+    h+='<div style="font-size:8px;color:#94a3b8;margin-top:1px">件</div>';
+    h+='</div></div>';
+    // Tier内訳
+    h+='<div style="margin-top:10px;display:flex;flex-direction:column;gap:3px">';
+    var tls=[['Tier1',tc.Tier1,'#0079C0'],['Tier2',tc.Tier2,'#1a7f37'],['Tier3',tc.Tier3,'#bf8700'],['Tier4',tc.Tier4,'#7c3aed']];
+    tls.forEach(function(tl){if(!tl[1])return;h+='<div style="display:flex;align-items:center;justify-content:space-between;font-size:10px"><span style="display:flex;align-items:center;gap:4px"><span style="color:'+tl[2]+';font-size:12px">●</span><span style="color:#475569">'+tl[0]+'</span></span><span style="font-weight:700;font-family:var(--mono);color:#334155">'+tl[1]+'件</span></div>';});
+    h+='</div>';
+    // サブ数値
+    h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-around;font-size:10px">';
+    h+='<div style="text-align:center"><div style="font-weight:700;color:#1d4ed8;font-family:var(--mono)">'+(d.active.length||'—')+'</div><div style="color:#94a3b8">提案中</div></div>';
+    h+='<div style="text-align:center"><div style="font-weight:700;color:#15803d;font-family:var(--mono)">'+(d.past08.length||'—')+'</div><div style="color:#94a3b8">過去稼働</div></div>';
+    h+='</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  // 月別テーブル（折りたたみ）
+  h+='<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:6px 0;user-select:none">📅 月別リサイクル内訳を見る</summary>';
+  h+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-top:8px">';
+  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px">';
+  h+='<thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">';
+  h+='<th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#475569;white-space:nowrap">担当者</th>';
+  months.forEach(function(mo){var isCur=(mo===nowMo);h+='<th style="padding:10px 8px;text-align:center;font-size:10px;font-weight:700;color:'+(isCur?'#1d4ed8':'#475569')+';background:'+(isCur?'#eff6ff':'')+'">'+mo.slice(5)+'月'+(isCur?'<span style="display:block;font-size:8px;font-weight:400;color:#93c5fd">今月</span>':'')+'</th>';});
+  h+='<th style="padding:10px 8px;text-align:center;font-size:10px;color:#94a3b8">日付未設定</th>';
+  h+='</tr></thead><tbody>';
+  h+='<tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-weight:700">';
+  h+='<td style="padding:10px 14px;font-size:11px;font-weight:700;color:#334155">チーム計</td>';
+  months.forEach(function(mo){var isCur=(mo===nowMo);var cnt=totByMo[mo];h+='<td style="padding:10px 8px;text-align:center;background:'+(isCur?'#eff6ff':'')+'"><span style="font-size:14px;font-weight:800;font-family:var(--mono);color:'+(cnt?(isCur?'#1d4ed8':'#334155'):'#cbd5e1')+'">'+(cnt||'—')+'</span></td>';});
+  h+='<td style="padding:10px 8px;text-align:center;font-size:13px;font-family:var(--mono);color:#94a3b8">'+(totNoDate||'—')+'</td></tr>';
+  TEAM5.forEach(function(mk,ri){
+    var mc=E_MEMBER_COLORS[mk]||'#888';
+    h+='<tr style="border-bottom:1px solid #f1f5f9;'+(ri%2?'background:#fafbfc':'')+'">';
+    h+='<td style="padding:9px 14px;white-space:nowrap"><span style="width:8px;height:8px;background:'+mc+';border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle"></span><span style="font-size:12px;font-weight:600;color:#1e293b">'+mk.split(' ')[0]+'</span></td>';
     months.forEach(function(mo){h+=rcCell(rcByMemMo[mk][mo]||[],mk+'__'+mo,mo===nowMo);});
     h+=rcCell(rcByMemMo[mk]['日付未設定']||[],mk+'__日付未設定',false);
-    h+='<td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:700;font-family:var(--mono);color:'+(d.past08.length?'#15803d':'#94a3b8')+'">'+(d.past08.length||'—')+'</td>';
     h+='</tr>';
   });
-  h+='</tbody></table></div></div>';
+  h+='</tbody></table></div></div></details>';
   // Recycle detail list (collapsed by default, expand button) — all_cases ベース・SF商談リンク付き
   var nowYM=today.getFullYear()+'/'+(today.getMonth()+1<10?'0':'')+(today.getMonth()+1);
   var SFOPP2='https://circulation.lightning.force.com/lightning/r/Opportunity/';

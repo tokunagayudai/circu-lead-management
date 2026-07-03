@@ -796,10 +796,23 @@ function renderRecyclePipeline(){
   months.forEach(function(mo){var rs=[];TEAM5.forEach(function(m){rs=rs.concat(rcByMemMo[m][mo]||[]);});if(rs.length)window._rcDrawerData['team__'+mo]={title:mo+'月 チームリサイクル ('+rs.length+'件)',rows:rs,isRecycleCase:true};});
   TEAM5.forEach(function(mk){allMonths.forEach(function(mo){var rows=rcByMemMo[mk][mo];if(!rows||!rows.length)return;window._rcDrawerData[mk+'__'+mo]={title:mk.split(' ')[0]+' / '+(mo==='日付未設定'?'日付未設定':mo+'月')+' リサイクル ('+rows.length+'件)',rows:rows,isRecycleCase:true};});});
 
-  function rcCell(n,key,isCurMo){
+  // 会社→Tierマップ（L_DATAから）
+  var coTierMap={};
+  if(window.L_DATA&&window.L_COL){var _lc=window.L_COL;L_DATA.forEach(function(r){var co=(_lc.company>=0?(r[_lc.company]||''):'').trim();var t=normTier((_lc.tier>=0?(r[_lc.tier]||''):'').trim());if(co&&t&&!coTierMap[co])coTierMap[co]=t;});}
+  var TIER_C={'Tier1':'#0079C0','Tier2':'#1a7f37','Tier3':'#bf8700','Tier4':'#7c3aed'};
+  function tierDots(rows){
+    var tc={};rows.forEach(function(r){var ac=rcGet(r,'account').trim();var t=coTierMap[ac]||'?';tc[t]=(tc[t]||0)+1;});
+    var out='';['Tier1','Tier2','Tier3','Tier4'].forEach(function(t){if(!tc[t])return;var c=TIER_C[t];out+='<span style="font-size:9px;font-weight:700;color:'+c+';white-space:nowrap">●'+tc[t]+'</span>';});
+    if(tc['?'])out+='<span style="font-size:9px;color:#cbd5e1;white-space:nowrap">●'+tc['?']+'</span>';
+    return out;
+  }
+
+  function rcCell(rows,key,isCurMo){
+    var n=rows.length;
     if(!n){return '<td style="padding:10px 8px;text-align:center"><span style="font-size:11px;color:#e2e8f0">—</span></td>';}
     var numColor=isCurMo?'#1d4ed8':'#4c1d95';
-    return '<td style="padding:10px 8px;text-align:center"><button onclick="showRcDrawer(\''+key+'\')" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s" onmouseenter="this.style.background=\'#f1f5f9\'" onmouseleave="this.style.background=\'none\'"><span style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+numColor+'">'+n+'</span></button></td>';
+    var dots=tierDots(rows);
+    return '<td style="padding:8px;text-align:center"><button onclick="showRcDrawer(\''+key+'\')" style="background:none;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;transition:.15s" onmouseenter="this.style.background=\'#f1f5f9\'" onmouseleave="this.style.background=\'none\'"><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+numColor+'">'+n+'</div><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:3px">'+dots+'</div></button></td>';
   }
 
   h+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">';
@@ -833,8 +846,8 @@ function renderRecyclePipeline(){
     if(hasAlert)h+='<span style="font-size:9px;font-weight:700;color:#ef4444;background:#fee2e2;padding:1px 6px;border-radius:10px">要注意</span>';
     h+='</div></td>';
     h+='<td style="padding:10px 8px;text-align:center;font-size:13px;font-weight:700;font-family:var(--mono);color:'+(d.active.length?'#1d4ed8':'#94a3b8')+'">'+(d.active.length||'—')+'</td>';
-    months.forEach(function(mo){h+=rcCell((rcByMemMo[mk][mo]||[]).length,mk+'__'+mo,mo===nowMo);});
-    h+=rcCell((rcByMemMo[mk]['日付未設定']||[]).length,mk+'__日付未設定',false);
+    months.forEach(function(mo){h+=rcCell(rcByMemMo[mk][mo]||[],mk+'__'+mo,mo===nowMo);});
+    h+=rcCell(rcByMemMo[mk]['日付未設定']||[],mk+'__日付未設定',false);
     h+='<td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:700;font-family:var(--mono);color:'+(d.past08.length?'#15803d':'#94a3b8')+'">'+(d.past08.length||'—')+'</td>';
     h+='</tr>';
   });

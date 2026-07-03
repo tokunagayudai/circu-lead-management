@@ -797,12 +797,9 @@ function renderRecyclePipeline(){
   TEAM5.forEach(function(mk){allMonths.forEach(function(mo){var rows=rcByMemMo[mk][mo];if(!rows||!rows.length)return;window._rcDrawerData[mk+'__'+mo]={title:mk.split(' ')[0]+' / '+(mo==='日付未設定'?'日付未設定':mo+'月')+' リサイクル ('+rows.length+'件)',rows:rows,isRecycleCase:true};});});
 
   function rcCell(n,key,isCurMo){
-    if(!n){return '<td style="padding:8px 6px;text-align:center"><span style="font-size:11px;color:#e2e8f0">—</span></td>';}
-    var pct=maxCellN>0?Math.round(n/maxCellN*100):0;
-    var barW=Math.max(20,pct);
-    var barColor=isCurMo?'#3b82f6':'#7c3aed';
+    if(!n){return '<td style="padding:10px 8px;text-align:center"><span style="font-size:11px;color:#e2e8f0">—</span></td>';}
     var numColor=isCurMo?'#1d4ed8':'#4c1d95';
-    return '<td style="padding:6px 8px;text-align:center"><button onclick="showRcDrawer(\''+key+'\')" style="background:none;border:none;cursor:pointer;width:100%;padding:0" onmouseenter="this.parentNode.style.background=\'#f8fafc\'" onmouseleave="this.parentNode.style.background=\'\'"><div style="font-size:13px;font-weight:700;font-family:var(--mono);color:'+numColor+';margin-bottom:3px">'+n+'</div><div style="height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden"><div style="height:100%;width:'+barW+'%;background:'+barColor+';border-radius:2px"></div></div></button></td>';
+    return '<td style="padding:10px 8px;text-align:center"><button onclick="showRcDrawer(\''+key+'\')" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s" onmouseenter="this.style.background=\'#f1f5f9\'" onmouseleave="this.style.background=\'none\'"><span style="font-size:14px;font-weight:700;font-family:var(--mono);color:'+numColor+'">'+n+'</span></button></td>';
   }
 
   h+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">';

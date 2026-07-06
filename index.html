@@ -3033,12 +3033,11 @@ function renderAcplanView(filtered,col){
       h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:5px">📝 攻略メモ</div>';
       h+='<textarea data-cok="'+_escA(coKey)+'" oninput="circuAcpSaveMemo(this)" placeholder="攻略戦略・課題・方針..." style="width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:7px;font-size:11px;resize:vertical;min-height:48px;box-sizing:border-box;font-family:inherit;background:#fff;color:#0f172a;line-height:1.6">'+_escH(acpData.memo||'')+'</textarea>';
       h+='</div>';
-      // 組織図 (階層型: スペース区切りで親/子グループ分離)
+      // 組織図 (階層型: 同じ横段にトップレベル全項目を並列表示)
       // ① 部署名正規化（表記揺れ: G/Gr→グループ, 全角英字→半角）
       var _ndStr=function(s){
         if(!s)return s;
         s=s.replace(/[Ａ-Ｚａ-ｚ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});
-        // 日本語文字直後の G / Gr → グループ（末尾 or スペース前）
         s=s.replace(/([^\x00-\x7F\s])G(\s|$)/g,function(m,p1,p2){return p1+'グループ'+p2;});
         s=s.replace(/([^\x00-\x7F\s])G$/,function(m,p1){return p1+'グループ';});
         s=s.replace(/([^\x00-\x7F\s])Gr(\s|$)/ig,function(m,p1,p2){return p1+'グループ'+p2;});
@@ -3054,7 +3053,7 @@ function renderAcplanView(filtered,col){
       });
       // ② 階層ツリー構築（第1スペースで親/葉分離）
       var deptOrderKey=coKey+'_deptorder';
-      var _treeGroups={};  // parentKey -> [fullDeptKey, ...]
+      var _treeGroups={};
       var _orphans=[];
       Object.keys(deptMap).forEach(function(d){
         var sp=d.indexOf(' ');
@@ -3062,57 +3061,120 @@ function renderAcplanView(filtered,col){
         else{_orphans.push(d);}
       });
       var _parentKeys=Object.keys(_treeGroups).sort(function(a,b){return a.localeCompare(b,'ja');});
-      // ③ レンダリンググループリスト [{label, depts, rowId, orderKey}]
-      var _renderGroups=[];
+      // ③ トップレベルアイテムリスト（親グループ + 孤立部署を同列に）
+      var _topItems=[];
       _parentKeys.forEach(function(pk,pi){
         var gOK=deptOrderKey+'_g'+pi;
         var gOrd=[];try{gOrd=JSON.parse(localStorage.getItem(gOK)||'[]');}catch(e){}
-        var sorted=_treeGroups[pk].slice().sort(function(a,b){
+        var sortedC=_treeGroups[pk].slice().sort(function(a,b){
           var ia=gOrd.indexOf(a),ib=gOrd.indexOf(b);
           if(ia>=0&&ib>=0)return ia-ib;if(ia>=0)return -1;if(ib>=0)return 1;
           return a.localeCompare(b,'ja');
         });
-        _renderGroups.push({label:pk,depts:sorted,rowId:openId+'_depts_g'+pi,orderKey:gOK});
+        _topItems.push({type:'group',label:pk,depts:sortedC,rowId:openId+'_depts_g'+pi,orderKey:gOK});
       });
-      if(_orphans.length){
-        var gOK2=deptOrderKey+'_orphan';
-        var gOrd2=[];
-        try{gOrd2=JSON.parse(localStorage.getItem(gOK2)||'[]');}catch(e){}
-        if(!gOrd2.length){try{gOrd2=JSON.parse(localStorage.getItem(deptOrderKey)||'[]');}catch(e){}}
-        var sortedO=_orphans.slice().sort(function(a,b){
-          var ia=gOrd2.indexOf(a),ib=gOrd2.indexOf(b);
-          if(ia>=0&&ib>=0)return ia-ib;if(ia>=0)return -1;if(ib>=0)return 1;
-          if(a==='部署不明')return 1;if(b==='部署不明')return -1;
-          return a.localeCompare(b,'ja');
-        });
-        _renderGroups.push({label:null,depts:sortedO,rowId:openId+'_depts',orderKey:gOK2});
-      }
-      // ④ レンダリング
+      _orphans.forEach(function(d){_topItems.push({type:'orphan',dept:d});});
+      // 部署不明を末尾に、それ以外はアルファベット順
+      _topItems.sort(function(a,b){
+        var ka=a.type==='group'?a.label:a.dept;
+        var kb=b.type==='group'?b.label:b.dept;
+        if(ka==='部署不明')return 1;if(kb==='部署不明')return -1;
+        return ka.localeCompare(kb,'ja');
+      });
+      // ④ 人物カードHTML生成ヘルパー（コード重複を避けるためローカル関数化）
+      var _acpPersonH=function(r,personOrderKey){
+        var fn=_getFullName(r);
+        var role=(col.role>=0?(r[col.role]||''):'').trim();
+        var cid2=(col.contactId>=0?(r[col.contactId]||''):'').trim();
+        var mobile=(col.mobile>=0?(r[col.mobile]||''):'').trim();
+        var lsKey='circu_lead_'+(cid2||fn);
+        var lsData={};try{lsData=JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){}
+        var acpRoleLsKey=coKey+'_role_'+fn;
+        var savedRole=localStorage.getItem(acpRoleLsKey);
+        var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
+        var acpRole=savedRole!==null?savedRole:tcat;
+        var relK=lsData.rel||'';var relDef=REL_DEF[relK];
+        var rdef=ROLE_DEF[acpRole];
+        var photoKey='circu_photo_'+co+'__'+fn;
+        var photo=localStorage.getItem(photoKey)||'';
+        var personMemoKey=coKey+'_pmemo_'+fn;
+        var personMemo=localStorage.getItem(personMemoKey)||'';
+        var ckKey=co+'__'+fn;
+        var isChecked=!!checkedKeys[ckKey];
+        var ph='';
+        ph+='<div class="acpt-person" draggable="true" data-pname="'+_escA(fn)+'" ondragstart="circuAcpPersonDragStart(event)" ondragover="circuAcpPersonDragOver(event)" ondrop="circuAcpPersonDrop(event,\''+_escA(personOrderKey)+'\')" ondragend="circuAcpPersonDragEnd(event)">';
+        ph+='<div style="padding:7px 8px;border:1px solid #e8ecf0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)">';
+        ph+='<div style="display:flex;align-items:flex-start;gap:6px">';
+        if(photo){ph+='<img src="'+photo+'" onclick="circuAcpPhotoClick(\''+_escA(photoKey)+'\')" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid #e2e8f0" title="クリックで変更">';}
+        else{ph+='<div onclick="circuAcpPhotoClick(\''+_escA(photoKey)+'\')" style="width:34px;height:34px;border-radius:50%;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#cbd5e1" title="クリックして写真追加"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>';}
+        ph+='<div style="flex:1;min-width:0">';
+        ph+='<div style="display:flex;align-items:center;gap:3px;margin-bottom:1px">';
+        var _acpEmoji=(lsData&&lsData.emoji)||'';
+        var _acpEpid='aep_'+(cid2||fn.replace(/[^a-zA-Z0-9]/g,'_'));
+        ph+='<span id="'+_acpEpid+'" data-lsk="'+_escA(lsKey)+'" data-eid="'+_acpEpid+'" onclick="circuLeadEmojiPick(this)" style="cursor:pointer;font-size:15px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;opacity:'+(_acpEmoji?'1':'0.2')+';flex-shrink:0" title="重要度マーク">'+(_acpEmoji||'🏷️')+'</span>';
+        var _acpNameHtml=cid2?'<a href="'+SF_BASE+'Contact/'+cid2+'/view" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:#0079C0;text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Salesforceで開く">'+_escH(fn)+'↗</a>':'<span style="font-size:10px;font-weight:700;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(fn)+'</span>';
+        ph+=_acpNameHtml;
+        if(mobile)ph+='<span style="font-size:8px;color:#0891b2;background:#e0f2fe;border-radius:3px;padding:0 4px;font-weight:700;flex-shrink:0">📱</span>';
+        ph+='<input type="checkbox" '+(isChecked?'checked':'')+' onchange="circuAcpToggleCheck(this,\''+_escA(ckKey)+'\')" style="width:14px;height:14px;cursor:pointer;accent-color:#0079C0;flex-shrink:0" title="選択してCSVエクスポート">';
+        ph+='</div>';
+        if(role)ph+='<div style="font-size:9px;color:#64748b;margin-bottom:3px">'+_escH(role)+'</div>';
+        ph+='<div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-bottom:4px">';
+        ph+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:1px 3px;border:1px solid #cbd5e1;border-radius:3px;background:#fff;cursor:pointer;color:#334155">';
+        ['','決裁者','キーマン','チャンピオン','中立','反対','不明'].forEach(function(rv){ph+='<option value="'+rv+'"'+(acpRole===rv?' selected':'')+'>'+(rv||'役割未設定')+'</option>';});
+        ph+='</select>';
+        if(acpRole&&rdef)ph+='<span style="font-size:8px;font-weight:700;color:'+rdef.color+';background:'+rdef.bg+';border-radius:3px;padding:1px 5px;border:1px solid '+rdef.color+'44">'+_escH(acpRole)+'</span>';
+        if(relDef)ph+='<span style="font-size:8px;font-weight:600;color:'+relDef.color+';background:'+relDef.bg+';border-radius:3px;padding:1px 4px">'+relDef.label+'</span>';
+        ph+='</div>';
+        ph+='<textarea data-pmk="'+_escA(personMemoKey)+'" oninput="circuAcpSavePersonMemo(this)" placeholder="メモ..." style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:3px 5px;font-size:9px;resize:none;min-height:28px;max-height:60px;box-sizing:border-box;font-family:inherit;background:#fafbff;color:#334155;line-height:1.4;overflow-y:auto">'+_escH(personMemo)+'</textarea>';
+        ph+='</div></div></div></div>';
+        return ph;
+      };
+      // ⑤ レンダリング: 全トップレベル項目を同じ横段に
       h+='<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9">';
-      h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（部署：横ドラッグ / 顧客：縦ドラッグで並び替え）</span></div>';
+      h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（部署：横ドラッグ / 顧客：縦ドラッグで並び替え）</span></div>';
+      h+='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;align-items:flex-start">';
       var _diGlobal=0;
-      _renderGroups.forEach(function(grp,gi){
-        if(grp.label){
-          // 親ノード → コネクタ → 子列
-          h+='<div style="'+(gi>0?'margin-top:14px;':'')+'">'; // group wrapper
-          h+='<div style="width:2px;height:10px;background:#cbd5e1;margin:0 auto"></div>';
-          h+='<div style="display:flex;justify-content:center">';
-          h+='<div style="background:#f1f5f9;border:1.5px solid #94a3b8;border-radius:6px;padding:4px 14px;font-size:9px;font-weight:700;color:#475569;white-space:nowrap">'+_escH(grp.label)+'</div>';
-          h+='</div>';
-          h+='<div style="width:2px;height:10px;background:#cbd5e1;margin:0 auto"></div>';
-        } else if(gi===0){
-          h+='<div style="width:2px;height:12px;background:#cbd5e1;margin:0 auto"></div>';
+      _topItems.forEach(function(item){
+        if(item.type==='group'){
+          // 親グループ: ラベル → コネクタ → 子列を縦に積む（横幅は子の合計）
+          h+='<div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center">';
+          h+='<div style="background:#f1f5f9;border:1.5px solid #94a3b8;border-radius:6px;padding:5px 14px;font-size:9px;font-weight:700;color:#475569;white-space:nowrap;margin-bottom:0">'+_escH(item.label)+'</div>';
+          h+='<div style="width:2px;height:10px;background:#cbd5e1"></div>';
+          // 子列をacpt-rowで横並び（コネクタ付き）
+          h+='<div class="acpt-row" id="'+_escA(item.rowId)+'">';
+          item.depts.forEach(function(dept){
+            var di=_diGlobal++;
+            var dc=DEPT_PALETTE[di%DEPT_PALETTE.length];
+            var dLeads=deptMap[dept];
+            var sp3=dept.indexOf(' ');
+            var displayDept=sp3>=0?dept.slice(sp3+1):dept;
+            var personOrderKey=coKey+'_porder_'+dept;
+            var savedPersonOrder=[];try{savedPersonOrder=JSON.parse(localStorage.getItem(personOrderKey)||'[]');}catch(e){}
+            dLeads=dLeads.slice().sort(function(a,b){
+              var fa=_getFullName(a),fb=_getFullName(b);
+              var ia=savedPersonOrder.indexOf(fa),ib=savedPersonOrder.indexOf(fb);
+              if(ia>=0&&ib>=0)return ia-ib;if(ia>=0)return -1;if(ib>=0)return 1;return 0;
+            });
+            h+='<div data-dept="'+_escA(dept)+'" ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(item.rowId)+'\',\''+_escA(item.orderKey)+'\')" class="acpt-col">';
+            h+='<div class="acpt-stub"></div>';
+            h+='<div draggable="true" ondragstart="circuAcpDragStart(event)" style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
+            h+='<div style="font-size:9px;font-weight:700;color:'+dc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:.6">⠿</span> '+_escH(displayDept)+'</div>';
+            h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
+            h+='</div>';
+            h+='<div class="acpt-vline"></div>';
+            h+='<div class="acpt-persons">';
+            dLeads.forEach(function(r){h+=_acpPersonH(r,personOrderKey);});
+            h+='</div>';
+            h+='</div>';  // acpt-col
+          });
+          h+='</div>';  // acpt-row (children)
+          h+='</div>';  // group wrapper
         } else {
-          h+='<div style="height:10px"></div>';
-        }
-        h+='<div class="acpt-row" id="'+_escA(grp.rowId)+'">';
-        grp.depts.forEach(function(dept){
+          // 孤立部署: 親ラベルなしで直接表示（部署ボックス → 縦線 → 人物）
+          var dept=item.dept;
           var di=_diGlobal++;
           var dc=DEPT_PALETTE[di%DEPT_PALETTE.length];
           var dLeads=deptMap[dept];
-          // 表示名: 親グループ部分を除いた葉名
-          var sp3=dept.indexOf(' ');
-          var displayDept=grp.label&&sp3>=0?dept.slice(sp3+1):dept;
           var personOrderKey=coKey+'_porder_'+dept;
           var savedPersonOrder=[];try{savedPersonOrder=JSON.parse(localStorage.getItem(personOrderKey)||'[]');}catch(e){}
           dLeads=dLeads.slice().sort(function(a,b){
@@ -3120,70 +3182,19 @@ function renderAcplanView(filtered,col){
             var ia=savedPersonOrder.indexOf(fa),ib=savedPersonOrder.indexOf(fb);
             if(ia>=0&&ib>=0)return ia-ib;if(ia>=0)return -1;if(ib>=0)return 1;return 0;
           });
-          h+='<div data-dept="'+_escA(dept)+'" ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(grp.rowId)+'\',\''+_escA(grp.orderKey)+'\')" class="acpt-col">';
-          h+='<div class="acpt-stub"></div>';
-          h+='<div draggable="true" ondragstart="circuAcpDragStart(event)" style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
-          h+='<div style="font-size:9px;font-weight:700;color:'+dc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:.6">⠿</span> '+_escH(displayDept)+'</div>';
+          h+='<div style="flex:0 0 176px;display:flex;flex-direction:column;align-items:center;padding:0 5px">';
+          h+='<div draggable="true" ondragstart="circuAcpDragStart(event)" data-dept="'+_escA(dept)+'" style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab">';
+          h+='<div style="font-size:9px;font-weight:700;color:'+dc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:.6">⠿</span> '+_escH(dept)+'</div>';
           h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
           h+='</div>';
           h+='<div class="acpt-vline"></div>';
           h+='<div class="acpt-persons">';
-          dLeads.forEach(function(r){
-            var fn=_getFullName(r);
-            var role=(col.role>=0?(r[col.role]||''):'').trim();
-            var cid2=(col.contactId>=0?(r[col.contactId]||''):'').trim();
-            var mobile=(col.mobile>=0?(r[col.mobile]||''):'').trim();
-            var email=(col.email>=0?(r[col.email]||''):'').trim();
-            var lsKey='circu_lead_'+(cid2||fn);
-            var lsData={};try{lsData=JSON.parse(localStorage.getItem(lsKey)||'{}');}catch(e){}
-            var acpRoleLsKey=coKey+'_role_'+fn;
-            var savedRole=localStorage.getItem(acpRoleLsKey);
-            var tcat=(col.targetCat>=0?(r[col.targetCat]||''):'').trim();
-            var acpRole=savedRole!==null?savedRole:tcat;
-            var relK=lsData.rel||'';var relDef=REL_DEF[relK];
-            var rdef=ROLE_DEF[acpRole];
-            var photoKey='circu_photo_'+co+'__'+fn;
-            var photo=localStorage.getItem(photoKey)||'';
-            var personMemoKey=coKey+'_pmemo_'+fn;
-            var personMemo=localStorage.getItem(personMemoKey)||'';
-            var ckKey=co+'__'+fn;
-            var isChecked=!!checkedKeys[ckKey];
-            h+='<div class="acpt-person" draggable="true" data-pname="'+_escA(fn)+'" ondragstart="circuAcpPersonDragStart(event)" ondragover="circuAcpPersonDragOver(event)" ondrop="circuAcpPersonDrop(event,\''+_escA(personOrderKey)+'\')" ondragend="circuAcpPersonDragEnd(event)">';
-            h+='<div style="padding:7px 8px;border:1px solid #e8ecf0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)">';
-            h+='<div style="display:flex;align-items:flex-start;gap:6px">';
-            if(photo){
-              h+='<img src="'+photo+'" onclick="circuAcpPhotoClick(\''+_escA(photoKey)+'\')" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid #e2e8f0" title="クリックで変更">';
-            }else{
-              h+='<div onclick="circuAcpPhotoClick(\''+_escA(photoKey)+'\')" style="width:34px;height:34px;border-radius:50%;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#cbd5e1" title="クリックして写真追加">';
-              h+='<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>';
-            }
-            h+='<div style="flex:1;min-width:0">';
-            h+='<div style="display:flex;align-items:center;gap:3px;margin-bottom:1px">';
-            var _acpEmoji=(lsData&&lsData.emoji)||'';
-            var _acpEpid='aep_'+(cid2||fn.replace(/[^a-zA-Z0-9]/g,'_'));
-            h+='<span id="'+_acpEpid+'" data-lsk="'+_escA(lsKey)+'" data-eid="'+_acpEpid+'" onclick="circuLeadEmojiPick(this)" style="cursor:pointer;font-size:15px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;opacity:'+(_acpEmoji?'1':'0.2')+';flex-shrink:0" title="重要度マーク">'+(_acpEmoji||'🏷️')+'</span>';
-            var _acpNameHtml=cid2?'<a href="'+SF_BASE+'Contact/'+cid2+'/view" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:#0079C0;text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Salesforceで開く">'+_escH(fn)+'↗</a>':'<span style="font-size:10px;font-weight:700;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(fn)+'</span>';
-            h+=_acpNameHtml;
-            if(mobile)h+='<span style="font-size:8px;color:#0891b2;background:#e0f2fe;border-radius:3px;padding:0 4px;font-weight:700;flex-shrink:0">📱</span>';
-            h+='<input type="checkbox" '+(isChecked?'checked':'')+' onchange="circuAcpToggleCheck(this,\''+_escA(ckKey)+'\')" style="width:14px;height:14px;cursor:pointer;accent-color:#0079C0;flex-shrink:0" title="選択してCSVエクスポート">';
-            h+='</div>';
-            if(role)h+='<div style="font-size:9px;color:#64748b;margin-bottom:3px">'+_escH(role)+'</div>';
-            h+='<div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-bottom:4px">';
-            h+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:1px 3px;border:1px solid #cbd5e1;border-radius:3px;background:#fff;cursor:pointer;color:#334155">';
-            ['','決裁者','キーマン','チャンピオン','中立','反対','不明'].forEach(function(rv){h+='<option value="'+rv+'"'+(acpRole===rv?' selected':'')+'>'+(rv||'役割未設定')+'</option>';});
-            h+='</select>';
-            if(acpRole&&rdef)h+='<span style="font-size:8px;font-weight:700;color:'+rdef.color+';background:'+rdef.bg+';border-radius:3px;padding:1px 5px;border:1px solid '+rdef.color+'44">'+_escH(acpRole)+'</span>';
-            if(relDef)h+='<span style="font-size:8px;font-weight:600;color:'+relDef.color+';background:'+relDef.bg+';border-radius:3px;padding:1px 4px">'+relDef.label+'</span>';
-            h+='</div>';
-            h+='<textarea data-pmk="'+_escA(personMemoKey)+'" oninput="circuAcpSavePersonMemo(this)" placeholder="メモ..." style="width:100%;border:1px solid #e2e8f0;border-radius:4px;padding:3px 5px;font-size:9px;resize:none;min-height:28px;max-height:60px;box-sizing:border-box;font-family:inherit;background:#fafbff;color:#334155;line-height:1.4;overflow-y:auto">'+_escH(personMemo)+'</textarea>';
-            h+='</div></div></div></div>';  // name+info, flex, card, acpt-person
-          });
-          h+='</div>';  // acpt-persons
-          h+='</div>';  // acpt-col
-        });
-        h+='</div>';  // acpt-row
-        if(grp.label)h+='</div>';  // group wrapper
+          dLeads.forEach(function(r){h+=_acpPersonH(r,personOrderKey);});
+          h+='</div>';
+          h+='</div>';  // orphan col
+        }
       });
+      h+='</div>';  // outer flex row
       h+='</div>';  // section
       // 接触ログ
       h+='<div style="padding:10px 12px;background:#fafbff">';

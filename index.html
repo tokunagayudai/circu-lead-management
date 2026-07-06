@@ -2604,21 +2604,24 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     var tier=normTier((col2.tier>=0?(r[col2.tier]||''):'').trim());
     var mem=(col2.member>=0?(r[col2.member]||''):'').trim();
     var tcat2=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();
-    // 3状態フィルター: true=絞り込む / 'exclude'=除外 / false=無効
-    var _isPC=pastClientCos[co]&&!activeCos[co];
+    // 3状態フィルター: true=絞り込む / 'exclude'=除外 / false=無効（全て人単位）
+    var _pcm2=window._personCaseMap||{};var _fnNoSp5=fn.replace(/\s+/g,'');
+    var _personInCase=!!(_pcm2[co+'__'+fn]||_pcm2[co+'__'+_fnNoSp5]);
+    var _isPC=(pastClientCos[co]&&!activeCos[co])&&_personInCase;
     if(F.pastclient===true&&!_isPC)return false;
     if(F.pastclient==='exclude'&&_isPC)return false;
     var _isStar=!!(starContactMap[co+'__'+fn]||starContactMap[co+'__'+fn.replace(/\s+/g,'')]);
     if(F.starContact===true&&!_isStar)return false;
     if(F.starContact==='exclude'&&_isStar)return false;
-    var _isAny=!!anyCasesCos[co];
+    var _isAny=_personInCase;
     if(F.anyCase===true&&!_isAny)return false;
     if(F.anyCase==='exclude'&&_isAny)return false;
     if(F.unproposed===true&&_isAny)return false;
     if(F.unproposed==='exclude'&&!_isAny)return false;
     if(F.bant===true){var naDate=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(!naDate)return false;var nad=new Date(naDate.replace(/\//g,'-'));if(isNaN(nad)||nad<=today)return false;}
     if(F.bant==='exclude'){var naDate2=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(naDate2){var nad2=new Date(naDate2.replace(/\//g,'-'));if(!isNaN(nad2)&&nad2>today)return false;}}
-    var _isRecent=!!recentCaseCos[co];
+    var _rcpm=window._recentCasePersonMap||{};var _fnNoSp3=fn.replace(/\s+/g,'');
+    var _isRecent=!!(_rcpm[co+'__'+fn]||_rcpm[co+'__'+_fnNoSp3]);
     if(F.recentCase===true&&!_isRecent)return false;
     if(F.recentCase==='exclude'&&_isRecent)return false;
     if(F.hasEmail===true&&!email)return false;
@@ -3443,11 +3446,19 @@ function renderLeads(M){
       else{pastClientCos[ac]=true;}
     });
   }
-  // 直近3ヶ月商談歴あり
+  // 直近3ヶ月商談歴あり（会社単位 + 人単位）
   var recentCaseCos={};
   var _3moAgo=new Date(today2);_3moAgo.setMonth(_3moAgo.getMonth()-3);
-  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(r){var mem=eGet(r,'member');if(!isTeamMember(mem))return;var ac=eGet(r,'account').trim();if(!ac)return;var d=eGet(r,'apDate')||eGet(r,'mendanDate')||eGet(r,'startDate');if(!d)return;var dp=new Date(d.replace(/\//g,'-'));if(!isNaN(dp)&&dp>=_3moAgo)recentCaseCos[ac]=true;});}
-  if(window.RC_ROWS&&window.RC_ROWS.length&&window.RC_COL){var _rcgR=function(r,k){var i=RC_COL[k];return(i>=0&&i<r.length)?(r[i]||'').trim():'';};RC_ROWS.forEach(function(r){var mem=_rcgR(r,'member');if(!isTeamMember(mem))return;var ac=_rcgR(r,'account').trim();if(!ac)return;var d=_rcgR(r,'apDate')||_rcgR(r,'mendanDate')||_rcgR(r,'startDate');if(!d)return;var dp=new Date(d.replace(/\//g,'-'));if(!isNaN(dp)&&dp>=_3moAgo)recentCaseCos[ac]=true;});}
+  window._recentCasePersonMap={};
+  function _addRecentPerson(ac,cc){if(!ac||!cc)return;cc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;window._recentCasePersonMap[ac+'__'+nn]=true;window._recentCasePersonMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});}
+  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(r){var mem=eGet(r,'member');if(!isTeamMember(mem))return;var ac=eGet(r,'account').trim();if(!ac)return;var d=eGet(r,'apDate')||eGet(r,'mendanDate')||eGet(r,'startDate');if(!d)return;var dp=new Date(d.replace(/\//g,'-'));if(!isNaN(dp)&&dp>=_3moAgo){recentCaseCos[ac]=true;_addRecentPerson(ac,eGet(r,'custContact'));}});}
+  var _rcgR=function(r,k){var i=window.RC_COL&&RC_COL[k];return(typeof i==='number'&&i>=0&&i<r.length)?(r[i]||'').trim():'';};
+  if(window.RC_ROWS&&window.RC_ROWS.length&&window.RC_COL){RC_ROWS.forEach(function(r){var mem=_rcgR(r,'member');if(!isTeamMember(mem))return;var ac=_rcgR(r,'account').trim();if(!ac)return;var d=_rcgR(r,'apDate')||_rcgR(r,'mendanDate')||_rcgR(r,'startDate');if(!d)return;var dp=new Date(d.replace(/\//g,'-'));if(!isNaN(dp)&&dp>=_3moAgo){recentCaseCos[ac]=true;_addRecentPerson(ac,_rcgR(r,'custContact'));}});}
+  // 全期間 人単位 案件マップ（anyCase / unproposed / pastclient 用）
+  window._personCaseMap={};
+  function _addPCM(ac,cc){if(!ac||!cc)return;cc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;window._personCaseMap[ac+'__'+nn]=true;window._personCaseMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});}
+  if(window.E_ROWS&&window.E_COL){E_ROWS.forEach(function(r){_addPCM(eGet(r,'account').trim(),eGet(r,'custContact'));});}
+  if(window.RC_ROWS&&window.RC_ROWS.length&&window.RC_COL){RC_ROWS.forEach(function(r){_addPCM(_rcgR(r,'account').trim(),_rcgR(r,'custContact'));});}
   function isPastClient(r){var co=(r[col.company]||'').trim();return pastClientCos[co]&&!activeCos[co];}
   // 休眠 = 過去案件あり (anyCasesCos) かつ 現在稼働中でない (!activeCos)
   // 未提案 = 案件ゼロ (!anyCasesCos)

@@ -2322,10 +2322,11 @@ function listBuilderDownloadCSV(){
   if(!rows.length||!col)return;
   function esc(v){v=String(v||'');if(v.indexOf(',')>=0||v.indexOf('"')>=0||v.indexOf('\n')>=0)v='"'+v.replace(/"/g,'""')+'"';return v;}
   var getFullName2=function(r){var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();var fn=(col.firstName>=0?(r[col.firstName]||''):'').trim();if(ln||fn)return (ln+' '+fn).trim();if(col.fullName>=0)return (r[col.fullName]||'').trim();return '';};
-  var headers=['氏名','会社名','Tier','部署クラス','部署','役職','ターゲット区分','担当者','メール','電話','携帯','ContactID','AccountID'];
+  var headers=['姓','名','会社名','Tier','部署クラス','部署','役職','ターゲット区分','担当者','メール','電話','携帯','ContactID','AccountID'];
   var lines=['﻿'+headers.join(',')];
   rows.forEach(function(r){
-    var fn=getFullName2(r);
+    var ln=(col.lastName>=0?(r[col.lastName]||''):'').trim();
+    var fn2=(col.firstName>=0?(r[col.firstName]||''):'').trim();
     var co=(col.company>=0?(r[col.company]||''):'').trim();
     var tier=(col.tier>=0?(r[col.tier]||''):'').trim();
     var deptC=(col.deptClass>=0?(r[col.deptClass]||''):'').trim();
@@ -2338,7 +2339,7 @@ function listBuilderDownloadCSV(){
     var mobile=(col.mobile>=0?(r[col.mobile]||''):'').trim();
     var cid=(col.contactId>=0?(r[col.contactId]||''):'').trim();
     var aid=(col.accountId>=0?(r[col.accountId]||''):'').trim();
-    lines.push([fn,co,tier,deptC,dept,role,tcat,mem,email,phone,mobile,cid,aid].map(esc).join(','));
+    lines.push([ln,fn2,co,tier,deptC,dept,role,tcat,mem,email,phone,mobile,cid,aid].map(esc).join(','));
   });
   var csv=lines.join('\r\n');
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});

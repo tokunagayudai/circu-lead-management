@@ -2604,15 +2604,30 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     var tier=normTier((col2.tier>=0?(r[col2.tier]||''):'').trim());
     var mem=(col2.member>=0?(r[col2.member]||''):'').trim();
     var tcat2=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();
-    if(F.pastclient&&!(pastClientCos[co]&&!activeCos[co]))return false;
-    if(F.starContact&&!starContactMap[co+'__'+fn]&&!starContactMap[co+'__'+fn.replace(/\s+/g,'')])return false;
-    if(F.anyCase&&!anyCasesCos[co])return false;
-    if(F.unproposed&&anyCasesCos[co])return false;
-    if(F.bant){var naDate=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(!naDate)return false;var nad=new Date(naDate.replace(/\//g,'-'));if(isNaN(nad)||nad<=today)return false;}
-    if(F.recentCase&&!recentCaseCos[co])return false;
-    if(F.hasEmail&&!email)return false;
+    // 3状態フィルター: true=絞り込む / 'exclude'=除外 / false=無効
+    var _isPC=pastClientCos[co]&&!activeCos[co];
+    if(F.pastclient===true&&!_isPC)return false;
+    if(F.pastclient==='exclude'&&_isPC)return false;
+    var _isStar=!!(starContactMap[co+'__'+fn]||starContactMap[co+'__'+fn.replace(/\s+/g,'')]);
+    if(F.starContact===true&&!_isStar)return false;
+    if(F.starContact==='exclude'&&_isStar)return false;
+    var _isAny=!!anyCasesCos[co];
+    if(F.anyCase===true&&!_isAny)return false;
+    if(F.anyCase==='exclude'&&_isAny)return false;
+    if(F.unproposed===true&&_isAny)return false;
+    if(F.unproposed==='exclude'&&!_isAny)return false;
+    if(F.bant===true){var naDate=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(!naDate)return false;var nad=new Date(naDate.replace(/\//g,'-'));if(isNaN(nad)||nad<=today)return false;}
+    if(F.bant==='exclude'){var naDate2=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(naDate2){var nad2=new Date(naDate2.replace(/\//g,'-'));if(!isNaN(nad2)&&nad2>today)return false;}}
+    var _isRecent=!!recentCaseCos[co];
+    if(F.recentCase===true&&!_isRecent)return false;
+    if(F.recentCase==='exclude'&&_isRecent)return false;
+    if(F.hasEmail===true&&!email)return false;
+    if(F.hasEmail==='exclude'&&email)return false;
     if(F.excMM&&email&&mmSet[email.toLowerCase()])return false;
-    if(F.proposalCP){var _pm=window._propContactMap||{};var _fnN2=fn.replace(/\s+/g,'');if(!_pm[co+'__'+fn]&&!_pm[co+'__'+_fnN2])return false;}
+    var _pm=window._propContactMap||{};var _fnN2=fn.replace(/\s+/g,'');
+    var _isProp=!!(_pm[co+'__'+fn]||_pm[co+'__'+_fnN2]);
+    if(F.proposalCP===true&&!_isProp)return false;
+    if(F.proposalCP==='exclude'&&_isProp)return false;
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
@@ -2656,9 +2671,17 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     {key:'excMM',label:'除外リスト除く',desc:'メルマガ除外リストの人を除外',icon:'🚫'},
   ];
   conds.forEach(function(c){
-    var act=!!F[c.key];
-    h+='<button onclick="window.L_LIST_FILTERS.'+c.key+'=!window.L_LIST_FILTERS.'+c.key+';renderLeads(document.getElementById(\'M\'))" title="'+c.desc+'" style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+(act?'#0079C0':'#d1d5db')+';background:'+(act?'#0079C0':'#fff')+';color:'+(act?'#fff':'#374151')+';transition:.15s;display:flex;align-items:center;gap:4px">';
-    h+=c.icon+' '+c.label;
+    var st=F[c.key]; // false / true / 'exclude'
+    var isExclude=st==='exclude';
+    var isInclude=st===true;
+    var bd=isInclude?'#0079C0':isExclude?'#ef4444':'#d1d5db';
+    var bg=isInclude?'#0079C0':isExclude?'#ef4444':'#fff';
+    var tx=isInclude?'#fff':isExclude?'#fff':'#374151';
+    var label=c.icon+' '+(isExclude?c.label+'<span style="font-size:9px;margin-left:2px;opacity:.9">ではない</span>':c.label);
+    // クリックで OFF→含む→除外→OFF とサイクル（excMMは2状態）
+    var nextVal=c.key==='excMM'?'!window.L_LIST_FILTERS.'+c.key:'(window.L_LIST_FILTERS.'+c.key+'===false?true:(window.L_LIST_FILTERS.'+c.key+'===true?\'exclude\':false))';
+    h+='<button onclick="window.L_LIST_FILTERS.'+c.key+'='+nextVal+';renderLeads(document.getElementById(\'M\'))" title="'+c.desc+'  クリックで：OFF→絞り込む→除外" style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '+bd+';background:'+bg+';color:'+tx+';transition:.15s;display:flex;align-items:center;gap:4px">';
+    h+=label;
     h+='</button>';
   });
   h+='</div>';

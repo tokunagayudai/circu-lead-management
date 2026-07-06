@@ -2524,6 +2524,18 @@ function renderAcpLog(lk,log,li,cid){
   h+='</div></div>';
   return h;
 }
+function circuLbAddKw(){
+  var inp=document.getElementById('lbKwInput');
+  if(!inp)return;
+  var v=inp.value.trim();
+  if(!v)return;
+  if(!window.L_LIST_FILTERS)return;
+  if(!window.L_LIST_FILTERS.kwConditions)window.L_LIST_FILTERS.kwConditions=[];
+  window.L_LIST_FILTERS.kwConditions.push({kw:v,mode:window.L_LIST_FILTERS.keywordMode||'include'});
+  window.L_LIST_FILTERS.keyword='';
+  inp.value='';
+  renderLeads(document.getElementById('M'));
+}
 function circuLbNameClick(el,idx){
   var existPop=document.getElementById('_lbCPop');
   if(existPop){var wasIdx=existPop.dataset.idx;existPop.remove();if(wasIdx==idx)return;}
@@ -2559,7 +2571,8 @@ function circuLbNameClick(el,idx){
   setTimeout(function(){function hnd(e){if(!pop.contains(e.target)&&e.target!==el){pop.remove();document.removeEventListener('click',hnd);}}document.addEventListener('click',hnd);},0);
 }
 function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, pastClientCos, recentCaseCos, today){
-  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:'all',rel:'all',targetCat:'all',keyword:'',keywordMode:'include'};
+  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:'all',rel:'all',targetCat:'all',keyword:'',keywordMode:'include',kwConditions:[]};
+  if(!window.L_LIST_FILTERS.kwConditions)window.L_LIST_FILTERS.kwConditions=[];
   var F=window.L_LIST_FILTERS;
   var data=window.L_DATA||[];
   var col2=col;
@@ -2599,11 +2612,23 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.recentCase&&!recentCaseCos[co])return false;
     if(F.hasEmail&&!email)return false;
     if(F.excMM&&email&&mmSet[email.toLowerCase()])return false;
+    if(F.proposalCP){var _pm=window._propContactMap||{};var _fnN2=fn.replace(/\s+/g,'');if(!_pm[co+'__'+fn]&&!_pm[co+'__'+_fnN2])return false;}
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
     if(F.targetCat&&F.targetCat!=='all'&&tcat2!==F.targetCat)return false;
-    if(F.keyword){var _kws=F.keyword.split(/[,、]/).map(function(k){return k.trim().toLowerCase();}).filter(Boolean);if(_kws.length){var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');var _ct=(personCaseTypeMap[_fn2]||personCaseTypeMap[_fn2N]||'').toLowerCase();if(F.keywordMode==='include'&&!_kws.some(function(k){return _ct.indexOf(k)>=0;}))return false;if(F.keywordMode==='exclude'&&_kws.some(function(k){return _ct.indexOf(k)>=0;}))return false;}}
+    // 複数キーワード条件（AND）
+    if(F.kwConditions&&F.kwConditions.length>0){
+      var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');
+      var _ct=(personCaseTypeMap[_fn2]||personCaseTypeMap[_fn2N]||'').toLowerCase();
+      for(var _ci=0;_ci<F.kwConditions.length;_ci++){
+        var _cond=F.kwConditions[_ci];
+        var _kws=_cond.kw.split(/[,、]/).map(function(k){return k.trim().toLowerCase();}).filter(Boolean);
+        if(!_kws.length)continue;
+        if(_cond.mode==='include'&&!_kws.some(function(k){return _ct.indexOf(k)>=0;}))return false;
+        if(_cond.mode==='exclude'&&_kws.some(function(k){return _ct.indexOf(k)>=0;}))return false;
+      }
+    }
     return true;
   });
 
@@ -2622,6 +2647,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   var conds=[
     {key:'pastclient',label:'稼働後企業',desc:'過去に稼働した企業（現在終了）',icon:'🔄'},
     {key:'starContact',label:'稼働中案件 担当者',desc:'現在稼働中案件の顧客担当者',icon:'⭐'},
+    {key:'proposalCP',label:'提案中CP',desc:'現在提案フェーズの案件に紐づく顧客担当者',icon:'📝'},
     {key:'anyCase',label:'商談歴あり',desc:'1件以上の案件あり',icon:'📁'},
     {key:'unproposed',label:'未提案',desc:'商談歴ゼロ',icon:'🔍'},
     {key:'bant',label:'BANT',desc:'未来日付のNextActionがある',icon:'🎯'},
@@ -2658,18 +2684,36 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='<option value="all"'+((!F.targetCat||F.targetCat==='all')?' selected':'')+'>🎯 全ターゲット</option>';
   Object.keys(allTcats).sort(function(a,b){return a.localeCompare(b,'ja');}).forEach(function(t){h+='<option value="'+_escA(t)+'"'+(F.targetCat===t?' selected':'')+'>'+_escH(t)+'</option>';});
   h+='</select>';
-  // キーワードフィルター
-  h+='<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);flex-wrap:wrap">';
+  // キーワードフィルター（複数条件 AND）
+  h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">';
+  h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
   h+='<span style="font-size:10px;font-weight:600;color:var(--ink2);white-space:nowrap">📋 案件キーワード:</span>';
-  h+='<input id="lbKwInput" type="text" value="'+_escA(F.keyword||'')+'" placeholder="例: AX内製推進、AI×新規事業" onkeydown="if(event.key===\'Enter\'){window.L_LIST_FILTERS.keyword=this.value.trim();renderLeads(document.getElementById(\'M\'));}" style="padding:5px 10px;border-radius:8px;border:1px solid '+(F.keyword?'#0079C0':'var(--bd)')+';font-size:11px;width:180px;background:#fff;outline:none">';
+  h+='<input id="lbKwInput" type="text" value="'+_escA(F.keyword||'')+'" placeholder="例: AX内製推進" onkeydown="if(event.key===\'Enter\'){circuLbAddKw();}" style="padding:5px 10px;border-radius:8px;border:1px solid var(--bd);font-size:11px;width:160px;background:#fff;outline:none">';
   var kmInc=!F.keywordMode||F.keywordMode==='include';
-  h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'include\';window.L_LIST_FILTERS.keyword=document.getElementById(\'lbKwInput\').value.trim();renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(kmInc?'#0079C0':'#d1d5db')+';background:'+(kmInc?'#0079C0':'#fff')+';color:'+(kmInc?'#fff':'#374151')+'">含む</button>';
-  h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'exclude\';window.L_LIST_FILTERS.keyword=document.getElementById(\'lbKwInput\').value.trim();renderLeads(document.getElementById(\'M\'))" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(!kmInc?'#ef4444':'#d1d5db')+';background:'+(!kmInc?'#ef4444':'#fff')+';color:'+(!kmInc?'#fff':'#374151')+'">含まない</button>';
-  h+='<button onclick="window.L_LIST_FILTERS.keyword=document.getElementById(\'lbKwInput\').value.trim();renderLeads(document.getElementById(\'M\'))" style="padding:4px 14px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #0079C0;background:#0079C0;color:#fff">適用</button>';
-  if(F.keyword){var _kwList=F.keyword.split(/[,、]/).map(function(k){return k.trim();}).filter(Boolean);h+='<span style="font-size:10px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-weight:600">'+_kwList.map(function(k){return'「'+_escH(k)+'」';}).join('または')+'を'+(kmInc?'含む':'含まない')+'</span>';}
+  h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'include\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(kmInc?'#0079C0':'#d1d5db')+';background:'+(kmInc?'#eff6ff':'#fff')+';color:'+(kmInc?'#0079C0':'#374151')+'">含む</button>';
+  h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'exclude\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(!kmInc?'#ef4444':'#d1d5db')+';background:'+(!kmInc?'#fff1f2':'#fff')+';color:'+(!kmInc?'#ef4444':'#374151')+'">含まない</button>';
+  h+='<button onclick="circuLbAddKw()" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #0079C0;background:#0079C0;color:#fff">＋ 追加</button>';
+  h+='<span style="font-size:9px;color:#94a3b8">複数追加でAND絞り込み</span>';
   h+='</div>';
-  if(Object.values(F).some(function(v){return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!=='all');})){
-    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,tiers:[],member:\'all\',rel:\'all\',targetCat:\'all\',keyword:\'\',keywordMode:\'include\'};renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';
+  // アクティブな条件タグを表示
+  if(F.kwConditions&&F.kwConditions.length>0){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+    F.kwConditions.forEach(function(cond,i){
+      var isInc=cond.mode==='include';
+      var tagBg=isInc?'#eff6ff':'#fff1f2';
+      var tagBd=isInc?'#bfdbfe':'#fecaca';
+      var tagTx=isInc?'#1d4ed8':'#dc2626';
+      h+='<span style="display:flex;align-items:center;gap:5px;background:'+tagBg+';border:1px solid '+tagBd+';border-radius:20px;padding:3px 10px 3px 12px;font-size:10px;font-weight:600;color:'+tagTx+'">';
+      h+=(isInc?'含む：':'含まない：')+_escH(cond.kw);
+      h+='<button onclick="window.L_LIST_FILTERS.kwConditions.splice('+i+',1);renderLeads(document.getElementById(\'M\'))" style="background:none;border:none;cursor:pointer;padding:0;font-size:12px;line-height:1;color:'+tagTx+';opacity:.7;margin-left:2px" title="削除">×</button>';
+      h+='</span>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+  var _hasAnyFilter=Object.keys(F).some(function(k){var v=F[k];return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!==''&&v!=='all'&&k!=='keyword'&&k!=='keywordMode');});
+  if(_hasAnyFilter){
+    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:\'all\',rel:\'all\',targetCat:\'all\',keyword:\'\',keywordMode:\'include\',kwConditions:[]};renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';
   }
   h+='</div></div>';
 

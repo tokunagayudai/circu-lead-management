@@ -2344,7 +2344,17 @@ function listBuilderDownloadCSV(){
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
-  a.href=url;a.download='アプローチリスト_'+new Date().toISOString().slice(0,10)+'.csv';
+  // ファイル名：アクティブなフィルター条件を反映
+  var F2=window.L_LIST_FILTERS||{};
+  var _parts=[];
+  var _condLabels={pastclient:'稼働後企業',starContact:'稼働中CP',proposalCP:'提案中CP',anyCase:'商談歴あり',unproposed:'未提案',bant:'BANT',recentCase:'直近3ヶ月',hasEmail:'メールあり',excMM:'除外除く'};
+  Object.keys(_condLabels).forEach(function(k){var v=F2[k];if(v===true)_parts.push(_condLabels[k]);else if(v==='exclude')_parts.push(_condLabels[k]+'除外');});
+  if(F2.tiers&&F2.tiers.length>0)_parts.push(F2.tiers.join(''));
+  if(F2.member&&F2.member!=='all')_parts.push(F2.member.split(' ')[0]);
+  if(F2.targetCat&&F2.targetCat!=='all')_parts.push(F2.targetCat);
+  if(F2.kwConditions&&F2.kwConditions.length>0)F2.kwConditions.forEach(function(c){_parts.push((c.mode==='include'?'含む_':'含まない_')+c.kw.replace(/[,、\s]/g,''));});
+  var _fname=(_parts.length>0?_parts.join('_'):'全リード')+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.href=url;a.download=_fname;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }

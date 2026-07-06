@@ -2535,6 +2535,48 @@ function renderAcpLog(lk,log,li,cid){
   h+='</div></div>';
   return h;
 }
+function circuMmCsvLoad(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result;
+    // BOM除去
+    if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+    var lines=text.split(/\r?\n/);
+    var headers=lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+    // メールアドレス列または氏名列を自動検出
+    var emailIdx=-1,nameIdx=-1,lastIdx=-1,firstIdx=-1;
+    headers.forEach(function(h,i){
+      var hl=h.toLowerCase();
+      if(emailIdx<0&&(hl.indexOf('mail')>=0||hl.indexOf('メール')>=0||hl==='email'))emailIdx=i;
+      if(lastIdx<0&&(hl.indexOf('姓')>=0||hl.indexOf('last')>=0||hl==='苗字'))lastIdx=i;
+      if(firstIdx<0&&(hl.indexOf('名')>=0||hl.indexOf('first')>=0)&&hl.indexOf('会社')<0)firstIdx=i;
+      if(nameIdx<0&&(hl.indexOf('氏名')>=0||hl.indexOf('名前')>=0||hl==='name'))nameIdx=i;
+    });
+    var values=[];
+    for(var i=1;i<lines.length;i++){
+      var row=lines[i].split(',').map(function(c){return c.trim().replace(/^"|"$/g,'');});
+      if(emailIdx>=0&&row[emailIdx])values.push(row[emailIdx]);
+      else if(lastIdx>=0||firstIdx>=0){
+        var ln=lastIdx>=0?(row[lastIdx]||''):'';
+        var fn=firstIdx>=0?(row[firstIdx]||''):'';
+        var nm=(ln+' '+fn).trim()||fn||ln;
+        if(nm)values.push(nm);
+      } else if(nameIdx>=0&&row[nameIdx]){values.push(row[nameIdx]);}
+      else if(row[0])values.push(row[0]);
+    }
+    values=values.filter(Boolean);
+    // 既存リストにマージ（重複除去）
+    var existing=[];try{existing=JSON.parse(localStorage.getItem('circu_mm_exclude')||'[]');}catch(e){}
+    var merged=existing.slice();
+    values.forEach(function(v){if(merged.indexOf(v)<0)merged.push(v);});
+    localStorage.setItem('circu_mm_exclude',JSON.stringify(merged));
+    alert('✅ '+values.length+'件を読み込みました（合計 '+merged.length+'件）');
+    input.value='';
+    renderLeads(document.getElementById('M'));
+  };
+  reader.readAsText(file,'UTF-8');
+}
 function circuLbAddKw(){
   var inp=document.getElementById('lbKwInput');
   if(!inp)return;
@@ -2784,12 +2826,26 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
 
   // ===== メルマガ除外リスト =====
   h+='<div class="ent-section" style="margin-bottom:12px">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">';
   h+='<div class="es-title" style="margin:0">📧 メルマガ除外リスト</div>';
   h+='<span style="font-size:10px;background:#f1f5f9;color:var(--ink2);padding:2px 8px;border-radius:10px">'+mmExclude.length+'件登録済み</span>';
+  if(mmExclude.length>0){h+='<button onclick="if(confirm(\'除外リストをすべてクリアしますか？\')){localStorage.setItem(\'circu_mm_exclude\',\'[]\');renderLeads(document.getElementById(\'M\'));}" style="font-size:10px;color:#ef4444;background:none;border:none;cursor:pointer;padding:2px 6px">✕ クリア</button>';}
   h+='</div>';
-  h+='<textarea id="mmExcludeTA" placeholder="除外するメールアドレスまたは氏名（1行1件）&#10;例: yamada@example.com&#10;山田 太郎" style="width:100%;border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:11px;font-family:var(--sans);resize:vertical;min-height:70px;max-height:140px">'+mmExclude.join('\n')+'</textarea>';
-  h+='<button onclick="var v=document.getElementById(\'mmExcludeTA\').value;var list=v.split(\'\\n\').map(function(s){return s.trim();}).filter(Boolean);localStorage.setItem(\'circu_mm_exclude\',JSON.stringify(list));renderLeads(document.getElementById(\'M\'))" style="margin-top:6px;padding:5px 16px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--bd);background:#fff;cursor:pointer;color:var(--ink2)">💾 保存</button>';
+  // CSVアップロードエリア
+  h+='<label for="mmCsvInput" style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed #cbd5e1;border-radius:10px;padding:18px;cursor:pointer;background:#f8fafc;transition:.15s" onmouseenter="this.style.borderColor=\'#0079C0\';this.style.background=\'#eff6ff\'" onmouseleave="this.style.borderColor=\'#cbd5e1\';this.style.background=\'#f8fafc\'">';
+  h+='<span style="font-size:22px">📂</span>';
+  h+='<div><div style="font-size:12px;font-weight:700;color:#334155">CSVファイルをアップロード</div>';
+  h+='<div style="font-size:10px;color:#94a3b8;margin-top:2px">メールアドレス列または氏名列を自動検出します</div></div>';
+  h+='</label>';
+  h+='<input id="mmCsvInput" type="file" accept=".csv" style="display:none" onchange="circuMmCsvLoad(this)">';
+  // 現在の登録内容プレビュー
+  if(mmExclude.length>0){
+    h+='<div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;max-height:100px;overflow-y:auto">';
+    h+='<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:4px">登録済みリスト（上位10件）</div>';
+    mmExclude.slice(0,10).forEach(function(v){h+='<div style="font-size:10px;color:#475569;padding:1px 0">'+_escH(v)+'</div>';});
+    if(mmExclude.length>10)h+='<div style="font-size:10px;color:#94a3b8">… 他'+(mmExclude.length-10)+'件</div>';
+    h+='</div>';
+  }
   h+='</div>';
 
   // ===== RESULTS =====

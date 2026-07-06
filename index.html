@@ -2351,7 +2351,7 @@ function listBuilderDownloadCSV(){
   Object.keys(_condLabels).forEach(function(k){var v=F2[k];if(v===true)_parts.push(_condLabels[k]);else if(v==='exclude')_parts.push(_condLabels[k]+'除外');});
   if(F2.tiers&&F2.tiers.length>0)_parts.push(F2.tiers.join(''));
   if(F2.member&&F2.member!=='all')_parts.push(F2.member.split(' ')[0]);
-  if(F2.targetCat&&F2.targetCat!=='all')_parts.push(F2.targetCat);
+  if(F2.targetCats&&F2.targetCats.length>0)_parts.push(F2.targetCats.map(function(t){return t.replace(/ターゲット\//,'');}).join('or'));
   if(F2.kwConditions&&F2.kwConditions.length>0)F2.kwConditions.forEach(function(c){_parts.push((c.mode==='include'?'含む_':'含まない_')+c.kw.replace(/[,、\s]/g,''));});
   var _fname=(_parts.length>0?_parts.join('_'):'全リード')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   a.href=url;a.download=_fname;
@@ -2581,8 +2581,9 @@ function circuLbNameClick(el,idx){
   setTimeout(function(){function hnd(e){if(!pop.contains(e.target)&&e.target!==el){pop.remove();document.removeEventListener('click',hnd);}}document.addEventListener('click',hnd);},0);
 }
 function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, pastClientCos, recentCaseCos, today){
-  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:'all',rel:'all',targetCat:'all',keyword:'',keywordMode:'include',kwConditions:[]};
+  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:'all',rel:'all',targetCats:[],keyword:'',keywordMode:'include',kwConditions:[]};
   if(!window.L_LIST_FILTERS.kwConditions)window.L_LIST_FILTERS.kwConditions=[];
+  if(!window.L_LIST_FILTERS.targetCats)window.L_LIST_FILTERS.targetCats=[];
   var F=window.L_LIST_FILTERS;
   var data=window.L_DATA||[];
   var col2=col;
@@ -2644,7 +2645,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
-    if(F.targetCat&&F.targetCat!=='all'&&tcat2!==F.targetCat)return false;
+    if(F.targetCats&&F.targetCats.length>0&&F.targetCats.indexOf(tcat2)<0)return false;
     // 複数キーワード条件（AND）
     if(F.kwConditions&&F.kwConditions.length>0){
       var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');
@@ -2716,10 +2717,28 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='<option value="all"'+((!F.rel||F.rel==='all')?' selected':'')+'>💬 全関係値</option>';
   [['fire','🔥 Hot'],['close','🤝 商談近い'],['good','👍 良好'],['normal','😐 普通']].forEach(function(rv){h+='<option value="'+rv[0]+'"'+(F.rel===rv[0]?' selected':'')+'>'+rv[1]+'</option>';});
   h+='</select>';
-  h+='<select onchange="window.L_LIST_FILTERS.targetCat=this.value;renderLeads(document.getElementById(\'M\'))" style="padding:5px 10px;border-radius:8px;border:1px solid var(--bd);font-size:11px;background:#fff">';
-  h+='<option value="all"'+((!F.targetCat||F.targetCat==='all')?' selected':'')+'>🎯 全ターゲット</option>';
-  Object.keys(allTcats).sort(function(a,b){return a.localeCompare(b,'ja');}).forEach(function(t){h+='<option value="'+_escA(t)+'"'+(F.targetCat===t?' selected':'')+'>'+_escH(t)+'</option>';});
-  h+='</select>';
+  // ターゲット区分 複数選択ドロップダウン
+  var _tcats=F.targetCats||[];var _tcatOpen=!!window._tcatDDOpen;
+  var _tcatLabel=_tcats.length===0?'🎯 全ターゲット':'🎯 '+_tcats.length+'件選択中';
+  var _tcatBd=_tcats.length>0?'#0079C0':'var(--bd)';
+  var _tcatBg=_tcats.length>0?'#eff6ff':'#fff';
+  var _tcatTx=_tcats.length>0?'#0079C0':'#374151';
+  h+='<div style="position:relative;display:inline-block">';
+  h+='<button onclick="window._tcatDDOpen=!window._tcatDDOpen;renderLeads(document.getElementById(\'M\'))" style="padding:5px 12px;border-radius:8px;border:1px solid '+_tcatBd+';font-size:11px;background:'+_tcatBg+';color:'+_tcatTx+';cursor:pointer;font-weight:'+(_tcats.length>0?'700':'400')+';display:flex;align-items:center;gap:4px">'+_tcatLabel+'<span style="font-size:9px;opacity:.6">▾</span></button>';
+  if(_tcatOpen){
+    h+='<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:240px;padding:6px 0;max-height:280px;overflow-y:auto">';
+    h+='<div onclick="window.L_LIST_FILTERS.targetCats=[];renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;font-weight:600;color:#64748b;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:6px" onmouseenter="this.style.background=\'#f8fafc\'" onmouseleave="this.style.background=\'#fff\'">';
+    h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(_tcats.length===0?'#0079C0':'#cbd5e1')+';background:'+(_tcats.length===0?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(_tcats.length===0?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
+    h+='全ターゲット</div>';
+    Object.keys(allTcats).sort(function(a,b){return a.localeCompare(b,'ja');}).forEach(function(t){
+      var sel=_tcats.indexOf(t)>=0;
+      h+='<div onclick="var ts=window.L_LIST_FILTERS.targetCats,idx=ts.indexOf(\''+_escA(t)+'\');if(idx>=0)ts.splice(idx,1);else ts.push(\''+_escA(t)+'\');renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;color:#1e293b;display:flex;align-items:center;gap:6px;background:'+(sel?'#eff6ff':'#fff')+'" onmouseenter="this.style.background=\''+(sel?'#dbeafe':'#f8fafc')+'\';" onmouseleave="this.style.background=\''+(sel?'#eff6ff':'#fff')+'\'">';
+      h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(sel?'#0079C0':'#cbd5e1')+';background:'+(sel?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(sel?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
+      h+=_escH(t)+'</div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
   // キーワードフィルター（複数条件 AND）
   h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">';
   h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
@@ -2749,9 +2768,9 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     h+='</div>';
   }
   h+='</div>';
-  var _hasAnyFilter=Object.keys(F).some(function(k){var v=F[k];return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!==''&&v!=='all'&&k!=='keyword'&&k!=='keywordMode');});
+  var _hasAnyFilter=Object.keys(F).some(function(k){var v=F[k];if(k==='keyword'||k==='keywordMode')return false;return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!==''&&v!=='all');});
   if(_hasAnyFilter){
-    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:\'all\',rel:\'all\',targetCat:\'all\',keyword:\'\',keywordMode:\'include\',kwConditions:[]};renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';
+    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:\'all\',rel:\'all\',targetCats:[],keyword:\'\',keywordMode:\'include\',kwConditions:[]};window._tcatDDOpen=false;renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';
   }
   h+='</div></div>';
 

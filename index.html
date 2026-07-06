@@ -2724,7 +2724,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">';
   h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
   h+='<span style="font-size:10px;font-weight:600;color:var(--ink2);white-space:nowrap">📋 案件キーワード:</span>';
-  h+='<input id="lbKwInput" type="text" value="'+_escA(F.keyword||'')+'" placeholder="例: AX内製推進" onkeydown="if(event.key===\'Enter\'){circuLbAddKw();}" style="padding:5px 10px;border-radius:8px;border:1px solid var(--bd);font-size:11px;width:160px;background:#fff;outline:none">';
+  h+='<input id="lbKwInput" type="text" value="'+_escA(F.keyword||'')+'" placeholder="例: AX, AIリスキリング（OR）" onkeydown="if(event.key===\'Enter\'){circuLbAddKw();}" style="padding:5px 10px;border-radius:8px;border:1px solid var(--bd);font-size:11px;width:200px;background:#fff;outline:none">';
   var kmInc=!F.keywordMode||F.keywordMode==='include';
   h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'include\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(kmInc?'#0079C0':'#d1d5db')+';background:'+(kmInc?'#eff6ff':'#fff')+';color:'+(kmInc?'#0079C0':'#374151')+'">含む</button>';
   h+='<button onclick="window.L_LIST_FILTERS.keywordMode=\'exclude\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid '+(!kmInc?'#ef4444':'#d1d5db')+';background:'+(!kmInc?'#fff1f2':'#fff')+';color:'+(!kmInc?'#ef4444':'#374151')+'">含まない</button>';
@@ -2739,8 +2739,10 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
       var tagBg=isInc?'#eff6ff':'#fff1f2';
       var tagBd=isInc?'#bfdbfe':'#fecaca';
       var tagTx=isInc?'#1d4ed8':'#dc2626';
+      var _kwParts=cond.kw.split(/[,、]/).map(function(k){return k.trim();}).filter(Boolean);
+      var _kwLabel=_kwParts.length>1?_kwParts.map(function(k){return'「'+_escH(k)+'」';}).join('または'):_escH(cond.kw);
       h+='<span style="display:flex;align-items:center;gap:5px;background:'+tagBg+';border:1px solid '+tagBd+';border-radius:20px;padding:3px 10px 3px 12px;font-size:10px;font-weight:600;color:'+tagTx+'">';
-      h+=(isInc?'含む：':'含まない：')+_escH(cond.kw);
+      h+=(isInc?'含む：':'含まない：')+_kwLabel;
       h+='<button onclick="window.L_LIST_FILTERS.kwConditions.splice('+i+',1);renderLeads(document.getElementById(\'M\'))" style="background:none;border:none;cursor:pointer;padding:0;font-size:12px;line-height:1;color:'+tagTx+';opacity:.7;margin-left:2px" title="削除">×</button>';
       h+='</span>';
     });

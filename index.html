@@ -2540,33 +2540,34 @@ function circuMmCsvLoad(input){
   var reader=new FileReader();
   reader.onload=function(e){
     var text=e.target.result;
-    // BOM除去
     if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
     var lines=text.split(/\r?\n/);
     var headers=lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
-    // メールアドレス列または氏名列を自動検出
+    // 列を自動検出
     var emailIdx=-1,nameIdx=-1,lastIdx=-1,firstIdx=-1;
     headers.forEach(function(h,i){
       var hl=h.toLowerCase();
       if(emailIdx<0&&(hl.indexOf('mail')>=0||hl.indexOf('メール')>=0||hl==='email'))emailIdx=i;
-      if(lastIdx<0&&(hl.indexOf('姓')>=0||hl.indexOf('last')>=0||hl==='苗字'))lastIdx=i;
-      if(firstIdx<0&&(hl.indexOf('名')>=0||hl.indexOf('first')>=0)&&hl.indexOf('会社')<0)firstIdx=i;
+      if(lastIdx<0&&(hl==='姓'||hl.indexOf('last')>=0||hl==='苗字'))lastIdx=i;
+      if(firstIdx<0&&(hl==='名'||hl.indexOf('first')>=0))firstIdx=i;
       if(nameIdx<0&&(hl.indexOf('氏名')>=0||hl.indexOf('名前')>=0||hl==='name'))nameIdx=i;
     });
     var values=[];
+    function addUniq(v){v=(v||'').trim();if(v&&values.indexOf(v)<0)values.push(v);}
     for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim())continue;
       var row=lines[i].split(',').map(function(c){return c.trim().replace(/^"|"$/g,'');});
-      if(emailIdx>=0&&row[emailIdx])values.push(row[emailIdx]);
-      else if(lastIdx>=0||firstIdx>=0){
-        var ln=lastIdx>=0?(row[lastIdx]||''):'';
-        var fn=firstIdx>=0?(row[firstIdx]||''):'';
-        var nm=(ln+' '+fn).trim()||fn||ln;
-        if(nm)values.push(nm);
-      } else if(nameIdx>=0&&row[nameIdx]){values.push(row[nameIdx]);}
-      else if(row[0])values.push(row[0]);
+      // メールアドレスがあれば登録
+      if(emailIdx>=0&&row[emailIdx])addUniq(row[emailIdx]);
+      // 姓名があれば「姓 名」と「姓名」両方登録（メールがなくても）
+      var nm='';
+      if(lastIdx>=0||firstIdx>=0){
+        var ln2=lastIdx>=0?(row[lastIdx]||''):'';
+        var fn2=firstIdx>=0?(row[firstIdx]||''):'';
+        nm=(ln2+' '+fn2).trim();
+      } else if(nameIdx>=0){nm=(row[nameIdx]||'').trim();}
+      if(nm){addUniq(nm);addUniq(nm.replace(/\s+/g,''));}// スペースあり・なし両方
     }
-    values=values.filter(Boolean);
-    // 既存リストにマージ（重複除去）
     var existing=[];try{existing=JSON.parse(localStorage.getItem('circu_mm_exclude')||'[]');}catch(e){}
     var merged=existing.slice();
     values.forEach(function(v){if(merged.indexOf(v)<0)merged.push(v);});
@@ -2680,7 +2681,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.recentCase==='exclude'&&_isRecent)return false;
     if(F.hasEmail===true&&!email)return false;
     if(F.hasEmail==='exclude'&&email)return false;
-    if(F.excMM&&email&&mmSet[email.toLowerCase()])return false;
+    if(F.excMM){if(email&&mmSet[email.toLowerCase()])return false;var _fnL=fn.toLowerCase();var _fnNL=fn.replace(/\s+/g,'').toLowerCase();if(mmSet[_fnL]||mmSet[_fnNL])return false;}
     var _pm=window._propContactMap||{};var _fnN2=fn.replace(/\s+/g,'');
     var _isProp=!!(_pm[co+'__'+fn]||_pm[co+'__'+_fnN2]);
     if(F.proposalCP===true&&!_isProp)return false;

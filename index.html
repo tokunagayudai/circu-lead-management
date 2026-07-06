@@ -3109,7 +3109,8 @@ function renderAcplanView(filtered,col){
           var _acpEmoji=(lsData&&lsData.emoji)||'';
           var _acpEpid='aep_'+(cid2||fn.replace(/[^a-zA-Z0-9]/g,'_'));
           h+='<span id="'+_acpEpid+'" data-lsk="'+_escA(lsKey)+'" data-eid="'+_acpEpid+'" onclick="circuLeadEmojiPick(this)" style="cursor:pointer;font-size:15px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;opacity:'+(_acpEmoji?'1':'0.2')+';flex-shrink:0" title="重要度マーク">'+(_acpEmoji||'🏷️')+'</span>';
-          h+='<span style="font-size:10px;font-weight:700;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(fn)+'</span>';
+          var _acpNameHtml=cid2?'<a href="'+SF_BASE+'Contact/'+cid2+'/view" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:#0079C0;text-decoration:none;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Salesforceで開く">'+_escH(fn)+'↗</a>':'<span style="font-size:10px;font-weight:700;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(fn)+'</span>';
+          h+=_acpNameHtml;
           if(mobile)h+='<span style="font-size:8px;color:#0891b2;background:#e0f2fe;border-radius:3px;padding:0 4px;font-weight:700;flex-shrink:0">📱</span>';
           h+='<input type="checkbox" '+(isChecked?'checked':'')+' onchange="circuAcpToggleCheck(this,\''+_escA(ckKey)+'\')" style="width:14px;height:14px;cursor:pointer;accent-color:#0079C0;flex-shrink:0" title="選択してCSVエクスポート">';
           h+='</div>';

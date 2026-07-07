@@ -2434,19 +2434,42 @@ function circuAcpMergeDeptUi(coKey,dept,openId){
   h2+='</div>';
   pop.innerHTML=h2;document.body.appendChild(pop);
 }
+// アカプラ: トグル開閉状態を保持したまま再レンダリング
+function circuRenderKeepOpen(callback){
+  var openCoKeys=[];
+  document.querySelectorAll('[id^="acp_"]').forEach(function(el){
+    if(el.style.display!=='none'){
+      var ta=el.querySelector('textarea[data-cok]');
+      if(ta)openCoKeys.push(ta.dataset.cok);
+    }
+  });
+  callback();
+  setTimeout(function(){
+    openCoKeys.forEach(function(ck){
+      var ta=document.querySelector('textarea[data-cok="'+CSS.escape(ck)+'"]');
+      if(!ta)return;
+      var body=ta.closest('[id^="acp_"]');
+      if(body&&body.style.display==='none'){
+        body.style.display='block';
+        var arr=document.getElementById(body.id+'_arr');
+        if(arr)arr.textContent='▼';
+      }
+    });
+  },50);
+}
 function circuAcpDoMerge(coKey,fromDept,toDept,popId){
   if(!toDept||toDept===fromDept)return;
   var k=coKey+'_deptmerge',m={};
   try{m=JSON.parse(localStorage.getItem(k)||'{}');}catch(e){}
   m[fromDept]=toDept;localStorage.setItem(k,JSON.stringify(m));
   var el=document.getElementById(popId);if(el)el.remove();
-  renderLeads(document.getElementById('M'));
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
 }
 function circuAcpUnmergeDept(coKey,fromDept){
   var k=coKey+'_deptmerge',m={};
   try{m=JSON.parse(localStorage.getItem(k)||'{}');}catch(e){}
   delete m[fromDept];localStorage.setItem(k,JSON.stringify(m));
-  renderLeads(document.getElementById('M'));
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
 }
 // ===== 関係線 =====
 var _acpRelMode=false,_acpRelOpenId=null,_acpRelCoKey=null,_acpRelFromFn=null;
@@ -2488,6 +2511,20 @@ function circuAcpRelPersonClick(openId,fn,coKey){
     circuAcpRelDialog(coKey,fromFn,fn,openId);
   }
 }
+// 関係タイプ選択ボタンの切り替え
+function circuAcpRelTypeSelect(val){
+  var wrap=document.getElementById('acpreltype_wrap');if(!wrap)return;
+  var clrs={positive:'#3b82f6',negative:'#ef4444',neutral:'#8b5cf6'};
+  document.getElementById('acpreltypesel').value=val;
+  wrap.querySelectorAll('[data-rtype]').forEach(function(btn){
+    var c=clrs[btn.dataset.rtype];
+    var sel=btn.dataset.rtype===val;
+    btn.style.borderColor=sel?c:'#e2e8f0';
+    btn.style.background=sel?c+'22':'#f8fafc';
+    btn.style.color=sel?c:'#475569';
+    btn.style.fontWeight=sel?'700':'400';
+  });
+}
 function circuAcpRelDialog(coKey,fromFn,toFn,openId){
   var pid='acpreldlg';var ep=document.getElementById(pid);if(ep)ep.remove();
   var pop=document.createElement('div');pop.id=pid;
@@ -2495,19 +2532,22 @@ function circuAcpRelDialog(coKey,fromFn,toFn,openId){
   var h2='<div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:10px">🔗 関係線を追加</div>';
   h2+='<div style="font-size:9px;color:#64748b;background:#f8fafc;border-radius:5px;padding:5px 8px;margin-bottom:10px">'+_escH(fromFn)+' ↔ '+_escH(toFn)+'</div>';
   h2+='<div style="font-size:9px;color:#475569;margin-bottom:5px;font-weight:600">関係タイプ</div>';
-  h2+='<div style="display:flex;gap:5px;margin-bottom:10px">';
+  h2+='<input type="hidden" id="acpreltypesel" value="positive">';
+  h2+='<div id="acpreltype_wrap" style="display:flex;gap:5px;margin-bottom:10px">';
   var types=[['positive','🤝 好意的','#3b82f6'],['negative','⚡ 対立','#ef4444'],['neutral','↔ 中立','#8b5cf6']];
   types.forEach(function(t,ti){
-    var checked=ti===2?' checked':'';
-    h2+='<label style="flex:1;cursor:pointer"><input type="radio" name="acpreltype" value="'+t[0]+'"'+checked+' style="display:none"><div style="font-size:8px;text-align:center;padding:4px 2px;border:1.5px solid '+(ti===2?t[2]:'#e2e8f0')+';border-radius:4px;background:'+(ti===2?t[2]+'22':'#f8fafc')+';color:'+(ti===2?t[2]:'#475569')+';transition:.15s" onclick="this.closest(\'div[style]\').querySelectorAll(\'div\').forEach(function(b,i){b.style.borderColor=i=='+ti+'?\''+t[2]+'\':\'#e2e8f0\';b.style.background=i=='+ti+'?\''+t[2]+'22\':\'#f8fafc\';b.style.color=i=='+ti+'?\''+t[2]+'\':\'#475569\'})">'+t[1]+'</div></label>';
+    var sel=ti===0;
+    h2+='<div data-rtype="'+t[0]+'" onclick="circuAcpRelTypeSelect(\''+t[0]+'\')" style="flex:1;font-size:8px;text-align:center;padding:5px 2px;border:1.5px solid '+(sel?t[2]:'#e2e8f0')+';border-radius:5px;background:'+(sel?t[2]+'22':'#f8fafc')+';color:'+(sel?t[2]:'#475569')+';font-weight:'+(sel?'700':'400')+';cursor:pointer;transition:.12s">'+t[1]+'</div>';
   });
   h2+='</div>';
   h2+='<input type="text" id="acprellbl" placeholder="メモ（例：同期、上司、紹介者）" style="width:100%;font-size:10px;border:1px solid #cbd5e1;border-radius:5px;padding:5px 7px;box-sizing:border-box;margin-bottom:10px">';
   h2+='<div style="display:flex;gap:6px">';
-  h2+='<button onclick="(function(){var t=document.querySelector(\'input[name=acpreltype]:checked\');circuAcpSaveRel(\''+_escA(coKey)+'\',\''+_escA(fromFn)+'\',\''+_escA(toFn)+'\',t?t.value:\'neutral\',document.getElementById(\'acprellbl\').value,\''+openId+'\',\'acpreldlg\')})()" style="flex:1;font-size:10px;background:#0079C0;color:#fff;border:none;border-radius:5px;padding:6px;cursor:pointer;font-weight:600">保存</button>';
+  h2+='<button onclick="circuAcpSaveRel(\''+_escA(coKey)+'\',\''+_escA(fromFn)+'\',\''+_escA(toFn)+'\',document.getElementById(\'acpreltypesel\').value,document.getElementById(\'acprellbl\').value,\''+openId+'\',\'acpreldlg\')" style="flex:1;font-size:10px;background:#0079C0;color:#fff;border:none;border-radius:5px;padding:6px;cursor:pointer;font-weight:600">保存</button>';
   h2+='<button onclick="document.getElementById(\'acpreldlg\').remove()" style="flex:1;font-size:10px;background:#f1f5f9;color:#334155;border:none;border-radius:5px;padding:6px;cursor:pointer">キャンセル</button>';
   h2+='</div>';
   pop.innerHTML=h2;document.body.appendChild(pop);
+  // 初期選択を反映
+  setTimeout(function(){circuAcpRelTypeSelect('positive');},0);
 }
 function circuAcpSaveRel(coKey,fromFn,toFn,type,label,openId,popId){
   var k=coKey+'_rels',rels=[];

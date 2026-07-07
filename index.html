@@ -2594,10 +2594,16 @@ function circuAcpDrawRelArrows(openId,coKey){
     var dash=rel.type==='neutral'?'stroke-dasharray="5 3"':'';
     parts.push('<path d="M'+from.x.toFixed(0)+','+from.y.toFixed(0)+' Q'+cx.toFixed(0)+','+cy.toFixed(0)+' '+to.x.toFixed(0)+','+to.y.toFixed(0)+'" stroke="'+c+'" stroke-width="1.8" fill="none" marker-end="url(#am'+ri+')" '+dash+'/>');
     var lbl=rel.label;var lx=cx,ly=cy-4;
-    if(lbl){var lw=lbl.length*7+12;parts.push('<rect x="'+(lx-lw/2).toFixed(0)+'" y="'+(ly-13).toFixed(0)+'" width="'+lw.toFixed(0)+'" height="16" rx="4" fill="'+c+'"/>');parts.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+1).toFixed(0)+'" text-anchor="middle" font-size="10" fill="#fff" font-family="sans-serif">'+lbl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</text>');}
+    // Type label pill - always shown
+    var _typeName={positive:'好意的',negative:'対立',neutral:'中立'}[rel.type]||rel.type;
+    var _tw=Math.max(_typeName.length*12+16,36);
+    parts.push('<rect x="'+((lx-_tw/2)).toFixed(0)+'" y="'+(ly-14).toFixed(0)+'" width="'+_tw.toFixed(0)+'" height="18" rx="9" fill="'+c+'" opacity="0.92"/>');
+    parts.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+2).toFixed(0)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="sans-serif">'+_typeName+'</text>');
+    // Memo label below type pill
+    if(lbl){var _mw=lbl.length*7+12;parts.push('<rect x="'+(lx-_mw/2).toFixed(0)+'" y="'+(ly+7).toFixed(0)+'" width="'+_mw.toFixed(0)+'" height="15" rx="4" fill="'+c+'" opacity="0.65"/>');parts.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+19).toFixed(0)+'" text-anchor="middle" font-size="10" fill="#fff" font-family="sans-serif">'+lbl.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</text>');}
     // Delete button (×) - uses onclick with index
     var idx=_acpSvgRels.length;_acpSvgRels.push({id:rel.id,coKey:coKey,openId:openId});
-    var dx=lx+(lbl?lbl.length*3.5+14:0)+14,dy=cy;
+    var dx=lx+_tw/2+12,dy=cy-4;
     parts.push('<circle cx="'+dx.toFixed(0)+'" cy="'+dy.toFixed(0)+'" r="8" fill="white" stroke="'+c+'" stroke-width="1.2" style="pointer-events:auto;cursor:pointer" onclick="circuAcpDeleteRelByIdx('+idx+')"/>');
     parts.push('<text x="'+dx.toFixed(0)+'" y="'+(dy+4).toFixed(0)+'" text-anchor="middle" font-size="12" fill="'+c+'" style="pointer-events:auto;cursor:pointer" onclick="circuAcpDeleteRelByIdx('+idx+')">×</text>');
   });

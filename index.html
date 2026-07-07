@@ -2434,7 +2434,7 @@ function circuAcpMergeDeptUi(coKey,dept,openId){
   h2+='</div>';
   pop.innerHTML=h2;document.body.appendChild(pop);
 }
-// アカプラ: トグル開閉状態を保持したまま再レンダリング
+// アカプラ: トグル開閉状態・スクロール位置を保持したまま再レンダリング
 function circuRenderKeepOpen(callback){
   var openCoKeys=[];
   document.querySelectorAll('[id^="acp_"]').forEach(function(el){
@@ -2443,6 +2443,7 @@ function circuRenderKeepOpen(callback){
       if(ta)openCoKeys.push(ta.dataset.cok);
     }
   });
+  var sx=window.scrollX,sy=window.scrollY;
   callback();
   setTimeout(function(){
     openCoKeys.forEach(function(ck){
@@ -2455,6 +2456,7 @@ function circuRenderKeepOpen(callback){
         if(arr)arr.textContent='▼';
       }
     });
+    window.scrollTo(sx,sy);
   },50);
 }
 function circuAcpDoMerge(coKey,fromDept,toDept,popId){
@@ -2498,7 +2500,7 @@ function circuAcpDoReparent(coKey,dept,newParent,popId){
   try{m=JSON.parse(localStorage.getItem(k)||'{}');}catch(e){}
   if(newParent){m[dept]=newParent;}else{delete m[dept];}
   localStorage.setItem(k,JSON.stringify(m));
-  var el=document.getElementById(popId);if(el)el.remove();
+  if(popId){var el=document.getElementById(popId);if(el)el.remove();}
   circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
 }
 // ===== 関係線 =====
@@ -3418,7 +3420,7 @@ function renderAcplanView(filtered,col){
             h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
             var _mfGroup=Object.keys(_mergeMap).filter(function(k){return _mergeMap[k]===dept;});
             if(_mfGroup.length)h+='<div style="font-size:7px;color:'+dc+';margin-top:1px;opacity:.75">＋'+_mfGroup.map(function(k){return _escH(k.split(' ').pop());}).join('・')+' <span onclick="event.stopPropagation();_mfGroup.forEach(function(f){circuAcpUnmergeDept(\''+_escA(coKey)+'\',f);})" style="cursor:pointer;text-decoration:underline">解除</span></div>';
-            if(_parentMap[dept])h+='<div style="font-size:7px;color:'+dc+';margin-top:1px;opacity:.75">📦'+_escH(_parentMap[dept])+' <span onclick="event.stopPropagation();circuAcpDoReparent(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\'\',\''+openId+'\')" style="cursor:pointer;text-decoration:underline">解除</span></div>';
+            if(_parentMap[dept])h+='<div style="font-size:7px;color:'+dc+';margin-top:1px;opacity:.75">📦'+_escH(_parentMap[dept])+' <span onclick="event.stopPropagation();circuAcpDoReparent(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\'\',\'\')" style="cursor:pointer;text-decoration:underline">解除</span></div>';
             h+='<div style="display:flex;gap:3px;justify-content:center;margin-top:3px">';
             h+='<button onclick="event.stopPropagation();circuAcpMergeDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+'">⊕ 合体</button>';
             h+='<button onclick="event.stopPropagation();circuAcpReparentDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+'">🔀 移動</button>';

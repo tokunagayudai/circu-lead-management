@@ -2471,6 +2471,36 @@ function circuAcpUnmergeDept(coKey,fromDept){
   delete m[fromDept];localStorage.setItem(k,JSON.stringify(m));
   circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
 }
+// ===== 部署・親グループ移動 =====
+function circuAcpReparentDeptUi(coKey,dept,openId){
+  var pid='acprppop';var ep=document.getElementById(pid);if(ep){ep.remove();return;}
+  var groups=(window._acpGroupsForOpenId&&window._acpGroupsForOpenId[openId])||[];
+  if(!groups.length){alert('移動先の親グループがありません（スペースで親/子が分かれている部署が必要です）');return;}
+  var _pmk=coKey+'_deptparent';var _pm={};
+  try{_pm=JSON.parse(localStorage.getItem(_pmk)||'{}');}catch(e){}
+  var curParent=_pm[dept]||'';
+  var pop=document.createElement('div');pop.id=pid;
+  pop.style.cssText='position:fixed;z-index:9100;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,.18);width:260px;top:50%;left:50%;transform:translate(-50%,-50%)';
+  var h2='<div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:8px">🔀 親グループへ移動</div>';
+  h2+='<div style="font-size:9px;color:#64748b;margin-bottom:6px">「'+_escH(dept)+'」の移動先グループ</div>';
+  h2+='<select id="acprpsel" style="font-size:11px;width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:5px;margin-bottom:10px;box-sizing:border-box">';
+  h2+='<option value=""'+(curParent?'':' selected')+'>─ 独立（親グループなし）</option>';
+  groups.forEach(function(g){h2+='<option value="'+_escA(g)+'"'+(g===curParent?' selected':'')+'>'+_escH(g)+'</option>';});
+  h2+='</select>';
+  h2+='<div style="display:flex;gap:6px">';
+  h2+='<button onclick="circuAcpDoReparent(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',document.getElementById(\'acprpsel\').value,\''+pid+'\')" style="flex:1;font-size:10px;background:#0079C0;color:#fff;border:none;border-radius:4px;padding:6px;cursor:pointer;font-weight:600">移動する</button>';
+  h2+='<button onclick="document.getElementById(\''+pid+'\').remove()" style="flex:1;font-size:10px;background:#f1f5f9;color:#334155;border:none;border-radius:4px;padding:6px;cursor:pointer">キャンセル</button>';
+  h2+='</div>';
+  pop.innerHTML=h2;document.body.appendChild(pop);
+}
+function circuAcpDoReparent(coKey,dept,newParent,popId){
+  var k=coKey+'_deptparent',m={};
+  try{m=JSON.parse(localStorage.getItem(k)||'{}');}catch(e){}
+  if(newParent){m[dept]=newParent;}else{delete m[dept];}
+  localStorage.setItem(k,JSON.stringify(m));
+  var el=document.getElementById(popId);if(el)el.remove();
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
+}
 // ===== 関係線 =====
 var _acpRelMode=false,_acpRelOpenId=null,_acpRelCoKey=null,_acpRelFromFn=null;
 var _acpSvgRels=[];  // [{id,coKey,openId}] for click-delete
@@ -3263,16 +3293,26 @@ function renderAcplanView(filtered,col){
         deptMap[toD]=deptMap[toD].concat(deptMap[fromD]);
         delete deptMap[fromD];
       });
-      // ② 階層ツリー構築（第1スペースで親/葉分離）
+      // ② 階層ツリー構築（第1スペースで親/葉分離 + 手動親グループ割り当て）
       var deptOrderKey=coKey+'_deptorder';
+      var _parentMapKey=coKey+'_deptparent'; var _parentMap={};
+      try{_parentMap=JSON.parse(localStorage.getItem(_parentMapKey)||'{}');}catch(e){}
       var _treeGroups={};
       var _orphans=[];
       Object.keys(deptMap).forEach(function(d){
+        if(_parentMap[d]){
+          var mp=_parentMap[d];
+          if(!_treeGroups[mp])_treeGroups[mp]=[];
+          _treeGroups[mp].push(d);
+          return;
+        }
         var sp=d.indexOf(' ');
         if(sp>0){var pk=d.slice(0,sp);if(!_treeGroups[pk])_treeGroups[pk]=[];_treeGroups[pk].push(d);}
         else{_orphans.push(d);}
       });
       var _parentKeys=Object.keys(_treeGroups).sort(function(a,b){return a.localeCompare(b,'ja');});
+      window._acpGroupsForOpenId=window._acpGroupsForOpenId||{};
+      window._acpGroupsForOpenId[openId]=_parentKeys;
       // ③ トップレベルアイテムリスト（親グループ + 孤立部署を同列に）
       var _topItems=[];
       _parentKeys.forEach(function(pk,pi){
@@ -3363,7 +3403,7 @@ function renderAcplanView(filtered,col){
             var dc=DEPT_PALETTE[di%DEPT_PALETTE.length];
             var dLeads=deptMap[dept];
             var sp3=dept.indexOf(' ');
-            var displayDept=sp3>=0?dept.slice(sp3+1):dept;
+            var displayDept=_parentMap[dept]?dept:(sp3>=0?dept.slice(sp3+1):dept);
             var personOrderKey=coKey+'_porder_'+dept;
             var savedPersonOrder=[];try{savedPersonOrder=JSON.parse(localStorage.getItem(personOrderKey)||'[]');}catch(e){}
             dLeads=dLeads.slice().sort(function(a,b){
@@ -3378,7 +3418,11 @@ function renderAcplanView(filtered,col){
             h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
             var _mfGroup=Object.keys(_mergeMap).filter(function(k){return _mergeMap[k]===dept;});
             if(_mfGroup.length)h+='<div style="font-size:7px;color:'+dc+';margin-top:1px;opacity:.75">＋'+_mfGroup.map(function(k){return _escH(k.split(' ').pop());}).join('・')+' <span onclick="event.stopPropagation();_mfGroup.forEach(function(f){circuAcpUnmergeDept(\''+_escA(coKey)+'\',f);})" style="cursor:pointer;text-decoration:underline">解除</span></div>';
-            h+='<button onclick="event.stopPropagation();circuAcpMergeDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+';margin-top:3px">⊕ 合体</button>';
+            if(_parentMap[dept])h+='<div style="font-size:7px;color:'+dc+';margin-top:1px;opacity:.75">📦'+_escH(_parentMap[dept])+' <span onclick="event.stopPropagation();circuAcpDoReparent(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\'\',\''+openId+'\')" style="cursor:pointer;text-decoration:underline">解除</span></div>';
+            h+='<div style="display:flex;gap:3px;justify-content:center;margin-top:3px">';
+            h+='<button onclick="event.stopPropagation();circuAcpMergeDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+'">⊕ 合体</button>';
+            h+='<button onclick="event.stopPropagation();circuAcpReparentDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+'">🔀 移動</button>';
+            h+='</div>';
             h+='</div>';
             h+='<div class="acpt-vline"></div>';
             h+='<div class="acpt-persons">';
@@ -3407,7 +3451,10 @@ function renderAcplanView(filtered,col){
           h+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+dLeads.length+'名</div>';
           var _mfOrph=Object.keys(_mergeMap).filter(function(k){return _mergeMap[k]===dept;});
           if(_mfOrph.length)h+='<div style="font-size:7px;color:'+dc+';margin-top:1px;opacity:.75">＋'+_mfOrph.map(function(k){return _escH(k);}).join('・')+' <span onclick="event.stopPropagation();_mfOrph.forEach(function(f){circuAcpUnmergeDept(\''+_escA(coKey)+'\',f);})" style="cursor:pointer;text-decoration:underline">解除</span></div>';
-          h+='<button onclick="event.stopPropagation();circuAcpMergeDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+';margin-top:3px">⊕ 合体</button>';
+          h+='<div style="display:flex;gap:3px;justify-content:center;margin-top:3px">';
+          h+='<button onclick="event.stopPropagation();circuAcpMergeDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+'">⊕ 合体</button>';
+          h+='<button onclick="event.stopPropagation();circuAcpReparentDeptUi(\''+_escA(coKey)+'\',\''+_escA(dept)+'\',\''+openId+'\')" style="font-size:7px;background:rgba(255,255,255,.8);border:1px solid '+dc+'99;border-radius:3px;padding:1px 5px;cursor:pointer;color:'+dc+'">🔀 移動</button>';
+          h+='</div>';
           h+='</div>';
           h+='<div class="acpt-vline"></div>';
           h+='<div class="acpt-persons">';

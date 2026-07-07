@@ -2414,6 +2414,13 @@ function circuAcpPhotoClick(pKey){
   inp.click();
 }
 function circuAcpSavePersonMemo(el){localStorage.setItem(el.dataset.pmk,el.value);}
+function circuAcpSaveNotionUrl(el){
+  var key=el.dataset.nuk;if(!key)return;
+  var val=el.value.trim();
+  if(val){localStorage.setItem(key,val);}else{localStorage.removeItem(key);}
+  var btn=document.getElementById(el.dataset.nbtn);
+  if(btn){if(val){btn.href=val;btn.style.display='inline';}else{btn.style.display='none';}}
+}
 // ===== 部署合体 =====
 function circuAcpMergeDeptUi(coKey,dept,openId){
   var pid='acpmpop';var ep=document.getElementById(pid);if(ep){ep.remove();return;}
@@ -3266,6 +3273,15 @@ function renderAcplanView(filtered,col){
       h+='<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9;background:#fafbff">';
       h+='<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:5px">📝 攻略メモ</div>';
       h+='<textarea data-cok="'+_escA(coKey)+'" oninput="circuAcpSaveMemo(this)" placeholder="攻略戦略・課題・方針..." style="width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:7px;font-size:11px;resize:vertical;min-height:48px;box-sizing:border-box;font-family:inherit;background:#fff;color:#0f172a;line-height:1.6">'+_escH(acpData.memo||'')+'</textarea>';
+      // Notionリンク
+      var _notionKey=coKey+'_notion_url';var _notionUrl=localStorage.getItem(_notionKey)||'';
+      var _notionBtnId='notionbtn_'+openId;
+      h+='<div style="display:flex;align-items:center;gap:6px;margin-top:7px">';
+      h+='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="24" height="24" rx="4" fill="#1a1a1a"/><path d="M6 6.5C6 5.67 6.67 5 7.5 5h5.09c.4 0 .78.16 1.06.44l4.91 4.91c.28.28.44.66.44 1.06V18.5c0 .83-.67 1.5-1.5 1.5h-10C6.67 20 6 19.33 6 18.5v-12z" fill="white"/><path d="M13 5.5V10a1 1 0 001 1h4.5" stroke="#1a1a1a" stroke-width="1.2"/></svg>';
+      h+='<span style="font-size:9px;font-weight:700;color:#475569;white-space:nowrap">Notion</span>';
+      h+='<input type="url" value="'+_escA(_notionUrl)+'" placeholder="NotionページのURLを貼り付け..." data-nuk="'+_escA(_notionKey)+'" data-nbtn="'+_escA(_notionBtnId)+'" oninput="circuAcpSaveNotionUrl(this)" onclick="event.stopPropagation()" style="flex:1;font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:3px 7px;background:#fff;color:#334155;min-width:0">';
+      h+='<a id="'+_notionBtnId+'" href="'+_escA(_notionUrl)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;font-weight:700;color:#fff;background:#1a1a1a;border-radius:4px;padding:3px 9px;text-decoration:none;white-space:nowrap;flex-shrink:0;display:'+(_notionUrl?'inline':'none')+'">開く ↗</a>';
+      h+='</div>';
       h+='</div>';
       // 組織図 (階層型: 同じ横段にトップレベル全項目を並列表示)
       // ① 部署名正規化（表記揺れ: G/Gr→グループ, 全角英字→半角）

@@ -3503,18 +3503,24 @@ function circuShowPiCoList(idx){
   var pid='pi_copop';var ep=document.getElementById(pid);if(ep)ep.remove();
   var pop=document.createElement('div');pop.id=pid;
   pop.style.cssText='position:fixed;z-index:9200;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:0;box-shadow:0 8px 32px rgba(0,0,0,.18);width:340px;max-height:72vh;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;overflow:hidden';
-  var sorted=item.cos.slice().sort(function(a,b){return a.localeCompare(b,'ja');});
-  var rows=sorted.map(function(co,i){
+  var coMap=item.cos||{};
+  var names=Object.keys(coMap).sort(function(a,b){return a.localeCompare(b,'ja');});
+  var rows=names.map(function(co,i){
+    var meta=coMap[co]||{count:0,accountId:''};
     var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    var nameHtml=meta.accountId
+      ?('<a href="'+SF_BASE+'Account/'+meta.accountId+'/view" target="_blank" rel="noopener" title="Salesforceで開く" style="color:#1e293b;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:#cbd5e1;text-underline-offset:2px">'+_escH(dispCo)+'</a>')
+      :('<span>'+_escH(dispCo)+'</span>');
     return '<div style="padding:8px 16px;font-size:11px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:8px">'
       +'<span style="color:#cbd5e1;font-size:9px;font-family:monospace;width:22px;text-align:right;flex-shrink:0">'+(i+1)+'</span>'
-      +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b">'+_escH(dispCo)+'</span>'
+      +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b">'+nameHtml+'</span>'
+      +'<span style="font-size:9px;color:#94a3b8;font-family:monospace;flex-shrink:0">'+meta.count+'件</span>'
       +'</div>';
   }).join('');
   pop.innerHTML=
     '<div style="padding:12px 16px;border-bottom:1.5px solid #f1f5f9;display:flex;align-items:center;gap:8px;background:#fff">'
     +'<span style="font-size:12px;font-weight:700;color:'+item.color+';flex:1">'+_escH(item.title)+'</span>'
-    +'<span style="font-size:10px;color:#94a3b8;font-family:monospace;background:#f8fafc;border-radius:10px;padding:2px 8px">'+sorted.length+'社</span>'
+    +'<span style="font-size:10px;color:#94a3b8;font-family:monospace;background:#f8fafc;border-radius:10px;padding:2px 8px">'+names.length+'社</span>'
     +'<button onclick="document.getElementById(\'pi_copop\').remove()" style="font-size:16px;color:#94a3b8;background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0">×</button>'
     +'</div>'
     +'<div style="overflow-y:auto;flex:1">'+rows+'</div>';
@@ -3991,10 +3997,12 @@ function renderLeads(M){
     var _fn2=(col.firstName>=0?(r[col.firstName]||''):'').trim();
     var fnWithSp=(_ln+' '+_fn2).trim();var fnNoSp=(_ln+_fn2).trim();
     if(co&&(starContactMap[co+'__'+fnWithSp]||starContactMap[co+'__'+fnNoSp]))byMember[mem].star++;
-    if(tier==='Tier1'){byMember[mem].t1++;if(co)byMember[mem].t1co[co]=true;}
-    else if(tier==='Tier2'){byMember[mem].t2++;if(co)byMember[mem].t2co[co]=true;}
-    else if(tier==='Tier3'){byMember[mem].t3++;if(co)byMember[mem].t3co[co]=true;}
-    else if(tier==='Tier4'){byMember[mem].t4++;if(co)byMember[mem].t4co[co]=true;}
+    var aid=(col.accountId>=0?(r[col.accountId]||''):'').trim();
+    var _incCo=function(map){if(!co)return;var e=map[co];if(!e)map[co]=e={count:0,accountId:''};e.count++;if(aid&&!e.accountId)e.accountId=aid;};
+    if(tier==='Tier1'){byMember[mem].t1++;_incCo(byMember[mem].t1co);}
+    else if(tier==='Tier2'){byMember[mem].t2++;_incCo(byMember[mem].t2co);}
+    else if(tier==='Tier3'){byMember[mem].t3++;_incCo(byMember[mem].t3co);}
+    else if(tier==='Tier4'){byMember[mem].t4++;_incCo(byMember[mem].t4co);}
     if(!tierMap[tier])tierMap[tier]={leads:0,companies:{}};
     tierMap[tier].leads++;if(co)tierMap[tier].companies[co]=true;
   });
@@ -4107,20 +4115,22 @@ function renderLeads(M){
   // Tier別チーム合計社数
   var totT1co=0,totT2co=0,totT3co=0,totT4co={};
   var _tco1={},_tco2={},_tco3={},_tco4={};
-  activeMembers.forEach(function(m){var d=byMember[m]||{};Object.keys(d.t1co||{}).forEach(function(c){_tco1[c]=true;});Object.keys(d.t2co||{}).forEach(function(c){_tco2[c]=true;});Object.keys(d.t3co||{}).forEach(function(c){_tco3[c]=true;});Object.keys(d.t4co||{}).forEach(function(c){_tco4[c]=true;});});
+  var _mergeCo=function(map,co,e){var m=map[co];if(!m)map[co]=m={count:0,accountId:''};m.count+=e.count;if(e.accountId&&!m.accountId)m.accountId=e.accountId;};
+  activeMembers.forEach(function(m){var d=byMember[m]||{};Object.keys(d.t1co||{}).forEach(function(c){_mergeCo(_tco1,c,d.t1co[c]);});Object.keys(d.t2co||{}).forEach(function(c){_mergeCo(_tco2,c,d.t2co[c]);});Object.keys(d.t3co||{}).forEach(function(c){_mergeCo(_tco3,c,d.t3co[c]);});Object.keys(d.t4co||{}).forEach(function(c){_mergeCo(_tco4,c,d.t4co[c]);});});
   var _totT1cos=Object.keys(_tco1),_totT2cos=Object.keys(_tco2),_totT3cos=Object.keys(_tco3),_totT4cos=Object.keys(_tco4);
   totT1co=_totT1cos.length;totT2co=_totT2cos.length;totT3co=_totT3cos.length;var totT4co2=_totT4cos.length;
   window._piCoLists=[];
 
   // 2行セル（リード数＋社数）
-  function tdTier2(leads,coArr,txtColor,bg,isTot,title){
-    var cos=Array.isArray(coArr)?coArr.length:coArr;
+  function tdTier2(leads,coMap,txtColor,bg,isTot,title){
+    var cosKeys=coMap&&typeof coMap==='object'?Object.keys(coMap):[];
+    var cos=cosKeys.length;
     var ls=isTot?'13px':'12px';
     if(!leads&&!cos)return '<td style="padding:8px 12px;text-align:right;background:'+bg+'"><span style="color:#cbd5e1;font-size:11px">−</span></td>';
     var idx=-1;
-    if(leads>0&&Array.isArray(coArr)&&coArr.length>0&&title){
+    if(leads>0&&cos>0&&title){
       idx=window._piCoLists.length;
-      window._piCoLists.push({title:title,color:txtColor,cos:coArr});
+      window._piCoLists.push({title:title,color:txtColor,cos:coMap});
     }
     var clickable=idx>=0;
     return '<td style="padding:8px 12px;text-align:right;background:'+bg+';'+(clickable?'cursor:pointer':'')+'"'+(clickable?' onclick="event.stopPropagation();circuShowPiCoList('+idx+')" title="クリックで企業一覧"':'')+'>'+
@@ -4134,10 +4144,10 @@ function renderLeads(M){
   h+='<tr style="border-top:2px solid #10b981">';
   h+='<td style="padding:10px 16px;font-weight:800;color:#1e293b;background:rgba(16,185,129,.06);white-space:nowrap;font-size:13px">チーム合計</td>';
   h+=_tdTot(teamTotal.companies);h+=_tdTot(teamTotal.leads);
-  h+=tdTier2(totT1,_totT1cos,'#4a7dd4','rgba(219,234,254,.4)',true,'T1 – チーム合計');
-  h+=tdTier2(totT2,_totT2cos,'#3a9e82','rgba(209,250,229,.4)',true,'T2 – チーム合計');
-  h+=tdTier2(totT3,_totT3cos,'#c48a30','rgba(254,243,199,.4)',true,'T3 – チーム合計');
-  h+=tdTier2(totT4,_totT4cos,'#7a909e','rgba(241,245,249,.6)',true,'T4 – チーム合計');
+  h+=tdTier2(totT1,_tco1,'#4a7dd4','rgba(219,234,254,.4)',true,'T1 – チーム合計');
+  h+=tdTier2(totT2,_tco2,'#3a9e82','rgba(209,250,229,.4)',true,'T2 – チーム合計');
+  h+=tdTier2(totT3,_tco3,'#c48a30','rgba(254,243,199,.4)',true,'T3 – チーム合計');
+  h+=tdTier2(totT4,_tco4,'#7a909e','rgba(241,245,249,.6)',true,'T4 – チーム合計');
   h+=_tdTot(totStar,'#f59e0b');h+=_tdTot(totActLead,'#10b981');h+=_tdTot(totProp,'#0079C0');h+=_tdTot(totRc,'#7c3aed');
   h+='</tr>';
 
@@ -4152,10 +4162,10 @@ function renderLeads(M){
     h+='<td style="padding:10px 16px;font-weight:600;white-space:nowrap;background:'+rowBg+';font-size:12px"><span style="display:inline-block;width:9px;height:9px;background:'+mc+';border-radius:50%;margin-right:6px;vertical-align:middle"></span>'+m+'</td>';
     h+=_td(Object.keys(d.companies).length,'#475569');
     h+=_td(d.leads,'#1e293b');
-    h+=tdTier2(d.t1,Object.keys(d.t1co||{}),'#4a7dd4','rgba(219,234,254,.25)',false,'T1 – '+m);
-    h+=tdTier2(d.t2,Object.keys(d.t2co||{}),'#3a9e82','rgba(209,250,229,.25)',false,'T2 – '+m);
-    h+=tdTier2(d.t3,Object.keys(d.t3co||{}),'#c48a30','rgba(254,243,199,.25)',false,'T3 – '+m);
-    h+=tdTier2(d.t4,Object.keys(d.t4co||{}),'#7a909e','rgba(241,245,249,.5)',false,'T4 – '+m);
+    h+=tdTier2(d.t1,d.t1co,'#4a7dd4','rgba(219,234,254,.25)',false,'T1 – '+m);
+    h+=tdTier2(d.t2,d.t2co,'#3a9e82','rgba(209,250,229,.25)',false,'T2 – '+m);
+    h+=tdTier2(d.t3,d.t3co,'#c48a30','rgba(254,243,199,.25)',false,'T3 – '+m);
+    h+=tdTier2(d.t4,d.t4co,'#7a909e','rgba(241,245,249,.5)',false,'T4 – '+m);
     h+=_td(d.star,'#f59e0b','rgba(240,253,244,.5)');
     h+=_td(d.active,'#10b981','rgba(240,253,244,.5)');
     h+=_td(pr,'#0079C0','rgba(240,253,244,.5)');

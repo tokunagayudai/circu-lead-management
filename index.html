@@ -4208,11 +4208,11 @@ function renderLeads(M){
     {id:'pastclient',label:'\uD83D\uDD04 稼働後顧客',cnt:pastClientCount,color:'#0891b2',sub:Object.keys(pastClientCos).filter(function(co){return !activeCos[co];}).length+'社'},
     {id:'dormant',label:'\uD83D\uDE34 休眠リード',cnt:dormantCount,color:'#f59e0b',sub:Object.keys(anyCasesCos).filter(function(co){return !activeCos[co];}).length+'社'},
     {id:'unproposed',label:'\uD83D\uDD0D 未提案リード',cnt:unpropCount,color:'#7c3aed',sub:'商談ゼロ'},
-    {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別'},
-    {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定'},
+    {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別',icon:'\uD83D\uDCCA'},
+    {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定',icon:'🎯'},
     {id:'proposal',label:'🔥 提案中担当者',cnt:(function(){var s={};Object.values(propCoCases).forEach(function(cs){cs.forEach(function(c){if(c.custContact)c.custContact.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(nn)s[nn]=true;});});});return Object.keys(s).length;})(),color:'#f97316',sub:Object.keys(propCos).length+'社'},
-    {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:'Tier1企業'},
-    {id:'listbuilder',label:'📤 リスト作成',cnt:null,color:'#0891b2',sub:'CSV出力'}
+    {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:'Tier1企業',icon:'📋'},
+    {id:'listbuilder',label:'📤 リスト作成',cnt:null,color:'#0891b2',sub:'CSV出力',icon:'📤'}
   ];
   tabs.forEach(function(t){
     var act=L_VIEW_MODE===t.id;
@@ -4223,7 +4223,7 @@ function renderLeads(M){
     if(t.cnt!==null){
       h+='<div style="font-size:28px;font-weight:800;font-family:var(--mono);color:'+(act?tc:'var(--ink)')+';line-height:1.2;margin:6px 0 2px">'+t.cnt+'</div>';
     }else{
-      h+='<div style="font-size:22px;margin:6px 0 2px;opacity:'+(act?1:.4)+'">\uD83D\uDCCA</div>';
+      h+='<div style="font-size:22px;margin:6px 0 2px;opacity:'+(act?1:.4)+'">'+(t.icon||'\uD83D\uDCCA')+'</div>';
     }
     h+='<div style="font-size:10px;color:'+(act?tc+'cc':'var(--ink3)')+'">'+t.sub+'</div>';
     h+='</div>';

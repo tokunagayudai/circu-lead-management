@@ -2391,8 +2391,15 @@ function circuMtgDoneBtn(co,field,done){
 // ===== アカプラ (Account Planning) =====
 function _escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _escA(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
-// acpNormCo kept for potential display use
 function acpNormCo(name){return name.replace(/株式会社|㈱|\(株\)/g,'').replace(/(HD|ホールディングス|ホールディング|グループ|holdings)/gi,'').replace(/[（）()\s・]+/g,'').toLowerCase().trim();}
+// アカプラに残す企業（グループ会社含む・部分一致）
+var ACPLAN_KEEP_KEYWORDS=['ウーブン・バイ・トヨタ','サントリー','三菱電機','野村不動産','本田技研','日本電気','イオン'];
+var ACPLAN_KEEP_NORM=ACPLAN_KEEP_KEYWORDS.map(acpNormCo);
+function isAcplanCo(co){
+  var n=acpNormCo(co||'');
+  if(!n)return false;
+  return ACPLAN_KEEP_NORM.some(function(k){return n.indexOf(k)>=0;});
+}
 function circuAcpToggle(id){
   var el=document.getElementById(id);var arr=document.getElementById(id+'_arr');if(!el)return;
   var open=el.style.display!=='none';el.style.display=open?'none':'block';
@@ -3147,16 +3154,20 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='</div></div>';
   return h;
 }
-function renderAcplanView(filtered,col){
+function renderAcplanView(filtered,col,mode){
+  mode=mode==='tier1'?'tier1':'acplan';
   var tier1Cos={};
   filtered.forEach(function(r){
     var tier=normTier((col.tier>=0?(r[col.tier]||''):'').trim());
     if(tier!=='Tier1')return;
     var co=(r[col.company]||'').trim();if(!co)return;
+    var keep=isAcplanCo(co);
+    if(mode==='acplan'&&!keep)return;
+    if(mode==='tier1'&&keep)return;
     if(!tier1Cos[co])tier1Cos[co]=[];tier1Cos[co].push(r);
   });
   var coList=Object.keys(tier1Cos);
-  if(!coList.length)return '<div style="padding:40px;text-align:center;color:var(--ink3)">Tier1リードが見つかりません（絞込条件を確認してください）</div>';
+  if(!coList.length)return '<div style="padding:40px;text-align:center;color:var(--ink3)">'+(mode==='acplan'?'アカプラ対象企業':'Tier1リード')+'が見つかりません（絞込条件を確認してください）</div>';
   var _getFullName=function(r){return ((col.lastName>=0?(r[col.lastName]||''):'').trim()+' '+(col.firstName>=0?(r[col.firstName]||''):'').trim()).trim();};
   var ROLE_DEF={決裁者:{color:'#b91c1c',bg:'#fee2e2'},キーマン:{color:'#d97706',bg:'#fef3c7'},チャンピオン:{color:'#059669',bg:'#d1fae5'},中立:{color:'#475569',bg:'#f1f5f9'},反対:{color:'#7c3aed',bg:'#ede9fe'},不明:{color:'#94a3b8',bg:'#f8fafc'}};
   var DEPT_PALETTE=['#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
@@ -3208,7 +3219,7 @@ function renderAcplanView(filtered,col){
   h+='<span style="font-size:10px;opacity:.75;margin-left:4px">チェックをつけた顧客をCSVで一括出力</span>';
   h+='</div>';
   h+='<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">';
-  h+='<span style="font-size:14px;font-weight:800;color:#1e293b">📋 アカプラ</span>';
+  h+='<span style="font-size:14px;font-weight:800;color:#1e293b">'+(mode==='acplan'?'📋 アカプラ':'🏆 Tier1')+'</span>';
   h+='<span style="font-size:11px;color:#64748b;background:#f1f5f9;border-radius:4px;padding:2px 8px">Tier1 '+coList.length+'社 / '+memberList.length+'FS</span>';
   h+='<span style="font-size:10px;color:#94a3b8">グループ欄に同じ名前を入れると企業をまとめられます</span>';
   h+='</div>';
@@ -4200,6 +4211,9 @@ function renderLeads(M){
   var unpropCount=L_DATA.filter(isUnproposed).length;
   var actLeadCount=L_DATA.filter(function(r){return activeCos[(r[col.company]||'').trim()];}).length;
   var pastClientCount=L_DATA.filter(isPastClient).length;
+  var _tier1Cos={};L_DATA.forEach(function(r){if(normTier((col.tier>=0?(r[col.tier]||''):'').trim())!=='Tier1')return;var co=(r[col.company]||'').trim();if(co)_tier1Cos[co]=true;});
+  var acplanCoCount=Object.keys(_tier1Cos).filter(isAcplanCo).length;
+  var tier1OtherCoCount=Object.keys(_tier1Cos).length-acplanCoCount;
   h+='<div style="padding:0 24px 16px">';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">';
   var tabs=[
@@ -4211,7 +4225,8 @@ function renderLeads(M){
     {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別',icon:'\uD83D\uDCCA'},
     {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定',icon:'🎯'},
     {id:'proposal',label:'🔥 提案中担当者',cnt:(function(){var s={};Object.values(propCoCases).forEach(function(cs){cs.forEach(function(c){if(c.custContact)c.custContact.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(nn)s[nn]=true;});});});return Object.keys(s).length;})(),color:'#f97316',sub:Object.keys(propCos).length+'社'},
-    {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:'Tier1企業',icon:'📋'},
+    {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:acplanCoCount+'社',icon:'📋'},
+    {id:'tier1',label:'🏆 Tier1',cnt:null,color:'#b45309',sub:tier1OtherCoCount+'社（その他）',icon:'🏆'},
     {id:'listbuilder',label:'📤 リスト作成',cnt:null,color:'#0891b2',sub:'CSV出力',icon:'📤'}
   ];
   tabs.forEach(function(t){
@@ -4233,7 +4248,7 @@ function renderLeads(M){
   // 全担当者フィルター: L_DATAから全メンバーを収集
   var allMembersSet={};L_DATA.forEach(function(r){var m=(col.member>=0?(r[col.member]||''):'').trim();if(m)allMembersSet[m]=true;});
   var allMembersSorted=Object.keys(allMembersSet).sort(function(a,b){return a.localeCompare(b,'ja');});
-  if(L_VIEW_MODE!=='analytics'&&L_VIEW_MODE!=='ispipeline'&&L_VIEW_MODE!=='acplan'&&L_VIEW_MODE!=='listbuilder'){
+  if(L_VIEW_MODE!=='analytics'&&L_VIEW_MODE!=='ispipeline'&&L_VIEW_MODE!=='acplan'&&L_VIEW_MODE!=='tier1'&&L_VIEW_MODE!=='listbuilder'){
   h+='<div class="ent-section">';
   h+='<div style="display:flex;gap:8px;padding:0 0 12px;align-items:center;flex-wrap:wrap">';
   h+='<span style="font-size:11px;font-weight:600;color:var(--ink2)">絞込:</span>';
@@ -4271,7 +4286,9 @@ function renderLeads(M){
   } else if(L_VIEW_MODE==='proposal'){
     h+='<div style="padding:0 24px 24px">'+renderProposalContactView(propCos,propCoCases,filtered,col)+'</div>';
   } else if(L_VIEW_MODE==='acplan'){
-    h+='<div style="padding:0 24px 24px">'+renderAcplanView(filtered,col)+'</div>';
+    h+='<div style="padding:0 24px 24px">'+renderAcplanView(filtered,col,'acplan')+'</div>';
+  } else if(L_VIEW_MODE==='tier1'){
+    h+='<div style="padding:0 24px 24px">'+renderAcplanView(filtered,col,'tier1')+'</div>';
   } else if(L_VIEW_MODE==='listbuilder'){
     h+=renderListBuilderView(col,activeCos,starContactMap,anyCasesCos,pastClientCos,recentCaseCos,today);
   } else {

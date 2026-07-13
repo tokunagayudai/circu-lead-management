@@ -673,6 +673,61 @@ function showLeads(){
   }
 }
 
+// ===== FSリサイクル判定 管理ブロック =====
+function renderFsRecycleBlock(){
+  var RC=window.RC_ROWS||[];
+  if(!RC.length||!(RC_COL.recycle>=0||RC_COL.recycleDate>=0))return '';
+  function rcGet(r,k){var i=RC_COL[k];return (i>=0&&i<r.length)?(r[i]||'').trim():'';}
+  var RC_NEG=/不要|無し|なし|対象外|済|完了|クローズ|^[-−ー×]+$|^no$/i;
+  function rcIsActive(r){var v=rcGet(r,'recycle');return !!(v&&!RC_NEG.test(v));}
+  var cases=RC.filter(rcIsActive);
+  if(!cases.length)return '';
+  // 担当者別件数
+  var byMemCnt={};
+  cases.forEach(function(r){var mem=rcGet(r,'member')||'（未設定）';byMemCnt[mem]=(byMemCnt[mem]||0)+1;});
+  var memList=Object.keys(byMemCnt).sort(function(a,b){return byMemCnt[b]-byMemCnt[a];});
+  // 日付昇順（未設定は末尾）
+  cases.sort(function(a,b){
+    var da=rcGet(a,'recycleDate')||'￿',db=rcGet(b,'recycleDate')||'￿';
+    return da<db?-1:da>db?1:0;
+  });
+  var SFOPP3='https://circulation.lightning.force.com/lightning/r/Opportunity/';
+  var h='<div class="ent-section">';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">';
+  h+='<div class="es-title" style="margin:0">🔁 FSリサイクル判定</div>';
+  h+='<span style="font-size:11px;color:#64748b;background:#f1f5f9;border-radius:10px;padding:2px 10px;font-weight:700">'+cases.length+'件</span>';
+  h+='</div>';
+  // 担当者別件数チップ
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+  memList.forEach(function(m){
+    var mc=(window.E_MEMBER_COLORS&&E_MEMBER_COLORS[m])||'#7057a3';
+    h+='<span style="font-size:10px;font-weight:600;color:'+mc+';background:'+mc+'14;border:1px solid '+mc+'33;border-radius:12px;padding:3px 10px">'+_escH(m.split(' ')[0])+' '+byMemCnt[m]+'件</span>';
+  });
+  h+='</div>';
+  h+='<div style="max-height:420px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:10px">';
+  h+='<table style="width:100%;border-collapse:collapse">';
+  h+='<thead><tr style="position:sticky;top:0;background:#f8fafc;border-bottom:2px solid #e2e8f0;z-index:1">';
+  ['担当者','取引先','案件名(SF)','リサイクル希望日','リサイクル選択'].forEach(function(l){h+='<th style="padding:8px 10px;text-align:left;font-size:9px;color:#64748b;font-weight:700;white-space:nowrap">'+l+'</th>';});
+  h+='</tr></thead><tbody>';
+  cases.forEach(function(r,idx){
+    var mem=rcGet(r,'member')||'（未設定）';
+    var mc=(window.E_MEMBER_COLORS&&E_MEMBER_COLORS[mem])||'#7057a3';
+    var co=rcGet(r,'account').replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
+    var nm=rcGet(r,'name');
+    var oid=rcGet(r,'oppId');
+    var nmLink=oid?('<a href="'+SFOPP3+oid+'/view" target="_blank" rel="noopener" title="Salesforceで開く" style="color:var(--blue);text-decoration:none;font-weight:600">'+_escH(nm||'(案件名なし)')+'</a>'):('<span>'+_escH(nm||'(案件名なし)')+'</span>');
+    var rd=rcGet(r,'recycleDate')||'未設定';
+    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:#fff':'background:#fafafa')+'">';
+    h+='<td style="padding:6px 10px;font-size:10px;font-weight:600;color:'+mc+';white-space:nowrap">'+_escH(mem.split(' ')[0])+'</td>';
+    h+='<td style="padding:6px 10px;font-size:10px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis" title="'+_escA(co)+'">'+_escH(co)+'</td>';
+    h+='<td style="padding:6px 10px;font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+_escA(nm)+'">'+nmLink+'</td>';
+    h+='<td style="padding:6px 10px;font-size:10px;font-family:var(--mono);font-weight:600;color:#7057a3;white-space:nowrap">'+_escH(rd)+'</td>';
+    h+='<td style="padding:6px 10px;font-size:9px;color:var(--blue);white-space:nowrap">'+_escH(rcGet(r,'recycle'))+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div></div>';
+  return h;
+}
 // ===== 未来パイプライン（リサイクル）分析 =====
 function renderRecyclePipeline(){
   if(!window.E_ROWS||!window.E_ROWS.length)return '';
@@ -4044,6 +4099,8 @@ function renderLeads(M){
   h+='<div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 16px;text-align:center"><div style="font-size:20px;font-weight:800;color:#fff;font-family:var(--mono)">'+uniqCo(L_DATA)+'</div><div style="font-size:9px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-top:1px">企業数</div></div>';
   h+='</div>';
   h+='</div>';
+  // ===== FS RECYCLE JUDGEMENT BLOCK =====
+  h+='<div style="padding:0 24px 4px">'+renderFsRecycleBlock()+'</div>';
   // ===== RECYCLE PIPELINE ANALYSIS =====
   h+='<div style="padding:0 24px 4px">'+renderRecyclePipeline()+'</div>';
   // ===== SUMMARY KPI TABLE =====

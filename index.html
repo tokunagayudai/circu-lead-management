@@ -4418,7 +4418,7 @@ function showRcDrawer(key){
     var g=function(r,i){return (i>=0&&i<r.length)?(r[i]||'').trim():'';};
     var SFOPP='https://circulation.lightning.force.com/lightning/r/Opportunity/';
     h+='<thead><tr style="border-bottom:2px solid var(--bd)">';
-    ['取引先','案件名(SF)','リサイクル選択','リサイクル希望日','ターゲット','最終P','顧客担当者'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
+    ['取引先','案件名(SF)','区分','リサイクル選択','リサイクル希望日','ターゲット','最終P','顧客担当者'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
     h+='</tr></thead><tbody>';
     rows.forEach(function(r,idx){
       var co=g(r,col.account).replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
@@ -4430,9 +4430,12 @@ function showRcDrawer(key){
       var tgt=g(r,col.recycleTarget);
       var lp=g(r,col.lastPh);
       var cc=g(r,col.custContact);
+      var cat=/FS/i.test(rt)?'FS':(/IS/i.test(rt)?'IS':null);
+      var catBadge=cat?('<span style="font-size:9px;font-weight:700;color:#fff;background:'+(cat==='FS'?'#0891b2':'#db2777')+';padding:2px 7px;border-radius:10px;white-space:nowrap">'+cat+'</span>'):'<span style="font-size:9px;color:var(--ink3)">−</span>';
       h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:var(--bg)':'')+'">';
       h+='<td style="padding:6px 8px;font-size:10px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis" title="'+co+'">'+co+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+nm+'">'+nmLink+'</td>';
+      h+='<td style="padding:6px 8px;white-space:nowrap">'+catBadge+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--blue);white-space:nowrap">'+rt+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;font-family:var(--mono);font-weight:600;color:#7057a3;white-space:nowrap">'+(rd||'未設定')+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+tgt+'</td>';

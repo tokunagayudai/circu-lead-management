@@ -673,61 +673,6 @@ function showLeads(){
   }
 }
 
-// ===== FSリサイクル判定 管理ブロック =====
-function renderFsRecycleBlock(){
-  var RC=window.RC_ROWS||[];
-  if(!RC.length||!(RC_COL.recycle>=0||RC_COL.recycleDate>=0))return '';
-  function rcGet(r,k){var i=RC_COL[k];return (i>=0&&i<r.length)?(r[i]||'').trim():'';}
-  var RC_NEG=/不要|無し|なし|対象外|済|完了|クローズ|^[-−ー×]+$|^no$/i;
-  function rcIsActive(r){var v=rcGet(r,'recycle');return !!(v&&!RC_NEG.test(v));}
-  var cases=RC.filter(rcIsActive);
-  if(!cases.length)return '';
-  // 担当者別件数
-  var byMemCnt={};
-  cases.forEach(function(r){var mem=rcGet(r,'member')||'（未設定）';byMemCnt[mem]=(byMemCnt[mem]||0)+1;});
-  var memList=Object.keys(byMemCnt).sort(function(a,b){return byMemCnt[b]-byMemCnt[a];});
-  // 日付昇順（未設定は末尾）
-  cases.sort(function(a,b){
-    var da=rcGet(a,'recycleDate')||'￿',db=rcGet(b,'recycleDate')||'￿';
-    return da<db?-1:da>db?1:0;
-  });
-  var SFOPP3='https://circulation.lightning.force.com/lightning/r/Opportunity/';
-  var h='<div class="ent-section">';
-  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">';
-  h+='<div class="es-title" style="margin:0">🔁 FSリサイクル判定</div>';
-  h+='<span style="font-size:11px;color:#64748b;background:#f1f5f9;border-radius:10px;padding:2px 10px;font-weight:700">'+cases.length+'件</span>';
-  h+='</div>';
-  // 担当者別件数チップ
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
-  memList.forEach(function(m){
-    var mc=(window.E_MEMBER_COLORS&&E_MEMBER_COLORS[m])||'#7057a3';
-    h+='<span style="font-size:10px;font-weight:600;color:'+mc+';background:'+mc+'14;border:1px solid '+mc+'33;border-radius:12px;padding:3px 10px">'+_escH(m.split(' ')[0])+' '+byMemCnt[m]+'件</span>';
-  });
-  h+='</div>';
-  h+='<div style="max-height:420px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:10px">';
-  h+='<table style="width:100%;border-collapse:collapse">';
-  h+='<thead><tr style="position:sticky;top:0;background:#f8fafc;border-bottom:2px solid #e2e8f0;z-index:1">';
-  ['担当者','取引先','案件名(SF)','リサイクル希望日','リサイクル選択'].forEach(function(l){h+='<th style="padding:8px 10px;text-align:left;font-size:9px;color:#64748b;font-weight:700;white-space:nowrap">'+l+'</th>';});
-  h+='</tr></thead><tbody>';
-  cases.forEach(function(r,idx){
-    var mem=rcGet(r,'member')||'（未設定）';
-    var mc=(window.E_MEMBER_COLORS&&E_MEMBER_COLORS[mem])||'#7057a3';
-    var co=rcGet(r,'account').replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
-    var nm=rcGet(r,'name');
-    var oid=rcGet(r,'oppId');
-    var nmLink=oid?('<a href="'+SFOPP3+oid+'/view" target="_blank" rel="noopener" title="Salesforceで開く" style="color:var(--blue);text-decoration:none;font-weight:600">'+_escH(nm||'(案件名なし)')+'</a>'):('<span>'+_escH(nm||'(案件名なし)')+'</span>');
-    var rd=rcGet(r,'recycleDate')||'未設定';
-    h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:#fff':'background:#fafafa')+'">';
-    h+='<td style="padding:6px 10px;font-size:10px;font-weight:600;color:'+mc+';white-space:nowrap">'+_escH(mem.split(' ')[0])+'</td>';
-    h+='<td style="padding:6px 10px;font-size:10px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis" title="'+_escA(co)+'">'+_escH(co)+'</td>';
-    h+='<td style="padding:6px 10px;font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+_escA(nm)+'">'+nmLink+'</td>';
-    h+='<td style="padding:6px 10px;font-size:10px;font-family:var(--mono);font-weight:600;color:#7057a3;white-space:nowrap">'+_escH(rd)+'</td>';
-    h+='<td style="padding:6px 10px;font-size:9px;color:var(--blue);white-space:nowrap">'+_escH(rcGet(r,'recycle'))+'</td>';
-    h+='</tr>';
-  });
-  h+='</tbody></table></div></div>';
-  return h;
-}
 // ===== 未来パイプライン（リサイクル）分析 =====
 function renderRecyclePipeline(){
   if(!window.E_ROWS||!window.E_ROWS.length)return '';
@@ -742,6 +687,9 @@ function renderRecyclePipeline(){
   var RC_NEG=/不要|無し|なし|対象外|済|完了|クローズ|^[-−ー×]+$|^no$/i;
   // リサイクル選択が「回っている」肯定値か（「リサイクル不要」等は除外）
   function rcIsActive(r){var v=rcGet(r,'recycle');return !!(v&&!RC_NEG.test(v));}
+  // リサイクル選択の値からFS/IS区分を判定
+  var RC_CAT_C={FS:'#0891b2',IS:'#db2777'};
+  function rcCategory(r){var v=rcGet(r,'recycle')||'';if(/FS/i.test(v))return 'FS';if(/IS/i.test(v))return 'IS';return null;}
   // リサイクル：次回希望日 のパース（YYYY/MM・YYYY年M月 等。TimeFrameラベルは日付なし扱い）
   function rcParseDate(r){
     var v=rcGet(r,'recycleDate');if(!v)return null;
@@ -820,23 +768,42 @@ function renderRecyclePipeline(){
   });
   h+='</div>';
 
-  // ===== 月別バーチャート =====
-  var _pMoTot={};months.forEach(function(mo){_pMoTot[mo]=0;TEAM5.forEach(function(m){_pMoTot[mo]+=(rcByMemMo[m][mo]||[]).length;});});
+  // ===== 月別バーチャート（FS/IS 内訳）=====
+  var _pMoTot={},_pMoFS={},_pMoIS={},_pMoOther={};
+  months.forEach(function(mo){
+    var fs=0,is=0,tot=0;
+    TEAM5.forEach(function(m){(rcByMemMo[m][mo]||[]).forEach(function(r){tot++;var c=rcCategory(r);if(c==='FS')fs++;else if(c==='IS')is++;});});
+    _pMoTot[mo]=tot;_pMoFS[mo]=fs;_pMoIS[mo]=is;_pMoOther[mo]=tot-fs-is;
+  });
   var _pMaxMo=0;months.forEach(function(mo){if((_pMoTot[mo]||0)>_pMaxMo)_pMaxMo=_pMoTot[mo]||0;});
   var nowMo=today.getFullYear()+'/'+(today.getMonth()+1<10?'0':'')+(today.getMonth()+1);
   if(_pMaxMo>0){
     h+='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:16px">';
-    h+='<div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:16px">📅 月別リサイクル候補件数（チーム計）</div>';
-    h+='<div style="display:flex;align-items:flex-end;gap:8px;height:120px">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
+    h+='<div style="font-size:11px;font-weight:700;color:#334155">📅 月別リサイクル候補件数（チーム計・FS/IS内訳）</div>';
+    h+='<div style="display:flex;gap:12px;font-size:10px">';
+    h+='<span style="display:flex;align-items:center;gap:4px;color:#334155"><span style="width:8px;height:8px;background:'+RC_CAT_C.FS+';border-radius:2px;display:inline-block"></span>FSリサイクル</span>';
+    h+='<span style="display:flex;align-items:center;gap:4px;color:#334155"><span style="width:8px;height:8px;background:'+RC_CAT_C.IS+';border-radius:2px;display:inline-block"></span>ISリサイクル</span>';
+    h+='<span style="display:flex;align-items:center;gap:4px;color:#94a3b8"><span style="width:8px;height:8px;background:#cbd5e1;border-radius:2px;display:inline-block"></span>その他</span>';
+    h+='</div></div>';
+    h+='<div style="display:flex;align-items:flex-end;gap:8px;height:130px">';
     months.forEach(function(mo){
       var cnt=_pMoTot[mo]||0;
-      var barH=cnt>0?Math.max(6,Math.round(cnt/_pMaxMo*90)):0;
-      var isCur=(mo===nowMo);var isNear=(months.indexOf(mo)<=1);
-      var barColor=isCur?'#1d4ed8':isNear?'#3b82f6':'#93c5fd';
-      h+='<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">';
+      var scale=cnt>0?90/_pMaxMo:0;
+      var hFS=(_pMoFS[mo]>0)?Math.max(2,Math.round(_pMoFS[mo]*scale)):0;
+      var hIS=(_pMoIS[mo]>0)?Math.max(2,Math.round(_pMoIS[mo]*scale)):0;
+      var hOther=(_pMoOther[mo]>0)?Math.max(2,Math.round(_pMoOther[mo]*scale)):0;
+      var isCur=(mo===nowMo);
+      var title='FS:'+(_pMoFS[mo]||0)+'件 / IS:'+(_pMoIS[mo]||0)+'件'+(_pMoOther[mo]?' / その他:'+_pMoOther[mo]+'件':'');
+      h+='<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px" title="'+title+'">';
       h+='<div style="font-size:11px;font-weight:700;font-family:var(--mono);color:'+(cnt>0?(isCur?'#1d4ed8':'#334155'):'#cbd5e1')+'">'+cnt+'</div>';
-      h+='<div style="width:100%;background:'+barColor+';border-radius:5px 5px 0 0;height:'+barH+'px;transition:.3s"></div>';
-      h+='<div style="font-size:10px;font-weight:'+(isCur?'800':'500')+';color:'+(isCur?'#1d4ed8':isNear?'#475569':'#94a3b8')+'">'+mo.slice(5)+'月'+(isCur?' ●':'')+'</div>';
+      h+='<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:90px">';
+      if(hOther)h+='<div style="width:100%;background:#cbd5e1;height:'+hOther+'px"></div>';
+      if(hIS)h+='<div style="width:100%;background:'+RC_CAT_C.IS+';height:'+hIS+'px"></div>';
+      if(hFS)h+='<div style="width:100%;background:'+RC_CAT_C.FS+';border-radius:5px 5px 0 0;height:'+hFS+'px"></div>';
+      if(!hFS&&!hIS&&!hOther)h+='<div style="width:100%;background:#f1f5f9;height:2px;border-radius:2px"></div>';
+      h+='</div>';
+      h+='<div style="font-size:10px;font-weight:'+(isCur?'800':'500')+';color:'+(isCur?'#1d4ed8':'#94a3b8')+'">'+mo.slice(5)+'月'+(isCur?' ●':'')+'</div>';
       h+='</div>';
     });
     h+='</div></div>';
@@ -864,9 +831,13 @@ function renderRecyclePipeline(){
     var allRows=byMem[mk].recycles;if(allRows.length)window._rcDrawerData[mk+'__all']={title:mk.split(' ')[0]+' リサイクル全件 ('+allRows.length+'件)',rows:allRows,isRecycleCase:true};
     // Tier別
     ['Tier1','Tier2','Tier3','Tier4'].forEach(function(t){var tr=allRows.filter(function(r){return coTierMap[rcGet(r,'account').trim()]===t;});if(tr.length)window._rcDrawerData[mk+'__'+t]={title:mk.split(' ')[0]+' / '+t+' リサイクル ('+tr.length+'件)',rows:tr,isRecycleCase:true};});
+    // FS/IS別
+    ['FS','IS'].forEach(function(cat){var tr=allRows.filter(function(r){return rcCategory(r)===cat;});if(tr.length)window._rcDrawerData[mk+'__'+cat]={title:mk.split(' ')[0]+' / '+cat+'リサイクル ('+tr.length+'件)',rows:tr,isRecycleCase:true};});
   });
   // チーム全体 Tier別
   ['Tier1','Tier2','Tier3','Tier4'].forEach(function(t){var tr=allRcRows.filter(function(r){return coTierMap[rcGet(r,'account').trim()]===t;});if(tr.length)window._rcDrawerData['team__'+t]={title:'チーム全体 / '+t+' リサイクル ('+tr.length+'件)',rows:tr,isRecycleCase:true};});
+  // チーム全体 FS/IS別
+  ['FS','IS'].forEach(function(cat){var tr=allRcRows.filter(function(r){return rcCategory(r)===cat;});if(tr.length)window._rcDrawerData['team__'+cat]={title:'チーム全体 / '+cat+'リサイクル ('+tr.length+'件)',rows:tr,isRecycleCase:true};});
 
   function tierDots(rows){
     var tc={};rows.forEach(function(r){var ac=rcGet(r,'account').trim();var t=coTierMap[ac]||'?';tc[t]=(tc[t]||0)+1;});
@@ -905,6 +876,8 @@ function renderRecyclePipeline(){
   function memberCard(name,dotColor,recycles,active,past,isTeam,drawerKey){
     var tc={Tier1:0,Tier2:0,Tier3:0,Tier4:0,other:0};
     recycles.forEach(function(r){var t=coTierMap[rcGet(r,'account').trim()];if(t&&tc[t]!==undefined)tc[t]++;else tc.other++;});
+    var catc={FS:0,IS:0};
+    recycles.forEach(function(r){var c=rcCategory(r);if(c)catc[c]++;});
     var tot=recycles.length;
     var slices=[{v:tc.Tier1,c:TIER_C.Tier1},{v:tc.Tier2,c:TIER_C.Tier2},{v:tc.Tier3,c:TIER_C.Tier3},{v:tc.Tier4,c:TIER_C.Tier4},{v:tc.other,c:'#e2e8f0'}];
     var card='<div style="background:'+(isTeam?'linear-gradient(160deg,#eff6ff,#f5f3ff)':'#fff')+';border:1px solid '+(isTeam?'#bfdbfe':'#e2e8f0')+';border-radius:12px;padding:14px 12px;text-align:center">';
@@ -929,6 +902,18 @@ function renderRecyclePipeline(){
       card+='<span style="font-weight:700;font-family:var(--mono);color:#334155">'+tl[1]+'件</span></div>';
     });
     card+='</div>';
+    // FS/IS内訳（各行クリックでFS/IS絞り込み一覧）
+    if(catc.FS||catc.IS){
+      card+='<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #f1f5f9;display:flex;flex-direction:column;gap:2px">';
+      [['FS',catc.FS],['IS',catc.IS]].forEach(function(cl){
+        if(!cl[1])return;
+        var ck=drawerKey.replace('__all','')+'__'+cl[0];
+        card+='<div onclick="showRcDrawer(\''+ck+'\')" style="display:flex;align-items:center;justify-content:space-between;font-size:10px;cursor:pointer;padding:2px 4px;border-radius:5px" onmouseenter="this.style.background=\'#f8fafc\'" onmouseleave="this.style.background=\'\'">';
+        card+='<span style="display:flex;align-items:center;gap:4px"><span style="color:'+RC_CAT_C[cl[0]]+';font-size:12px">●</span><span style="color:#475569">'+cl[0]+'リサイクル</span></span>';
+        card+='<span style="font-weight:700;font-family:var(--mono);color:#334155">'+cl[1]+'件</span></div>';
+      });
+      card+='</div>';
+    }
     card+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-around;font-size:10px">';
     card+='<div style="text-align:center"><div style="font-weight:700;color:#3b82f6;font-family:var(--mono)">'+(active||'—')+'</div><div style="color:#94a3b8">提案中</div></div>';
     card+='<div style="text-align:center"><div style="font-weight:700;color:#10b981;font-family:var(--mono)">'+(past||'—')+'</div><div style="color:#94a3b8">過去稼働</div></div>';
@@ -4099,8 +4084,6 @@ function renderLeads(M){
   h+='<div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 16px;text-align:center"><div style="font-size:20px;font-weight:800;color:#fff;font-family:var(--mono)">'+uniqCo(L_DATA)+'</div><div style="font-size:9px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-top:1px">企業数</div></div>';
   h+='</div>';
   h+='</div>';
-  // ===== FS RECYCLE JUDGEMENT BLOCK =====
-  h+='<div style="padding:0 24px 4px">'+renderFsRecycleBlock()+'</div>';
   // ===== RECYCLE PIPELINE ANALYSIS =====
   h+='<div style="padding:0 24px 4px">'+renderRecyclePipeline()+'</div>';
   // ===== SUMMARY KPI TABLE =====

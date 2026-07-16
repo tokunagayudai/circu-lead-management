@@ -432,6 +432,56 @@
 <script>
 var GAS_URL='https://script.google.com/macros/s/AKfycbwuB-bko02MczlRorWD0qQ7Ch80fLoZd5Gmtwb2BWKDfOLOlOBokjiBNjodupe-r2VF/exec';
 var SYNC_STATUS='syncing';
+// ===== チーム共有ストレージ同期 =====
+// アカプラの編集内容（組織図の移動・合体・メモ・手動追加人物など）を
+// GAS経由でスプレッドシート(shared_stateシート)に保存し、全メンバーで共有する。
+// GAS側に state_get / state_set が未実装の場合は自動的にローカル保存のみで動作する。
+var SHARED_STATE_PREFIXES=['circu_acplan_','circu_lead_'];
+var SHARED_DEL='__DEL__';
+var _ssQueue={},_ssTimer=null,_ssApplying=false,_ssFailCnt=0,_ssDisabled=false;
+function _isSharedStateKey(k){for(var i=0;i<SHARED_STATE_PREFIXES.length;i++)if(k.indexOf(SHARED_STATE_PREFIXES[i])===0)return true;return false;}
+(function(){
+  var _set=localStorage.setItem.bind(localStorage);
+  var _rm=localStorage.removeItem.bind(localStorage);
+  window._ssRawSet=_set;window._ssRawRemove=_rm;
+  localStorage.setItem=function(k,v){_set(k,v);if(!_ssApplying&&_isSharedStateKey(k)){_ssQueue[k]=String(v);_ssSchedule();}};
+  localStorage.removeItem=function(k){_rm(k);if(!_ssApplying&&_isSharedStateKey(k)){_ssQueue[k]=SHARED_DEL;_ssSchedule();}};
+})();
+function _ssSchedule(){if(_ssDisabled)return;clearTimeout(_ssTimer);_ssTimer=setTimeout(_ssFlush,1200);}
+function _ssFlush(){
+  if(_ssDisabled)return;
+  var items=_ssQueue;_ssQueue={};
+  var ks=Object.keys(items);if(!ks.length)return;
+  fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'state_set',items:items})})
+    .then(function(r){return r.json();})
+    .then(function(j){if(!j||!j.ok)throw new Error('state_set not ok');_ssFailCnt=0;})
+    .catch(function(e){
+      _ssFailCnt++;
+      if(_ssFailCnt>=3){_ssDisabled=true;console.warn('共有同期を停止しました（GAS側にstate_set未実装の可能性）。編集はローカルにのみ保存されます。');return;}
+      ks.forEach(function(k){if(!(k in _ssQueue))_ssQueue[k]=items[k];});
+      clearTimeout(_ssTimer);_ssTimer=setTimeout(_ssFlush,8000);
+      console.warn('共有同期エラー（再試行します）:',e);
+    });
+}
+window.addEventListener('beforeunload',function(){
+  if(_ssDisabled)return;
+  var ks=Object.keys(_ssQueue);if(!ks.length)return;
+  try{navigator.sendBeacon(GAS_URL,JSON.stringify({action:'state_set',items:_ssQueue}));_ssQueue={};}catch(e){}
+});
+function loadSharedState(){
+  return fetch(GAS_URL+'?action=state_get').then(function(r){return r.json();}).then(function(obj){
+    if(!obj||typeof obj!=='object')return;
+    _ssApplying=true;
+    try{
+      Object.keys(obj).forEach(function(k){
+        if(!_isSharedStateKey(k))return;
+        if(obj[k]===SHARED_DEL)window._ssRawRemove(k);
+        else window._ssRawSet(k,obj[k]);
+      });
+      console.log('共有データ読込: '+Object.keys(obj).length+'件');
+    }finally{_ssApplying=false;}
+  }).catch(function(e){console.warn('共有データ読込エラー（ローカル保存で継続）:',e);});
+}
 var SF_BASE='https://circulation.lightning.force.com/lightning/r/';
 var SFO='https://circulation.lightning.force.com/lightning/r/Opportunity/';
 var E_ROWS=[],E_COL={},E_PN2=[];
@@ -4666,7 +4716,8 @@ function fetchFromGAS(){
     fetch(GAS_URL+'?sheet=all_lead').then(function(r){return r.text();}),
     fetch(GAS_URL+'?sheet=acplan_pn').then(function(r){return r.text();}),
     fetch(GAS_URL+'?sheet=pn_new').then(function(r){return r.text();}),
-    fetch(GAS_URL+'?sheet=all_cases').then(function(r){return r.text();}).catch(function(){return '';})
+    fetch(GAS_URL+'?sheet=all_cases').then(function(r){return r.text();}).catch(function(){return '';}),
+    loadSharedState()// チーム共有の編集データ（アカプラ等）を描画前に反映
   ]).then(function(res){
     // acplan_cases → E_ROWS, E_COL
     var cf=pCSV(res[0]);

@@ -2811,6 +2811,96 @@ function circuAcpPersonDragEnd(e){
   _acpPersonDragSrc=null;
   document.querySelectorAll('.acpt-person').forEach(function(el){el.style.outline='';});
 }
+// ===== 人物カードを部署ボックスへドラッグして部署間移動 =====
+function circuAcpPersonDragOverBox(e){
+  if(!_acpPersonDragSrc)return;// 部署ボックス自体のドラッグ中は無視（既存の並び替えに委ねる）
+  e.preventDefault();e.stopPropagation();
+  e.dataTransfer.dropEffect='move';
+  e.currentTarget.style.outline='2px dashed #0079C0';
+}
+function circuAcpPersonDropOnDept(e,coKey,deptNodeId){
+  if(!_acpPersonDragSrc)return;
+  e.preventDefault();e.stopPropagation();
+  if(e.currentTarget.style)e.currentTarget.style.outline='';
+  var fn=_acpPersonDragSrc.dataset.pname;
+  _acpPersonDragSrc.style.opacity='';
+  _acpPersonDragSrc=null;
+  if(!fn)return;
+  var k=coKey+'_persondept',m={};
+  try{m=JSON.parse(localStorage.getItem(k)||'{}');}catch(err){}
+  m[fn]=deptNodeId;
+  localStorage.setItem(k,JSON.stringify(m));
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
+}
+function circuAcpUnsetPersonDept(coKey,fn){
+  var k=coKey+'_persondept',m={};
+  try{m=JSON.parse(localStorage.getItem(k)||'{}');}catch(e){}
+  delete m[fn];localStorage.setItem(k,JSON.stringify(m));
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
+}
+// ===== Salesforce未登録の人物を手動追加 =====
+function _acpGetManualLeads(coKey){
+  var arr=[];try{arr=JSON.parse(localStorage.getItem(coKey+'_manualLeads')||'[]');}catch(e){}
+  return arr;
+}
+function _acpManualToRow(m,col){
+  var maxIdx=-1;
+  Object.keys(col).forEach(function(k){if(col[k]>maxIdx)maxIdx=col[k];});
+  var row=[];for(var i=0;i<=maxIdx;i++)row.push('');
+  function set(k,v){if(col[k]>=0)row[col[k]]=v||'';}
+  set('lastName',m.lastName);
+  set('firstName',m.firstName);
+  set('name',((m.lastName||'')+' '+(m.firstName||'')).trim());
+  set('dept',m.dept);
+  set('role',m.role);
+  set('mobile',m.mobile);
+  set('email',m.email);
+  set('tier','Tier1');
+  set('member',m.member);
+  row.__manual=true;
+  row.__manualId=m.id;
+  row.__note=m.note||'';
+  return row;
+}
+function circuAcpAddLeadUi(coKey){
+  var pid='acpaddpop';var ep=document.getElementById(pid);if(ep){ep.remove();return;}
+  var pop=document.createElement('div');pop.id=pid;
+  pop.style.cssText='position:fixed;z-index:9100;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.18);width:280px;top:50%;left:50%;transform:translate(-50%,-50%)';
+  var fld=function(id,label,ph,type,flex){
+    return '<div style="margin-bottom:8px;'+(flex?'flex:1':'')+'"><div style="font-size:9px;color:#64748b;margin-bottom:2px">'+_escH(label)+'</div><input id="'+id+'" type="'+(type||'text')+'" placeholder="'+_escA(ph||'')+'" style="width:100%;font-size:11px;border:1px solid #cbd5e1;border-radius:4px;padding:5px;box-sizing:border-box"></div>';
+  };
+  var h2='<div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:4px">👤 新規リード追加</div>';
+  h2+='<div style="font-size:9px;color:#94a3b8;margin-bottom:8px">Salesforce未登録の人物もここから追加できます</div>';
+  h2+='<div style="display:flex;gap:6px">'+fld('acpadd_ln','姓','山田',null,true)+fld('acpadd_fn','名','太郎',null,true)+'</div>';
+  h2+=fld('acpadd_dept','部署（任意・後でドラッグ移動も可）','例: 営業部');
+  h2+=fld('acpadd_role','役職','例: 部長');
+  h2+=fld('acpadd_mobile','電話番号','');
+  h2+=fld('acpadd_email','メールアドレス','','email');
+  h2+=fld('acpadd_note','備考','例: SF登録なし');
+  h2+='<div style="display:flex;gap:6px;margin-top:2px">';
+  h2+='<button onclick="circuAcpDoAddLead(\''+_escA(coKey)+'\',\''+pid+'\')" style="flex:1;font-size:10px;background:#0079C0;color:#fff;border:none;border-radius:4px;padding:7px;cursor:pointer;font-weight:600">追加する</button>';
+  h2+='<button onclick="document.getElementById(\''+pid+'\').remove()" style="flex:1;font-size:10px;background:#f1f5f9;color:#334155;border:none;border-radius:4px;padding:7px;cursor:pointer">キャンセル</button>';
+  h2+='</div>';
+  pop.innerHTML=h2;document.body.appendChild(pop);
+  setTimeout(function(){var el=document.getElementById('acpadd_ln');if(el)el.focus();},10);
+}
+function circuAcpDoAddLead(coKey,popId){
+  var g=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  var ln=g('acpadd_ln'),fn=g('acpadd_fn');
+  if(!ln&&!fn){alert('姓または名を入力してください');return;}
+  var k=coKey+'_manualLeads';var arr=[];try{arr=JSON.parse(localStorage.getItem(k)||'[]');}catch(e){}
+  arr.push({id:'m'+Date.now()+Math.random().toString(36).slice(2,7),lastName:ln,firstName:fn,dept:g('acpadd_dept'),role:g('acpadd_role'),mobile:g('acpadd_mobile'),email:g('acpadd_email'),note:g('acpadd_note')});
+  localStorage.setItem(k,JSON.stringify(arr));
+  var el=document.getElementById(popId);if(el)el.remove();
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
+}
+function circuAcpDeleteManualLead(coKey,leadId){
+  if(!confirm('この人物を削除しますか？'))return;
+  var k=coKey+'_manualLeads';var arr=[];try{arr=JSON.parse(localStorage.getItem(k)||'[]');}catch(e){}
+  arr=arr.filter(function(m){return m.id!==leadId;});
+  localStorage.setItem(k,JSON.stringify(arr));
+  circuRenderKeepOpen(function(){renderLeads(document.getElementById('M'));});
+}
 function circuAcpSaveLog(lk,li,f,v){
   var logs=[];try{logs=JSON.parse(localStorage.getItem(lk)||'[]');}catch(e){}
   if(!logs[li])return;logs[li][f]=v;localStorage.setItem(lk,JSON.stringify(logs));
@@ -3307,9 +3397,11 @@ function renderAcplanView(filtered,col,mode){
     var prevGTag=null;
     cos.forEach(function(co){
       var ci=coGlobalIdx++;
-      var leads=tier1Cos[co];
-      var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
       var coKey='circu_acplan_'+co;
+      var leads=tier1Cos[co];
+      var _manualLeads=_acpGetManualLeads(coKey);
+      if(_manualLeads.length)leads=leads.concat(_manualLeads.map(function(m){return _acpManualToRow(m,col);}));
+      var dispCo=co.replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
       var gtagKey=coKey+'_gtag';
       var acpData={};try{acpData=JSON.parse(localStorage.getItem(coKey)||'{}');}catch(e){}
       var openId='acp_'+ci;
@@ -3367,10 +3459,14 @@ function renderAcplanView(filtered,col,mode){
         s=s.replace(/([^\x00-\x7F\s])Gr$/i,function(m,p1){return p1+'グループ';});
         return s.trim();
       };
+      var _personDeptMapKey=coKey+'_persondept';var _personDeptMap={};
+      try{_personDeptMap=JSON.parse(localStorage.getItem(_personDeptMapKey)||'{}');}catch(e){}
       var deptMap={};
       leads.forEach(function(r){
         var rawDept=(col.dept>=0?(r[col.dept]||''):'').trim().replace(/[　\s]+/g,' ')||'部署不明';
         var normD=_ndStr(rawDept)||'部署不明';
+        var _fn0=_getFullName(r);
+        if(_fn0&&Object.prototype.hasOwnProperty.call(_personDeptMap,_fn0))normD=_personDeptMap[_fn0]||normD;
         if(!deptMap[normD])deptMap[normD]=[];
         deptMap[normD].push(r);
       });
@@ -3469,6 +3565,12 @@ function renderAcplanView(filtered,col,mode){
         ph+='<input type="checkbox" '+(isChecked?'checked':'')+' onchange="circuAcpToggleCheck(this,\''+_escA(ckKey)+'\')" style="width:14px;height:14px;cursor:pointer;accent-color:#0079C0;flex-shrink:0" title="選択してCSVエクスポート">';
         ph+='</div>';
         if(role)ph+='<div style="font-size:9px;color:#64748b;margin-bottom:3px">'+_escH(role)+'</div>';
+        if(r.__manual){
+          ph+='<div style="font-size:8px;color:#059669;background:#ecfdf5;border-radius:3px;padding:1px 5px;display:inline-block;margin-bottom:3px">🆕 手動追加'+(r.__note?'・'+_escH(r.__note):'')+' <span onclick="event.stopPropagation();circuAcpDeleteManualLead(\''+_escA(coKey)+'\',\''+_escA(r.__manualId)+'\')" style="cursor:pointer;text-decoration:underline">削除</span></div>';
+        }
+        if(Object.prototype.hasOwnProperty.call(_personDeptMap,fn)){
+          ph+='<div style="font-size:8px;color:#0079C0;background:#eff6ff;border-radius:3px;padding:1px 5px;display:inline-block;margin-bottom:3px">🔀 移動済み <span onclick="event.stopPropagation();circuAcpUnsetPersonDept(\''+_escA(coKey)+'\',\''+_escA(fn)+'\')" style="cursor:pointer;text-decoration:underline">元へ戻す</span></div>';
+        }
         ph+='<div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-bottom:4px">';
         ph+='<select data-lsk="'+_escA(acpRoleLsKey)+'" onchange="circuAcpSaveRole(this)" style="font-size:8px;padding:1px 3px;border:1px solid #cbd5e1;border-radius:3px;background:#fff;cursor:pointer;color:#334155">';
         ['','決裁者','キーマン','チャンピオン','中立','反対','不明'].forEach(function(rv){ph+='<option value="'+rv+'"'+(acpRole===rv?' selected':'')+'>'+(rv||'役割未設定')+'</option>';});
@@ -3483,7 +3585,8 @@ function renderAcplanView(filtered,col,mode){
       // ⑤ レンダリング: 再帰的にノードを描画（どの深さでも同じロジック）
       h+='<div style="padding:10px 12px;border-bottom:1px solid #f1f5f9">';
       h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">';
-      h+='<div style="font-size:10px;font-weight:700;color:#475569;flex:1">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（横ドラッグで並び替え・🔀移動で階層を自由に変更）</span></div>';
+      h+='<div style="font-size:10px;font-weight:700;color:#475569;flex:1">🏢 組織図・ターゲット整理 <span style="font-size:9px;color:#94a3b8;font-weight:400">（横ドラッグで並び替え・🔀移動で階層を自由に変更・人物カードは部署ボックスへドラッグで移動可）</span></div>';
+      h+='<button onclick="circuAcpAddLeadUi(\''+_escA(coKey)+'\')" style="font-size:9px;background:#ecfdf5;color:#059669;border:1px solid #86efac;border-radius:5px;padding:3px 9px;cursor:pointer;white-space:nowrap;font-weight:600">＋ 人物追加</button>';
       h+='<button id="acprelbtm_'+openId+'" onclick="circuAcpRelToggle(\''+openId+'\',\''+_escA(coKey)+'\')" style="font-size:9px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:5px;padding:3px 9px;cursor:pointer;white-space:nowrap;font-weight:600">🔗 関係線</button>';
       h+='</div>';
       var _diGlobal=0,_acpRowIdxCounter=0;
@@ -3511,7 +3614,7 @@ function renderAcplanView(filtered,col,mode){
         var dropAttrs=siblingRowId?(' ondragover="circuAcpDragOver(event)" ondrop="circuAcpDrop(event,\''+_escA(siblingRowId)+'\',\''+_escA(siblingOrderKey)+'\')"'):'';
         var out='<div data-dept="'+_escA(nodeId)+'"'+(hasPeople?' data-haspeople="1"':'')+dropAttrs+' class="acpt-col" style="flex:0 0 '+(hasKids?'auto':'176px')+(isTop?';padding:0 5px':'')+'">';
         if(!isTop)out+='<div class="acpt-stub"></div>';
-        out+='<div draggable="true" ondragstart="circuAcpDragStart(event)" style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
+        out+='<div draggable="true" ondragstart="circuAcpDragStart(event)" ondragover="circuAcpPersonDragOverBox(event)" ondrop="circuAcpPersonDropOnDept(event,\''+_escA(coKey)+'\',\''+_escA(nodeId)+'\')" style="width:100%;border:1.5px solid '+dc+';border-radius:8px;background:'+dc+'10;padding:5px 8px;text-align:center;box-sizing:border-box;cursor:grab;position:relative;z-index:2">';
         out+='<div style="font-size:9px;font-weight:700;color:'+dc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:.6">⠿</span> '+_escH(displayName)+'</div>';
         out+='<div style="font-size:9px;color:'+dc+'99;margin-top:1px">'+(hasPeople?(dLeads.length+'名'):'グループ')+'</div>';
         if(mergedFrom.length){

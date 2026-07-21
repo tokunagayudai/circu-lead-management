@@ -2465,7 +2465,7 @@ function listBuilderDownloadCSV(){
   Object.keys(_condLabels).forEach(function(k){var v=F2[k];if(v===true)_parts.push(_condLabels[k]);else if(v==='exclude')_parts.push(_condLabels[k]+'除外');});
   if(F2.tiers&&F2.tiers.length>0)_parts.push(F2.tiers.join(''));
   if(F2.member&&F2.member!=='all')_parts.push(F2.member.split(' ')[0]);
-  if(F2.targetCats&&F2.targetCats.length>0)_parts.push(F2.targetCats.map(function(t){return t.replace(/ターゲット\//,'');}).join('or'));
+  if(F2.targetCats&&F2.targetCats.length>0)_parts.push(F2.targetCats.map(function(t){return t.replace(/ターゲット\//,'');}).join('・')+'除外');
   if(F2.kwConditions&&F2.kwConditions.length>0)F2.kwConditions.forEach(function(c){_parts.push((c.mode==='include'?'含む_':'含まない_')+c.kw.replace(/[,、\s]/g,''));});
   var _fname=(_parts.length>0?_parts.join('_'):'全リード')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   a.href=url;a.download=_fname;
@@ -3145,7 +3145,8 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
-    if(F.targetCats&&F.targetCats.length>0&&!F.targetCats.some(function(tc){return tc==='__blank__'?tcat2==='':tcat2===tc;}))return false;
+    // ターゲット/カテゴリは「除外リスト」方式: チェックを外した(=除外リストに入った)分類の人を除外
+    if(F.targetCats&&F.targetCats.length>0&&F.targetCats.some(function(tc){return tc==='__blank__'?tcat2==='':tcat2===tc;}))return false;
     // 複数キーワード条件（AND）
     if(F.kwConditions&&F.kwConditions.length>0){
       var _ct=(personCaseTypeMap[fn]||personCaseTypeMap[_fnNoSp5]||'').toLowerCase();
@@ -3227,29 +3228,31 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='</select>';
   // ターゲット区分 複数選択ドロップダウン
   var _tcats=F.targetCats||[];var _tcatOpen=!!window._tcatDDOpen;
-  var _tcatLabel=_tcats.length===0?'🎯 全ターゲット':'🎯 '+_tcats.length+'件選択中';
-  var _tcatBd=_tcats.length>0?'#0079C0':'var(--bd)';
-  var _tcatBg=_tcats.length>0?'#eff6ff':'#fff';
-  var _tcatTx=_tcats.length>0?'#0079C0':'#374151';
+  var _tcatLabel=_tcats.length===0?'🎯 全ターゲット':'🎯 '+_tcats.length+'件を除外';
+  var _tcatBd=_tcats.length>0?'#ef4444':'var(--bd)';
+  var _tcatBg=_tcats.length>0?'#fef2f2':'#fff';
+  var _tcatTx=_tcats.length>0?'#ef4444':'#374151';
   h+='<div style="position:relative;display:inline-block">';
   h+='<button onclick="window._tcatDDOpen=!window._tcatDDOpen;renderLeads(document.getElementById(\'M\'))" style="padding:5px 12px;border-radius:8px;border:1px solid '+_tcatBd+';font-size:11px;background:'+_tcatBg+';color:'+_tcatTx+';cursor:pointer;font-weight:'+(_tcats.length>0?'700':'400')+';display:flex;align-items:center;gap:4px">'+_tcatLabel+'<span style="font-size:9px;opacity:.6">▾</span></button>';
   if(_tcatOpen){
-    h+='<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:240px;padding:6px 0;max-height:280px;overflow-y:auto">';
+    h+='<div style="position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:260px;padding:6px 0;max-height:300px;overflow-y:auto">';
+    h+='<div style="padding:5px 14px 7px;font-size:9px;color:#94a3b8;border-bottom:1px solid #f1f5f9">チェックを外した分類の人だけ除外されます（例: ターゲット外を外す）</div>';
+    // 全ターゲット（除外なし）
     h+='<div onclick="window.L_LIST_FILTERS.targetCats=[];renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;font-weight:600;color:#64748b;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:6px" onmouseenter="this.style.background=\'#f8fafc\'" onmouseleave="this.style.background=\'#fff\'">';
     h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(_tcats.length===0?'#0079C0':'#cbd5e1')+';background:'+(_tcats.length===0?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(_tcats.length===0?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
-    h+='全ターゲット</div>';
-    // 空白オプション
-    var _blankSel=_tcats.indexOf('__blank__')>=0;
+    h+='全ターゲット（全員対象）</div>';
+    // 空白オプション（チェックあり=対象／外す=除外）
+    var _blankEx=_tcats.indexOf('__blank__')>=0;var _blankChk=!_blankEx;
     var _blankCount=data.filter(function(r){return((col2.targetCat>=0?(r[col2.targetCat]||''):'').trim()==='');}).length;
-    h+='<div onclick="var ts=window.L_LIST_FILTERS.targetCats,idx=ts.indexOf(\'__blank__\');if(idx>=0)ts.splice(idx,1);else ts.push(\'__blank__\');renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;color:#1e293b;display:flex;align-items:center;gap:6px;background:'+(_blankSel?'#eff6ff':'#fff')+'" onmouseenter="this.style.background=\''+(_blankSel?'#dbeafe':'#f8fafc')+'\';" onmouseleave="this.style.background=\''+(_blankSel?'#eff6ff':'#fff')+'\'">';
-    h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(_blankSel?'#0079C0':'#cbd5e1')+';background:'+(_blankSel?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(_blankSel?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
+    h+='<div onclick="var ts=window.L_LIST_FILTERS.targetCats,idx=ts.indexOf(\'__blank__\');if(idx>=0)ts.splice(idx,1);else ts.push(\'__blank__\');renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;color:#1e293b;display:flex;align-items:center;gap:6px;background:'+(_blankEx?'#fef2f2':'#fff')+'" onmouseenter="this.style.background=\''+(_blankEx?'#fee2e2':'#f8fafc')+'\';" onmouseleave="this.style.background=\''+(_blankEx?'#fef2f2':'#fff')+'\'">';
+    h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(_blankChk?'#0079C0':'#cbd5e1')+';background:'+(_blankChk?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(_blankChk?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
     h+='<span style="color:#94a3b8;font-style:italic">空白</span><span style="font-size:9px;color:#cbd5e1;margin-left:auto">'+_blankCount+'件</span></div>';
     h+='<div style="border-top:1px solid #f1f5f9;margin:2px 0"></div>';
     Object.keys(allTcats).sort(function(a,b){return a.localeCompare(b,'ja');}).forEach(function(t){
-      var sel=_tcats.indexOf(t)>=0;
-      h+='<div onclick="var ts=window.L_LIST_FILTERS.targetCats,idx=ts.indexOf(\''+_escA(t)+'\');if(idx>=0)ts.splice(idx,1);else ts.push(\''+_escA(t)+'\');renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;color:#1e293b;display:flex;align-items:center;gap:6px;background:'+(sel?'#eff6ff':'#fff')+'" onmouseenter="this.style.background=\''+(sel?'#dbeafe':'#f8fafc')+'\';" onmouseleave="this.style.background=\''+(sel?'#eff6ff':'#fff')+'\'">';
-      h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(sel?'#0079C0':'#cbd5e1')+';background:'+(sel?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(sel?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
-      h+=_escH(t)+'</div>';
+      var _ex=_tcats.indexOf(t)>=0;var _chk=!_ex;
+      h+='<div onclick="var ts=window.L_LIST_FILTERS.targetCats,idx=ts.indexOf(\''+_escA(t)+'\');if(idx>=0)ts.splice(idx,1);else ts.push(\''+_escA(t)+'\');renderLeads(document.getElementById(\'M\'))" style="padding:7px 14px;cursor:pointer;font-size:11px;color:#1e293b;display:flex;align-items:center;gap:6px;background:'+(_ex?'#fef2f2':'#fff')+'" onmouseenter="this.style.background=\''+(_ex?'#fee2e2':'#f8fafc')+'\';" onmouseleave="this.style.background=\''+(_ex?'#fef2f2':'#fff')+'\'">';
+      h+='<span style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(_chk?'#0079C0':'#cbd5e1')+';background:'+(_chk?'#0079C0':'#fff')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+(_chk?'<span style="color:#fff;font-size:9px;font-weight:800">✓</span>':'')+'</span>';
+      h+=_escH(t)+(_ex?'<span style="font-size:9px;color:#ef4444;margin-left:auto;font-weight:600">除外</span>':'')+'</div>';
     });
     h+='</div>';
   }

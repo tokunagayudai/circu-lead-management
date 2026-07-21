@@ -4046,8 +4046,8 @@ function renderLeads(M){
       var _cc=eGet(r,'custContact');
       if(!propCoCases[ac])propCoCases[ac]=[];
       propCoCases[ac].push({name:_nm||_th||'',ck:eGetN(r,'ck'),phase:ph,phaseN:phN,member:eGet(r,'member'),oppId:eGet(r,'oppId'),theme:_th,closeDate:eGet(r,'closeDate'),custContact:_cc});
-      // 顧客担当者を propContactMap + starContactMap に登録
-      if(_cc){_cc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;propContactMap[ac+'__'+nn]=true;propContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;starContactMap[ac+'__'+nn]=true;starContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});}
+      // 顧客担当者を propContactMap に登録（提案中は稼働中CP=starContactMapには入れない）
+      if(_cc){_cc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;propContactMap[ac+'__'+nn]=true;propContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});}
     });
     window._propContactMap=propContactMap;
   }

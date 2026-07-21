@@ -670,7 +670,7 @@ var L_TEAM=['小林 暁飛','徳永 雄大','栫 英輝','中村 春香','岡部
 var L_MEMBER_COLORS=Object.assign({'小林 暁飛':'#6366f1'},E_MEMBER_COLORS);
 
 function lDetectCols(h){
-  var c={company:-1,name:-1,lastName:-1,firstName:-1,member:-1,tier:-1,targetCat:-1,status:-1,approachStatus:-1,companyPhase:-1,la:-1,recycle:-1,dept:-1,deptClass:-1,role:-1,recycleDate:-1,notes:-1,phone:-1,mobile:-1,email:-1,nextActionDate:-1,contactId:-1,accountId:-1};
+  var c={company:-1,name:-1,lastName:-1,firstName:-1,member:-1,tier:-1,targetCat:-1,status:-1,approachStatus:-1,la:-1,recycle:-1,dept:-1,deptClass:-1,role:-1,recycleDate:-1,notes:-1,phone:-1,mobile:-1,email:-1,nextActionDate:-1,contactId:-1,accountId:-1};
   h.forEach(function(v,i){
     var s=(v||'').trim();
     if(s.indexOf('KOMON')>=0||s.indexOf('NOMAD')>=0)c.member=i;
@@ -680,8 +680,6 @@ function lDetectCols(h){
     // ターゲット/カテゴリ → targetCat (キーマン/チャンピオン/決裁者 etc), NOT tier
     else if(s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)c.targetCat=i;
     else if(s.indexOf('アプローチ')>=0&&s.indexOf('ステータス')>=0&&c.approachStatus<0)c.approachStatus=i;
-    // 企業フェーズ（例: 05-追加提案中）— 提案中判定に使用
-    else if((s==='企業フェーズ'||(s.indexOf('企業')>=0&&s.indexOf('フェーズ')>=0))&&c.companyPhase<0)c.companyPhase=i;
     else if((s.indexOf('ステータス')>=0||s==='状態')&&c.status<0)c.status=i;
     else if(s.indexOf('最終活動')>=0)c.la=i;
     else if(s.indexOf('リサイクル予定日')>=0||s.indexOf('リサイクル希望')>=0||s.indexOf('リサイクル日')>=0||s.indexOf('アポ予定')>=0||(s.indexOf('リサイクル')>=0&&s.indexOf('日')>=0))c.recycleDate=i;
@@ -3135,9 +3133,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     if(F.hasEmail==='exclude'&&email)return false;
     if(F.excMM){if(email&&mmSet[email.toLowerCase()])return false;var _fnL=fn.toLowerCase();var _fnNL=fn.replace(/\s+/g,'').toLowerCase();if(mmSet[_fnL]||mmSet[_fnNL])return false;}
     var _pm=window._propContactMap||{};var _fnN2=fn.replace(/\s+/g,'');
-    // 提案中判定: acplan_cases由来の顧客担当者マップ、または リード自身の企業フェーズが「提案」を含む
-    var _leadPhase=(col2.companyPhase>=0?(r[col2.companyPhase]||''):'').trim();
-    var _isProp=!!(_pm[co+'__'+fn]||_pm[co+'__'+_fnN2])||_leadPhase.indexOf('提案')>=0;
+    var _isProp=!!(_pm[co+'__'+fn]||_pm[co+'__'+_fnN2]);
     if(F.proposalCP===true&&!_isProp)return false;
     if(F.proposalCP==='exclude'&&_isProp)return false;
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
@@ -4064,6 +4060,17 @@ function renderLeads(M){
       anyCasesCos[ac]=true;
       var ph=_rcg3(r,'curPh')||_rcg3(r,'lastPh');
       if(!ph||ph.indexOf('DEAD')>=0)return;
+      // 提案中案件(ph01-07, DEADでない): その顧客担当者を提案中CPとして登録
+      // （all_casesにのみ存在しacplan_casesに無い提案案件をカバー。例: アサヒ/曽我さん）
+      var _rcPhN=ePh(ph);
+      if(_rcPhN>=1&&_rcPhN<=7){
+        var _rcc=_rcg3(r,'custContact');
+        if(_rcc){
+          window._propContactMap=window._propContactMap||{};
+          _rcc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;window._propContactMap[ac+'__'+nn]=true;window._propContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});
+        }
+        return;
+      }
       if(ePh(ph)!==8)return;
       var ed=_rcg3(r,'endDate');
       if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today2)return;}

@@ -3076,8 +3076,9 @@ function circuLbNameClick(el,idx){
   setTimeout(function(){function hnd(e){if(!pop.contains(e.target)&&e.target!==el){pop.remove();document.removeEventListener('click',hnd);}}document.addEventListener('click',hnd);},0);
 }
 function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, pastClientCos, recentCaseCos, today){
-  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:'all',rel:'all',targetCats:[],keyword:'',keywordMode:'include',kwConditions:[]};
+  if(!window.L_LIST_FILTERS)window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,matchMode:'and',tiers:[],member:'all',rel:'all',targetCats:[],keyword:'',keywordMode:'include',kwConditions:[]};
   if(!window.L_LIST_FILTERS.kwConditions)window.L_LIST_FILTERS.kwConditions=[];
+  if(!window.L_LIST_FILTERS.matchMode)window.L_LIST_FILTERS.matchMode='and';
   if(!window.L_LIST_FILTERS.targetCats)window.L_LIST_FILTERS.targetCats=[];
   var F=window.L_LIST_FILTERS;
   var data=window.L_DATA||[];
@@ -3103,6 +3104,9 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   }
 
   // Apply filters
+  // matchMode: 'and'=絞り込み条件を全部満たす / 'or'=いずれか1つ満たせばOK
+  // 除外(赤)チップ・Tier・担当者・関係値・ターゲット・キーワード・メルマガ除外は常にAND（母集団を絞る）で適用
+  var _matchMode=F.matchMode==='or'?'or':'and';
   var filtered2=data.filter(function(r){
     var fn=getFullName(r);if(!fn)return false;
     var co=(col2.company>=0?(r[col2.company]||''):'').trim();
@@ -3110,41 +3114,41 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
     var tier=normTier((col2.tier>=0?(r[col2.tier]||''):'').trim());
     var mem=(col2.member>=0?(r[col2.member]||''):'').trim();
     var tcat2=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();
-    // 3状態フィルター: true=絞り込む / 'exclude'=除外 / false=無効（全て人単位）
-    var _pcm2=window._personCaseMap||{};var _fnNoSp5=fn.replace(/\s+/g,'');
+    var _fnNoSp5=fn.replace(/\s+/g,'');
+    // 各条件チップの一致判定（人単位）
+    var _pcm2=window._personCaseMap||{};
     var _personInCase=!!(_pcm2[co+'__'+fn]||_pcm2[co+'__'+_fnNoSp5]);
     var _isPC=(pastClientCos[co]&&!activeCos[co])&&_personInCase;
-    if(F.pastclient===true&&!_isPC)return false;
-    if(F.pastclient==='exclude'&&_isPC)return false;
-    var _isStar=!!(starContactMap[co+'__'+fn]||starContactMap[co+'__'+fn.replace(/\s+/g,'')]);
-    if(F.starContact===true&&!_isStar)return false;
-    if(F.starContact==='exclude'&&_isStar)return false;
+    var _isStar=!!(starContactMap[co+'__'+fn]||starContactMap[co+'__'+_fnNoSp5]);
     var _isAny=_personInCase;
-    if(F.anyCase===true&&!_isAny)return false;
-    if(F.anyCase==='exclude'&&_isAny)return false;
-    if(F.unproposed===true&&_isAny)return false;
-    if(F.unproposed==='exclude'&&!_isAny)return false;
-    if(F.bant===true){var naDate=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(!naDate)return false;var nad=new Date(naDate.replace(/\//g,'-'));if(isNaN(nad)||nad<=today)return false;}
-    if(F.bant==='exclude'){var naDate2=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();if(naDate2){var nad2=new Date(naDate2.replace(/\//g,'-'));if(!isNaN(nad2)&&nad2>today)return false;}}
-    var _rcpm=window._recentCasePersonMap||{};var _fnNoSp3=fn.replace(/\s+/g,'');
-    var _isRecent=!!(_rcpm[co+'__'+fn]||_rcpm[co+'__'+_fnNoSp3]);
-    if(F.recentCase===true&&!_isRecent)return false;
-    if(F.recentCase==='exclude'&&_isRecent)return false;
-    if(F.hasEmail===true&&!email)return false;
-    if(F.hasEmail==='exclude'&&email)return false;
-    if(F.excMM){if(email&&mmSet[email.toLowerCase()])return false;var _fnL=fn.toLowerCase();var _fnNL=fn.replace(/\s+/g,'').toLowerCase();if(mmSet[_fnL]||mmSet[_fnNL])return false;}
-    var _pm=window._propContactMap||{};var _fnN2=fn.replace(/\s+/g,'');
-    var _isProp=!!(_pm[co+'__'+fn]||_pm[co+'__'+_fnN2]);
-    if(F.proposalCP===true&&!_isProp)return false;
-    if(F.proposalCP==='exclude'&&_isProp)return false;
+    var _rcpm=window._recentCasePersonMap||{};
+    var _isRecent=!!(_rcpm[co+'__'+fn]||_rcpm[co+'__'+_fnNoSp5]);
+    var _pm=window._propContactMap||{};
+    var _isProp=!!(_pm[co+'__'+fn]||_pm[co+'__'+_fnNoSp5]);
+    var _naDate=(col2.nextActionDate>=0?(r[col2.nextActionDate]||''):'').trim();
+    var _isBant=false;if(_naDate){var _nad=new Date(_naDate.replace(/\//g,'-'));if(!isNaN(_nad)&&_nad>today)_isBant=true;}
+    var _hasEmail=!!email;
+    var _chips=[['pastclient',_isPC],['starContact',_isStar],['anyCase',_isAny],['unproposed',!_isAny],['bant',_isBant],['recentCase',_isRecent],['hasEmail',_hasEmail],['proposalCP',_isProp]];
+    var _incMatches=[];
+    for(var _ci2=0;_ci2<_chips.length;_ci2++){
+      var _ck=_chips[_ci2][0],_cm=_chips[_ci2][1],_cs=F[_ck];
+      if(_cs==='exclude'){if(_cm)return false;}      // 除外は常に適用
+      else if(_cs===true){_incMatches.push(_cm);}     // 絞り込み条件（AND/ORで結合）
+    }
+    if(_incMatches.length>0){
+      if(_matchMode==='or'){if(!_incMatches.some(function(x){return x;}))return false;}
+      else{if(_incMatches.some(function(x){return !x;}))return false;}
+    }
+    // メルマガ除外（常時ハード除外）
+    if(F.excMM){if(email&&mmSet[email.toLowerCase()])return false;var _fnL=fn.toLowerCase();var _fnNL=_fnNoSp5.toLowerCase();if(mmSet[_fnL]||mmSet[_fnNL])return false;}
+    // 構造フィルタ（常にAND）
     if(F.tiers&&F.tiers.length>0&&F.tiers.indexOf(tier)<0)return false;
     if(F.member&&F.member!=='all'&&mem!==F.member)return false;
     if(F.rel&&F.rel!=='all'){var cr=circuGetRel(co);if(cr!==F.rel)return false;}
     if(F.targetCats&&F.targetCats.length>0&&!F.targetCats.some(function(tc){return tc==='__blank__'?tcat2==='':tcat2===tc;}))return false;
     // 複数キーワード条件（AND）
     if(F.kwConditions&&F.kwConditions.length>0){
-      var _fn2=getFullName(r);var _fn2N=_fn2.replace(/\s+/g,'');
-      var _ct=(personCaseTypeMap[_fn2]||personCaseTypeMap[_fn2N]||'').toLowerCase();
+      var _ct=(personCaseTypeMap[fn]||personCaseTypeMap[_fnNoSp5]||'').toLowerCase();
       for(var _ci=0;_ci<F.kwConditions.length;_ci++){
         var _cond=F.kwConditions[_ci];
         var _kws=_cond.kw.split(/[,、]/).map(function(k){return k.trim().toLowerCase();}).filter(Boolean);
@@ -3169,7 +3173,13 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
 
   // ===== FILTER PANEL =====
   h+='<div class="ent-section" style="margin-bottom:12px">';
-  h+='<div class="es-title">🔍 検索条件 <span style="font-size:10px;font-weight:400;color:var(--ink3)">（複数選択でAND絞り込み）</span></div>';
+  var _mm=F.matchMode==='or'?'or':'and';
+  h+='<div class="es-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">🔍 検索条件';
+  h+='<span style="display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;font-size:10px;font-weight:700">';
+  h+='<span onclick="window.L_LIST_FILTERS.matchMode=\'and\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 11px;cursor:pointer;background:'+(_mm==='and'?'#0079C0':'#fff')+';color:'+(_mm==='and'?'#fff':'#64748b')+'">AND（全部満たす）</span>';
+  h+='<span onclick="window.L_LIST_FILTERS.matchMode=\'or\';renderLeads(document.getElementById(\'M\'))" style="padding:4px 11px;cursor:pointer;background:'+(_mm==='or'?'#0079C0':'#fff')+';color:'+(_mm==='or'?'#fff':'#64748b')+'">OR（どれか1つ）</span>';
+  h+='</span>';
+  h+='<span style="font-size:10px;font-weight:400;color:var(--ink3)">'+(_mm==='or'?'絞り込み条件のいずれかに該当すれば表示（除外・Tier等は常に適用）':'絞り込み条件をすべて満たす人だけ表示')+'</span></div>';
   h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">';
   var conds=[
     {key:'pastclient',label:'稼働後企業',desc:'過去に稼働した企業（現在終了）',icon:'🔄'},
@@ -3275,7 +3285,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   h+='</div>';
   var _hasAnyFilter=Object.keys(F).some(function(k){var v=F[k];if(k==='keyword'||k==='keywordMode')return false;return v===true||(Array.isArray(v)&&v.length>0)||(typeof v==='string'&&v!==''&&v!=='all');});
   if(_hasAnyFilter){
-    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,tiers:[],member:\'all\',rel:\'all\',targetCats:[],keyword:\'\',keywordMode:\'include\',kwConditions:[]};window._tcatDDOpen=false;renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';
+    h+='<button onclick="window.L_LIST_FILTERS={pastclient:false,starContact:false,anyCase:false,unproposed:false,bant:false,recentCase:false,hasEmail:false,excMM:false,proposalCP:false,matchMode:\'and\',tiers:[],member:\'all\',rel:\'all\',targetCats:[],keyword:\'\',keywordMode:\'include\',kwConditions:[]};window._tcatDDOpen=false;renderLeads(document.getElementById(\'M\'))" style="margin-top:8px;padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #fca5a5;background:#fff5f5;color:#ef4444;cursor:pointer">✕ 全リセット</button>';
   }
   h+='</div></div>';
 

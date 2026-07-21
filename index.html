@@ -3160,8 +3160,9 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   window._listBuilderCol=col2;
 
   var allMems2={};data.forEach(function(r){var m=(col2.member>=0?(r[col2.member]||''):'').trim();if(m)allMems2[m]=true;});
-  // ターゲット/カテゴリはテキスト値（キーマン/チャンピオン等）のみ。電話番号等の数字・記号だけの値は誤入力なので除外
-  var _tcatIsValid=function(v){return v&&!/^[\d+\-()（）\s.・ー]+$/.test(v);};
+  // ターゲット/カテゴリはテキスト値（キーマン/チャンピオン等）のみ。電話番号等の誤入力値は除外
+  // 除外: 数字・記号だけの値／数字を8桁以上含む値（内線メモ付きの電話番号なども対象）
+  var _tcatIsValid=function(v){if(!v)return false;if(/^[\d+\-()（）\s.・ー]+$/.test(v))return false;if((v.match(/\d/g)||[]).length>=8)return false;return true;};
   var allTcats={};data.forEach(function(r){var t=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();if(t&&_tcatIsValid(t))allTcats[t]=true;});
 
   var h='<div style="padding:0 24px 24px">';
@@ -4422,8 +4423,8 @@ function renderLeads(M){
     });
     h+='</div></div>';
   }
-  // Collect unique targetCat values (from L_DATA) — 電話番号等の数字だけの誤入力値は除外
-  var _tcatValid=function(v){return v&&!/^[\d+\-()（）\s.・ー]+$/.test(v);};
+  // Collect unique targetCat values (from L_DATA) — 電話番号等の誤入力値は除外（数字だけ／数字8桁以上）
+  var _tcatValid=function(v){if(!v)return false;if(/^[\d+\-()（）\s.・ー]+$/.test(v))return false;if((v.match(/\d/g)||[]).length>=8)return false;return true;};
   var targetCats=[];if(col.targetCat>=0){var tcSet={};L_DATA.forEach(function(r){var v=(r[col.targetCat]||'').trim();if(v&&_tcatValid(v))tcSet[v]=true;});targetCats=Object.keys(tcSet).sort(function(a,b){return a.localeCompare(b,'ja');});}
   // ===== VIEW MODE TABS (status boxes) =====
   var dormantCount=L_DATA.filter(isDormant).length;

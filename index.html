@@ -678,7 +678,8 @@ function lDetectCols(h){
     else if((s==='取引先名'||s==='企業名'||s==='法人名'||s==='会社名')&&c.company<0)c.company=i;
     else if(s.indexOf('Tier')>=0||s.indexOf('ティア')>=0)c.tier=i;
     // ターゲット/カテゴリ → targetCat (キーマン/チャンピオン/決裁者 etc), NOT tier
-    else if(s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)c.targetCat=i;
+    // 最初の一致で確定（c.targetCat<0）。電話・携帯系の列は誤検出しないよう除外。
+    else if((s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)&&s.indexOf('電話')<0&&s.indexOf('携帯')<0&&s.indexOf('TEL')<0&&s.toLowerCase().indexOf('phone')<0&&c.targetCat<0)c.targetCat=i;
     else if(s.indexOf('アプローチ')>=0&&s.indexOf('ステータス')>=0&&c.approachStatus<0)c.approachStatus=i;
     else if((s.indexOf('ステータス')>=0||s==='状態')&&c.status<0)c.status=i;
     else if(s.indexOf('最終活動')>=0)c.la=i;
@@ -3197,7 +3198,7 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   // Tier + Member + Rel filters
   h+='<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:10px;border-top:1px solid var(--bd)">';
   h+='<div style="display:flex;gap:5px;align-items:center"><span style="font-size:10px;font-weight:600;color:var(--ink2)">Tier:</span>';
-  var tierCols2={'Tier1':'#0079C0','Tier2':'#1a7f37','Tier3':'#bf8700','Tier4':'#888'};
+  var tierCols2={'Tier1':'#0079C0','Tier2':'#1a7f37','Tier3':'#bf8700','Tier4':'#7c3aed'};
   ['Tier1','Tier2','Tier3','Tier4'].forEach(function(t){
     var act=(F.tiers||[]).indexOf(t)>=0;var tc=tierCols2[t];
     h+='<button onclick="var ts=window.L_LIST_FILTERS.tiers,idx=ts.indexOf(\''+t+'\');if(idx>=0)ts.splice(idx,1);else ts.push(\''+t+'\');renderLeads(document.getElementById(\'M\'))" style="padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid '+(act?tc:tc+'50')+';background:'+(act?tc+'18':'#fff')+';color:'+(act?tc:'#9ca3af')+'">'+t+'</button>';

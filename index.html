@@ -3160,7 +3160,9 @@ function renderListBuilderView(col, activeCos, starContactMap, anyCasesCos, past
   window._listBuilderCol=col2;
 
   var allMems2={};data.forEach(function(r){var m=(col2.member>=0?(r[col2.member]||''):'').trim();if(m)allMems2[m]=true;});
-  var allTcats={};data.forEach(function(r){var t=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();if(t)allTcats[t]=true;});
+  // ターゲット/カテゴリはテキスト値（キーマン/チャンピオン等）のみ。電話番号等の数字・記号だけの値は誤入力なので除外
+  var _tcatIsValid=function(v){return v&&!/^[\d+\-()（）\s.・ー]+$/.test(v);};
+  var allTcats={};data.forEach(function(r){var t=(col2.targetCat>=0?(r[col2.targetCat]||''):'').trim();if(t&&_tcatIsValid(t))allTcats[t]=true;});
 
   var h='<div style="padding:0 24px 24px">';
 
@@ -4420,8 +4422,9 @@ function renderLeads(M){
     });
     h+='</div></div>';
   }
-  // Collect unique targetCat values (from L_DATA)
-  var targetCats=[];if(col.targetCat>=0){var tcSet={};L_DATA.forEach(function(r){var v=(r[col.targetCat]||'').trim();if(v)tcSet[v]=true;});targetCats=Object.keys(tcSet).sort(function(a,b){return a.localeCompare(b,'ja');});}
+  // Collect unique targetCat values (from L_DATA) — 電話番号等の数字だけの誤入力値は除外
+  var _tcatValid=function(v){return v&&!/^[\d+\-()（）\s.・ー]+$/.test(v);};
+  var targetCats=[];if(col.targetCat>=0){var tcSet={};L_DATA.forEach(function(r){var v=(r[col.targetCat]||'').trim();if(v&&_tcatValid(v))tcSet[v]=true;});targetCats=Object.keys(tcSet).sort(function(a,b){return a.localeCompare(b,'ja');});}
   // ===== VIEW MODE TABS (status boxes) =====
   var dormantCount=L_DATA.filter(isDormant).length;
   var unpropCount=L_DATA.filter(isUnproposed).length;

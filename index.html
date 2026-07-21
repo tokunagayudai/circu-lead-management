@@ -678,7 +678,8 @@ function lDetectCols(h){
     else if((s==='取引先名'||s==='企業名'||s==='法人名'||s==='会社名')&&c.company<0)c.company=i;
     else if(s.indexOf('Tier')>=0||s.indexOf('ティア')>=0)c.tier=i;
     // ターゲット/カテゴリ → targetCat (キーマン/チャンピオン/決裁者 etc), NOT tier
-    else if(s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)c.targetCat=i;
+    // 最初の一致で確定（c.targetCat<0）。電話・携帯系の列は誤検出しないよう除外。
+    else if((s.indexOf('ターゲット')>=0||s.indexOf('カテゴリ')>=0)&&s.indexOf('電話')<0&&s.indexOf('携帯')<0&&s.indexOf('TEL')<0&&s.toLowerCase().indexOf('phone')<0&&c.targetCat<0)c.targetCat=i;
     else if(s.indexOf('アプローチ')>=0&&s.indexOf('ステータス')>=0&&c.approachStatus<0)c.approachStatus=i;
     else if((s.indexOf('ステータス')>=0||s==='状態')&&c.status<0)c.status=i;
     else if(s.indexOf('最終活動')>=0)c.la=i;

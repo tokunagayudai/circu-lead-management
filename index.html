@@ -4060,6 +4060,17 @@ function renderLeads(M){
       anyCasesCos[ac]=true;
       var ph=_rcg3(r,'curPh')||_rcg3(r,'lastPh');
       if(!ph||ph.indexOf('DEAD')>=0)return;
+      // 提案中案件(ph01-07, DEADでない): その顧客担当者を提案中CPとして登録
+      // （all_casesにのみ存在しacplan_casesに無い提案案件をカバー。例: アサヒ/曽我さん）
+      var _rcPhN=ePh(ph);
+      if(_rcPhN>=1&&_rcPhN<=7){
+        var _rcc=_rcg3(r,'custContact');
+        if(_rcc){
+          window._propContactMap=window._propContactMap||{};
+          _rcc.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(!nn)return;window._propContactMap[ac+'__'+nn]=true;window._propContactMap[ac+'__'+nn.replace(/\s+/g,'')]=true;});
+        }
+        return;
+      }
       if(ePh(ph)!==8)return;
       var ed=_rcg3(r,'endDate');
       if(ed){var ed2=new Date(ed.replace(/\//g,'-'));if(!isNaN(ed2)&&ed2<today2)return;}

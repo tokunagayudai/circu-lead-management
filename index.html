@@ -4254,8 +4254,10 @@ function renderLeads(M){
     if(!tierMap[tier])tierMap[tier]={leads:0,companies:{}};
     tierMap[tier].leads++;if(co)tierMap[tier].companies[co]=true;
   });
-  // Unique tiers sorted
+  // Unique tiers sorted: Tier系(Tier1〜4)を先にまとめ、その他（企業フェーズ系 02-/03-/05- 等）は後ろに
   var tiers=Object.keys(tierMap).sort(function(a,b){
+    var aT=/tier/i.test(a),bT=/tier/i.test(b);
+    if(aT&&!bT)return -1;if(!aT&&bT)return 1;
     var ta=a.replace(/[^0-9]/g,''),tb=b.replace(/[^0-9]/g,'');
     if(ta&&tb)return parseInt(ta)-parseInt(tb);
     if(ta)return -1;if(tb)return 1;

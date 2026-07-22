@@ -662,8 +662,13 @@ function sfAccountLink(name,coName,directId){
 // ===== LEAD MANAGEMENT MODULE =====
 var L_DATA=null,L_HEADER=null,L_COL={},L_LOADING=false,L_LOADED=false;
 var L_MEMBER_FILTER='all',L_TIER_FILTER='all',L_TARGET_FILTER='all',L_ACTIVE_ONLY=false,L_SEARCH='',L_SORT='company',L_SORT_DIR='asc';
-// L_VIEW_MODE: 'all' | 'active' | 'dormant' | 'unproposed' | 'analytics'
+// L_VIEW_MODE: 'all' | 'active' | 'dormant' | 'unproposed' | 'analytics' ...
 var L_VIEW_MODE='all';
+// L_PAGE: 'lead'（リード把握）| 'is'（IS管理: 分析/ISパイプライン/ISモニタリング/アカプラ/リスト作成）
+var L_PAGE='lead';
+// 各ビューがどちらのページに属するか
+var L_IS_VIEWS=['analytics','ispipeline','ismonitor','acplan','listbuilder'];
+function lViewPage(v){return L_IS_VIEWS.indexOf(v)>=0?'is':'lead';}
 var L_ANALYTICS_MEMBER='all'; // analytics tab member filter (independent of list filter)
 // "確定リード" = 法人_KOMON/NOMAD担当者 が以下メンバーのいずれか
 var L_TEAM=['小林 暁飛','徳永 雄大','栫 英輝','中村 春香','岡部 瑛美','福本 悠太','飯田 知美','木曽 嘉己','土田 真矢'];
@@ -4263,6 +4268,9 @@ function renderLeads(M){
   var activeMembers=memberOrder.filter(function(m){return byMember[m]&&byMember[m].leads>0;});
   // Team totals
   var teamTotal={leads:L_DATA.length,companies:uniqCo(L_DATA)};
+  // ページ判定（現在のビューがどちらのページか）＋ページ別の最後のビューを記憶
+  L_PAGE=lViewPage(L_VIEW_MODE);
+  if(L_PAGE==='lead')window._lastLeadView=L_VIEW_MODE;else window._lastIsView=L_VIEW_MODE;
   // Build HTML
   var h='<div style="padding:0 0 24px">';
   // Header
@@ -4276,6 +4284,20 @@ function renderLeads(M){
   h+='<div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 16px;text-align:center"><div style="font-size:20px;font-weight:800;color:#fff;font-family:var(--mono)">'+uniqCo(L_DATA)+'</div><div style="font-size:9px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-top:1px">企業数</div></div>';
   h+='</div>';
   h+='</div>';
+  // ===== ページ切替（リード管理 / IS管理）=====
+  var _pages=[{id:'lead',label:'📋 リード管理',sub:'リード状況の把握'},{id:'is',label:'🧭 IS管理',sub:'分析・モニタリング・アカプラ・リスト作成'}];
+  h+='<div style="padding:14px 24px 0;background:#f8fafc;border-bottom:1px solid #e2e8f0">';
+  h+='<div style="display:inline-flex;gap:4px;background:#e9eef5;border-radius:12px;padding:4px">';
+  _pages.forEach(function(p){
+    var on=L_PAGE===p.id;
+    var tgt=p.id==='lead'?"(window._lastLeadView||'all')":"(window._lastIsView||'analytics')";
+    h+='<div onclick="L_VIEW_MODE='+tgt+';renderLeads(document.getElementById(\'M\'))" style="cursor:pointer;padding:8px 22px;border-radius:9px;text-align:center;background:'+(on?'#fff':'transparent')+';box-shadow:'+(on?'0 1px 5px rgba(0,0,0,.12)':'none')+';transition:.15s">';
+    h+='<div style="font-size:13px;font-weight:800;color:'+(on?'#0079C0':'#94a3b8')+'">'+p.label+'</div>';
+    h+='<div style="font-size:9px;color:'+(on?'#64748b':'#b6c0cc')+';margin-top:1px">'+p.sub+'</div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  if(L_PAGE==='lead'){
   // ===== RECYCLE PIPELINE ANALYSIS =====
   h+='<div style="padding:0 24px 4px">'+renderRecyclePipeline()+'</div>';
   // ===== SUMMARY KPI TABLE =====
@@ -4436,6 +4458,7 @@ function renderLeads(M){
     });
     h+='</div></div>';
   }
+  } // end if(L_PAGE==='lead') — 未来パイプライン分析＋担当者別サマリーはリード管理ページのみ
   // Collect unique targetCat values (from L_DATA) — 電話番号等の誤入力値は除外（数字だけ／数字8桁以上）
   var _tcatValid=function(v){if(!v)return false;if(/^[\d+\-()（）\s.・ー]+$/.test(v))return false;if((v.match(/\d/g)||[]).length>=8)return false;return true;};
   var targetCats=[];if(col.targetCat>=0){var tcSet={};L_DATA.forEach(function(r){var v=(r[col.targetCat]||'').trim();if(v&&_tcatValid(v))tcSet[v]=true;});targetCats=Object.keys(tcSet).sort(function(a,b){return a.localeCompare(b,'ja');});}
@@ -4463,7 +4486,7 @@ function renderLeads(M){
     {id:'tier1',label:'🏆 Tier1',cnt:null,color:'#b45309',sub:tier1OtherCoCount+'社（その他）',icon:'🏆'},
     {id:'listbuilder',label:'📤 リスト作成',cnt:null,color:'#0891b2',sub:'CSV出力',icon:'📤'}
   ];
-  tabs.forEach(function(t){
+  tabs.filter(function(t){return lViewPage(t.id)===L_PAGE;}).forEach(function(t){
     var act=L_VIEW_MODE===t.id;
     var tc=t.color;
     h+='<div onclick="L_VIEW_MODE=\''+t.id+'\';L_ACTIVE_ONLY=(\''+t.id+'\'===\'active\');renderLeads(document.getElementById(\'M\'))" ';

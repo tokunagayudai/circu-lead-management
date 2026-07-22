@@ -4290,7 +4290,7 @@ function renderLeads(M){
   h+='<div style="display:inline-flex;gap:4px;background:#e9eef5;border-radius:12px;padding:4px">';
   _pages.forEach(function(p){
     var on=L_PAGE===p.id;
-    var tgt=p.id==='lead'?"(window._lastLeadView||'all')":"(window._lastIsView||'analytics')";
+    var tgt=p.id==='lead'?"(window._lastLeadView||'all')":"(window._lastIsView||'ismonitor')";
     h+='<div onclick="L_VIEW_MODE='+tgt+';renderLeads(document.getElementById(\'M\'))" style="cursor:pointer;padding:8px 22px;border-radius:9px;text-align:center;background:'+(on?'#fff':'transparent')+';box-shadow:'+(on?'0 1px 5px rgba(0,0,0,.12)':'none')+';transition:.15s">';
     h+='<div style="font-size:13px;font-weight:800;color:'+(on?'#0079C0':'#94a3b8')+'">'+p.label+'</div>';
     h+='<div style="font-size:9px;color:'+(on?'#64748b':'#b6c0cc')+';margin-top:1px">'+p.sub+'</div>';
@@ -4478,9 +4478,9 @@ function renderLeads(M){
     {id:'pastclient',label:'\uD83D\uDD04 稼働後顧客',cnt:pastClientCount,color:'#0891b2',sub:Object.keys(pastClientCos).filter(function(co){return !activeCos[co];}).length+'社'},
     {id:'dormant',label:'\uD83D\uDE34 休眠リード',cnt:dormantCount,color:'#f59e0b',sub:Object.keys(anyCasesCos).filter(function(co){return !activeCos[co];}).length+'社'},
     {id:'unproposed',label:'\uD83D\uDD0D 未提案リード',cnt:unpropCount,color:'#7c3aed',sub:'商談ゼロ'},
+    {id:'ismonitor',label:'📡 ISモニタリング',cnt:null,color:'#16a34a',sub:'活動状況',icon:'📡'},
     {id:'analytics',label:'\uD83D\uDCCA 分析',cnt:null,color:'#0f172a',sub:'担当者別',icon:'\uD83D\uDCCA'},
     {id:'ispipeline',label:'🎯 ISパイプライン',cnt:null,color:'#0ea5e9',sub:'アクション予定',icon:'🎯'},
-    {id:'ismonitor',label:'📡 ISモニタリング',cnt:null,color:'#16a34a',sub:'活動状況',icon:'📡'},
     {id:'proposal',label:'🔥 提案中担当者',cnt:(function(){var s={};Object.values(propCoCases).forEach(function(cs){cs.forEach(function(c){if(c.custContact)c.custContact.split(/[,、；;\/・]/).forEach(function(n){var nn=n.trim();if(nn)s[nn]=true;});});});return Object.keys(s).length;})(),color:'#f97316',sub:Object.keys(propCos).length+'社'},
     {id:'acplan',label:'📋 アカプラ',cnt:null,color:'#7c3aed',sub:acplanCoCount+'社',icon:'📋'},
     {id:'tier1',label:'🏆 Tier1',cnt:null,color:'#b45309',sub:tier1OtherCoCount+'社（その他）',icon:'🏆'},
@@ -4555,8 +4555,20 @@ function renderLeads(M){
     h+='<span style="font-size:13px;font-weight:700;color:#1e293b">📡 ISモニタリング</span>';
     h+='<a href="'+IS_MONITOR_URL+'" target="_blank" rel="noopener" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:3px 10px;text-decoration:none">↗ 新しいタブで開く</a>';
     h+='</div>';
-    h+='<iframe src="'+IS_MONITOR_URL+'" style="display:block;width:100%;height:calc(100vh - 220px);min-height:600px;border:none;background:#fff" title="ISモニタリング"></iframe>';
+    // 内側スクロールを避け、外側ページのスクロールで全体を見られるよう十分な高さを確保。
+    // IS-monitoring側が postMessage({type:'is-monitor-height',height}) を送れば正確な高さに自動調整。
+    h+='<iframe id="ismonitorFrame" src="'+IS_MONITOR_URL+'" style="display:block;width:100%;height:3200px;border:none;background:#fff" title="ISモニタリング"></iframe>';
     h+='</div></div>';
+    if(!window._isMonitorResizeBound){
+      window._isMonitorResizeBound=true;
+      window.addEventListener('message',function(e){
+        if(e&&e.data&&e.data.type==='is-monitor-height'){
+          var f=document.getElementById('ismonitorFrame');
+          var hgt=parseInt(e.data.height,10);
+          if(f&&hgt>0)f.style.height=(hgt+40)+'px';
+        }
+      });
+    }
   } else if(L_VIEW_MODE==='listbuilder'){
     h+=renderListBuilderView(col,activeCos,starContactMap,anyCasesCos,pastClientCos,recentCaseCos,today);
   } else {

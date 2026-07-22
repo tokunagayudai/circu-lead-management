@@ -4598,6 +4598,27 @@ function _ensureRcDrawer(){
   dr.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--bd);background:#fff;position:sticky;top:0;z-index:1"><div id="rc-drawer-title" style="font-weight:700;font-size:14px"></div><button onclick="closeRcDrawer()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink2);line-height:1">×</button></div><div id="rc-drawer-body"></div>';
   document.body.appendChild(dr);
 }
+// リサイクル案件の再アプローチメール下書きをGmailで開く（新規作成）
+function circuRcMailDraft(co,contact,member,email){
+  var sender=(member||'').trim();
+  var cn=(contact||'').trim();
+  var coDisp=(co||'').trim();
+  var subj='【お打ち合わせのご依頼/ご状況のお伺い】サーキュレーション'+sender;
+  var body=coDisp+'\n'+cn+'様\n\n'
+    +'お世話になっております。\n'
+    +'株式会社サーキュレーションの'+sender+'でございます。\n\n'
+    +'先日はお打ち合わせの機会を頂戴し誠にありがとうございました。\n'
+    +'その後、'+cn+'様のご状況はいかがでしょうか。\n\n'
+    +'前回のお打ち合わせでは下記についてお話しさせていただきました。\n・\n・\n\n'
+    +'前回より◯ヶ月ほどお時間が経過しまして、現在の'+cn+'様や貴社のご状況や今後のお取り組みについてお伺いし、今後のご提案の可能性についてディスカッションさせていただきたく存じます。\n\n'
+    +'お手数ですが、下記よりご都合の良いお時間を30分ほどご調整いただけますと幸いです。\n＜eeasyリンク＞\n\n'
+    +'引き続き何卒よろしくお願い申し上げます。';
+  var url='https://mail.google.com/mail/?view=cm&fs=1'
+    +(email?'&to='+encodeURIComponent(email):'')
+    +'&su='+encodeURIComponent(subj)
+    +'&body='+encodeURIComponent(body);
+  window.open(url,'_blank','noopener');
+}
 function showRcDrawer(key){
   _ensureRcDrawer();
   var data=window._rcDrawerData[key];if(!data||!data.rows)return;
@@ -4640,8 +4661,18 @@ function showRcDrawer(key){
     var col=window.RC_COL||{};
     var g=function(r,i){return (i>=0&&i<r.length)?(r[i]||'').trim():'';};
     var SFOPP='https://circulation.lightning.force.com/lightning/r/Opportunity/';
+    // 顧客メール補完用: all_lead から 会社名__氏名 → メール のマップ
+    var _rcEmailMap={};
+    if(window.L_DATA&&window.L_COL&&L_COL.email>=0&&L_COL.company>=0){
+      L_DATA.forEach(function(lr){
+        var lco=(lr[L_COL.company]||'').trim();var lem=(lr[L_COL.email]||'').trim();if(!lco||!lem)return;
+        var ln=(L_COL.lastName>=0?(lr[L_COL.lastName]||''):'').trim();var lf=(L_COL.firstName>=0?(lr[L_COL.firstName]||''):'').trim();
+        var full=(ln+' '+lf).trim();
+        if(full){_rcEmailMap[lco+'__'+full]=lem;_rcEmailMap[lco+'__'+(ln+lf)]=lem;}
+      });
+    }
     h+='<thead><tr style="border-bottom:2px solid var(--bd)">';
-    ['取引先','案件名(SF)','区分','リサイクル選択','リサイクル希望日','ターゲット','最終P','顧客担当者'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
+    ['取引先','案件名(SF)','区分','リサイクル選択','リサイクル希望日','ターゲット','最終P','顧客担当者','メール下書き'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
     h+='</tr></thead><tbody>';
     rows.forEach(function(r,idx){
       var co=g(r,col.account).replace(/株式会社\s*/g,'㈱').replace(/\s*株式会社/g,'㈱');
@@ -4653,6 +4684,10 @@ function showRcDrawer(key){
       var tgt=g(r,col.recycleTarget);
       var lp=g(r,col.lastPh);
       var cc=g(r,col.custContact);
+      var _rcMem=g(r,col.member);
+      var _rcCoRaw=g(r,col.account);
+      var _rcName1=(cc||'').split(/[,、；;\/・]/)[0].trim();
+      var _rcEmail=_rcEmailMap[_rcCoRaw+'__'+_rcName1]||_rcEmailMap[_rcCoRaw+'__'+_rcName1.replace(/\s+/g,'')]||'';
       var cat=/FS/i.test(rt)?'FS':(/IS/i.test(rt)?'IS':null);
       var catBadge=cat?('<span style="font-size:9px;font-weight:700;color:#fff;background:'+(cat==='FS'?'#0891b2':'#db2777')+';padding:2px 7px;border-radius:10px;white-space:nowrap">'+cat+'</span>'):'<span style="font-size:9px;color:var(--ink3)">−</span>';
       h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:var(--bg)':'')+'">';
@@ -4664,6 +4699,7 @@ function showRcDrawer(key){
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+tgt+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;text-align:center;white-space:nowrap">'+lp+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2)">'+cc+'</td>';
+      h+='<td style="padding:6px 8px;white-space:nowrap"><button onclick="circuRcMailDraft('+JSON.stringify(_rcCoRaw)+','+JSON.stringify(_rcName1)+','+JSON.stringify(_rcMem)+','+JSON.stringify(_rcEmail)+')" title="'+(_rcEmail?'Gmail下書きを作成':'メール未取得のため宛先は空欄で作成')+'" style="font-size:9px;font-weight:600;color:#0079C0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 9px;cursor:pointer;white-space:nowrap">📧 下書き</button></td>';
       h+='</tr>';
     });
   } else {

@@ -527,7 +527,7 @@ function pLine(l){var cs=[],c='',q=false;for(var i=0;i<l.length;i++){if(l[i]==='
 
 function ePh(s){if(!s)return 0;if(s.indexOf('08')>=0)return 8;if(s.indexOf('07')>=0)return 7;if(s.indexOf('06')>=0)return 5;if(s.indexOf('05')>=0)return 5;if(s.indexOf('04')>=0)return 4;if(s.indexOf('03')>=0)return 3;if(s.indexOf('02')>=0)return 2;if(s.indexOf('01')>=0)return 1;if(s.indexOf('DEAD')>=0)return -1;return 0;}
 // Column finder for enterprise CSV
-function eDetect(h){var m={};var kw={member:['^主担当者$'],name:['^案件名$'],lastPh:['^最終到達'],apDate:['^初回アポ'],mendanDate:['^面談日$'],firstMendanDate:['^初回面談設定日','初回面談'],closeDate:['^受注予定日'],dealType:['^新規[/／]継続'],channel:['^施策区分[_]?[23]','^施策区分'],ck:['^#?\\s*CK$','^CK$','^#\\s*CK$'],deadReason:['^DEAD理由$'],startDate:['^契約開始'],endDate:['^契約終了'],billM:['月額.*顧客請求','月額.*請求'],payM:['月額.*専門家','月額.*支払'],cancel:['^解約日$'],oppId:['^案件\\s?ID$','Opportunity ID'],mfj:['^Manager Forecast Judge$','^Manager Forecast'],recycle:['^リサイクル選択','ISリサイクル','FSリサイクル','リサイクル.*判定','リサイクル.*種別'],recycleDate:['リサイクル.*次回希望日','リサイクル.*次回','^リサイクル希望日','リサイクル希望','リサイクル予定日','リサイクル日付','リサイクル.*日'],recycleTarget:['^リサイクルターゲット','リサイクルターゲット'],custContact:['^顧客担当者$','^顧客担当者氏名$','顧客担当者'],account:['^取引先名$'],createDate:['^作成日$'],proposalDate:['人選結果メール初回送付日','人選結果メール','提案実施日','提案日'],jinsen:['^人選$','^人選ステータス'],nextAct:['^ネクストアクション$'],nextDate:['^ネクストアクション実施日'],mutual:['Mutual Close'],copyCancel:['^コピー元案件解約チェック','コピー元.*解約'],cancelStatus:['^解約承認ステータス'],cancelMinusCK:['^解約時.*CK','解約時マイナス'],focus:['^注力案件$'],contractClass:['^契約クラス$'],proposalClass:['^提案クラス$'],theme:['^テーマ$','^案件テーマ'],themePartner:['^テーマパートナー'],caseType:['^案件種別テキスト$','^案件種別$','案件種別']};for(var k in kw){m[k]=-1;for(var w=0;w<kw[k].length;w++){for(var i=0;i<h.length;i++){var hvs=(h[i]||'').toString().trim();if(hvs.match(new RegExp(kw[k][w]))){m[k]=i;break;}}if(m[k]>=0)break;}}
+function eDetect(h){var m={};var kw={member:['^主担当者$'],name:['^案件名$'],lastPh:['^最終到達'],apDate:['^初回アポ'],mendanDate:['^面談日$'],firstMendanDate:['^初回面談設定日','初回面談'],closeDate:['^受注予定日'],dealType:['^新規[/／]継続'],channel:['^施策区分[_]?[23]','^施策区分'],ck:['^#?\\s*CK$','^CK$','^#\\s*CK$'],deadReason:['^DEAD理由$'],startDate:['^契約開始'],endDate:['^契約終了'],billM:['月額.*顧客請求','月額.*請求'],payM:['月額.*専門家','月額.*支払'],cancel:['^解約日$'],oppId:['^案件\\s?ID$','Opportunity ID'],mfj:['^Manager Forecast Judge$','^Manager Forecast'],recycle:['^リサイクル選択','ISリサイクル','FSリサイクル','リサイクル.*判定','リサイクル.*種別'],recycleDate:['リサイクル.*次回希望日','リサイクル.*次回','^リサイクル希望日','リサイクル希望','リサイクル予定日','リサイクル日付','リサイクル.*日'],recycleTarget:['^リサイクルターゲット','リサイクルターゲット'],custContact:['^顧客担当者$','^顧客担当者氏名$','顧客担当者'],account:['^取引先名$'],createDate:['^作成日$'],proposalDate:['人選結果メール初回送付日','人選結果メール','提案実施日','提案日'],jinsen:['^人選$','^人選ステータス'],nextAct:['^ネクストアクション$'],nextDate:['^ネクストアクション実施日'],mutual:['Mutual Close'],copyCancel:['^コピー元案件解約チェック','コピー元.*解約'],cancelStatus:['^解約承認ステータス'],cancelMinusCK:['^解約時.*CK','解約時マイナス'],focus:['^注力案件$'],contractClass:['^契約クラス$'],proposalClass:['^提案クラス$'],theme:['^テーマ$','^案件テーマ'],themePartner:['^テーマパートナー'],caseType:['^案件種別テキスト$','^案件種別$','案件種別'],caseDetail:['^案件詳細','案件詳細','経営課題']};for(var k in kw){m[k]=-1;for(var w=0;w<kw[k].length;w++){for(var i=0;i<h.length;i++){var hvs=(h[i]||'').toString().trim();if(hvs.match(new RegExp(kw[k][w]))){m[k]=i;break;}}if(m[k]>=0)break;}}
   // curPh: 「フェーズ」単体（「最終到達フェーズ」は除外）
   m.curPh=-1;for(var i=0;i<h.length;i++){var hv=h[i].trim();if(hv==='フェーズ'||(hv.indexOf('フェーズ')>=0&&hv.indexOf('最終')<0&&hv.indexOf('到達')<0)){m.curPh=i;break;}}
   console.log('COL_MAP:',JSON.stringify({ck:m.ck,mfj:m.mfj,curPh:m.curPh,cancel:m.cancel,cancelStatus:m.cancelStatus,recycle:m.recycle,recycleDate:m.recycleDate,custContact:m.custContact}));
@@ -4600,11 +4600,37 @@ function _ensureRcDrawer(){
 }
 // 主担当者→eeasyリンク（姓で判定）
 var CIRCU_EEASY={'徳永':'https://circu.eeasy.jp/yudai.tokunaga/30min','栫':'https://circu.eeasy.jp/hideki.kakoi/30m','中村':'https://circu.eeasy.jp/haruka.nakamura/30min','土田':'https://circu.eeasy.jp/maya.tsuchida/30min','飯田':'https://circu.eeasy.jp/tomomi.iida/onlin','木曽':'https://circu.eeasy.jp/yoshiki.kiso/30min','岡部':'https://circu.eeasy.jp/emi.okabe/30min','福本':'https://circu.eeasy.jp/yuta.fukumoto/online30'};
+// 案件詳細・経営課題 から「前回話した内容」を抽出（ASIS/TOBE/GAPがあればそれを、無ければ課題/冒頭を抜粋）
+function circuRcExtractDiscussion(detail){
+  if(!detail)return null;
+  var t=(''+detail).replace(/[■◆●▶◎※【】]/g,' ').replace(/　/g,' ').replace(/\s+/g,' ').trim();
+  if(!t)return null;
+  function findIdx(re){var m=re.exec(t);return m?m.index:-1;}
+  var marks=[];
+  var iAs=findIdx(/as[\s\-]?is/i);if(iAs>=0)marks.push({k:'ASIS',i:iAs});
+  var iTo=findIdx(/to[\s\-]?be/i);if(iTo>=0)marks.push({k:'TOBE',i:iTo});
+  var iGap=findIdx(/gap/i);if(iGap>=0)marks.push({k:'GAP',i:iGap});
+  if(marks.length){
+    marks.sort(function(a,b){return a.i-b.i;});
+    var out=[];
+    for(var m=0;m<marks.length;m++){
+      var st=marks[m].i,en=(m+1<marks.length)?marks[m+1].i:Math.min(t.length,st+400);
+      var seg=t.slice(st,en).trim();if(seg.length>300)seg=seg.slice(0,300)+'…';
+      out.push('・'+seg);
+    }
+    return out.join('\n');
+  }
+  var mk=/経営課題|課題/.exec(t);
+  var base=mk?t.slice(mk.index):t;
+  if(base.length>300)base=base.slice(0,300)+'…';
+  return '・'+base;
+}
 // リサイクル案件の再アプローチメール下書きをGmailで開く（新規作成）
-function circuRcMailDraft(co,contact,member,email,apDate){
+function circuRcMailDraft(co,contact,member,email,apDate,detail){
   var sender=(member||'').trim();
   var cn=(contact||'').trim();
   var coDisp=(co||'').trim();
+  var disc=circuRcExtractDiscussion(detail)||'・\n・';
   // eeasyリンク: 主担当者の姓で選択（見つからなければプレースホルダ）
   var eeasy='＜eeasyリンク＞';
   Object.keys(CIRCU_EEASY).forEach(function(k){if(sender.indexOf(k)>=0)eeasy=CIRCU_EEASY[k];});
@@ -4617,7 +4643,7 @@ function circuRcMailDraft(co,contact,member,email,apDate){
     +'株式会社サーキュレーションの'+sender+'でございます。\n\n'
     +'先日はお打ち合わせの機会を頂戴し誠にありがとうございました。\n'
     +'その後、'+cn+'様のご状況はいかがでしょうか。\n\n'
-    +'前回のお打ち合わせでは下記についてお話しさせていただきました。\n・\n・\n\n'
+    +'前回のお打ち合わせでは下記についてお話しさせていただきました。\n'+disc+'\n\n'
     +'前回より'+monthsStr+'ヶ月ほどお時間が経過しまして、現在の'+cn+'様や貴社のご状況や今後のお取り組みについてお伺いし、今後のご提案の可能性についてディスカッションさせていただきたく存じます。\n\n'
     +'お手数ですが、下記よりご都合の良いお時間を30分ほどご調整いただけますと幸いです。\n'+eeasy+'\n\n'
     +'引き続き何卒よろしくお願い申し上げます。';
@@ -4695,6 +4721,7 @@ function showRcDrawer(key){
       var _rcMem=g(r,col.member);
       var _rcCoRaw=g(r,col.account);
       var _rcAp=g(r,col.apDate);
+      var _rcDetail=g(r,col.caseDetail);
       var _rcName1=(cc||'').split(/[,、；;\/・]/)[0].trim();
       var _rcEmail=_rcEmailMap[_rcCoRaw+'__'+_rcName1]||_rcEmailMap[_rcCoRaw+'__'+_rcName1.replace(/\s+/g,'')]||'';
       var cat=/FS/i.test(rt)?'FS':(/IS/i.test(rt)?'IS':null);
@@ -4708,7 +4735,7 @@ function showRcDrawer(key){
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+tgt+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;text-align:center;white-space:nowrap">'+lp+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2)">'+cc+'</td>';
-      h+='<td style="padding:6px 8px;white-space:nowrap"><button onclick="circuRcMailDraft('+JSON.stringify(_rcCoRaw)+','+JSON.stringify(_rcName1)+','+JSON.stringify(_rcMem)+','+JSON.stringify(_rcEmail)+','+JSON.stringify(_rcAp)+')" title="'+(_rcEmail?'Gmail下書きを作成':'メール未取得のため宛先は空欄で作成')+'" style="font-size:9px;font-weight:600;color:#0079C0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 9px;cursor:pointer;white-space:nowrap">📧 下書き</button></td>';
+      h+='<td style="padding:6px 8px;white-space:nowrap"><button onclick="circuRcMailDraft('+JSON.stringify(_rcCoRaw)+','+JSON.stringify(_rcName1)+','+JSON.stringify(_rcMem)+','+JSON.stringify(_rcEmail)+','+JSON.stringify(_rcAp)+','+JSON.stringify(_rcDetail)+')" title="'+(_rcEmail?'Gmail下書きを作成':'メール未取得のため宛先は空欄で作成')+'" style="font-size:9px;font-weight:600;color:#0079C0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 9px;cursor:pointer;white-space:nowrap">📧 下書き</button></td>';
       h+='</tr>';
     });
   } else {

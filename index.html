@@ -4626,11 +4626,14 @@ function circuRcExtractDiscussion(detail){
   return '・'+base;
 }
 // リサイクル案件の再アプローチメール下書きをGmailで開く（新規作成）
-function circuRcMailDraft(co,contact,member,email,apDate,detail){
-  var sender=(member||'').trim();
-  var cn=(contact||'').trim();
-  var coDisp=(co||'').trim();
-  var disc=circuRcExtractDiscussion(detail)||'・\n・';
+// idx: window._rcMailData のインデックス（onclickの引用符崩れを避けるため配列参照）
+function circuRcMailDraft(idx){
+  var d=(window._rcMailData&&window._rcMailData[idx])||{};
+  var sender=(d.member||'').trim();
+  var cn=(d.contact||'').trim();
+  var coDisp=(d.co||'').trim();
+  var email=d.email||'';var apDate=d.ap||'';
+  var disc=circuRcExtractDiscussion(d.detail)||'・\n・';
   // eeasyリンク: 主担当者の姓で選択（見つからなければプレースホルダ）
   var eeasy='＜eeasyリンク＞';
   Object.keys(CIRCU_EEASY).forEach(function(k){if(sender.indexOf(k)>=0)eeasy=CIRCU_EEASY[k];});
@@ -4705,6 +4708,7 @@ function showRcDrawer(key){
         if(full){_rcEmailMap[lco+'__'+full]=lem;_rcEmailMap[lco+'__'+(ln+lf)]=lem;}
       });
     }
+    window._rcMailData=[];// メール下書き用データ（onclickでindex参照）
     h+='<thead><tr style="border-bottom:2px solid var(--bd)">';
     ['取引先','案件名(SF)','区分','リサイクル選択','リサイクル希望日','ターゲット','最終P','顧客担当者','メール下書き'].forEach(function(l){h+='<th style="padding:6px 8px;text-align:left;font-size:9px;color:var(--ink3);font-weight:600;white-space:nowrap">'+l+'</th>';});
     h+='</tr></thead><tbody>';
@@ -4724,6 +4728,7 @@ function showRcDrawer(key){
       var _rcDetail=g(r,col.caseDetail);
       var _rcName1=(cc||'').split(/[,、；;\/・]/)[0].trim();
       var _rcEmail=_rcEmailMap[_rcCoRaw+'__'+_rcName1]||_rcEmailMap[_rcCoRaw+'__'+_rcName1.replace(/\s+/g,'')]||'';
+      var _mi=window._rcMailData.push({co:_rcCoRaw,contact:_rcName1,member:_rcMem,email:_rcEmail,ap:_rcAp,detail:_rcDetail})-1;
       var cat=/FS/i.test(rt)?'FS':(/IS/i.test(rt)?'IS':null);
       var catBadge=cat?('<span style="font-size:9px;font-weight:700;color:#fff;background:'+(cat==='FS'?'#0891b2':'#db2777')+';padding:2px 7px;border-radius:10px;white-space:nowrap">'+cat+'</span>'):'<span style="font-size:9px;color:var(--ink3)">−</span>';
       h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:var(--bg)':'')+'">';
@@ -4735,7 +4740,7 @@ function showRcDrawer(key){
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2);white-space:nowrap">'+tgt+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;text-align:center;white-space:nowrap">'+lp+'</td>';
       h+='<td style="padding:6px 8px;font-size:10px;color:var(--ink2)">'+cc+'</td>';
-      h+='<td style="padding:6px 8px;white-space:nowrap"><button onclick="circuRcMailDraft('+JSON.stringify(_rcCoRaw)+','+JSON.stringify(_rcName1)+','+JSON.stringify(_rcMem)+','+JSON.stringify(_rcEmail)+','+JSON.stringify(_rcAp)+','+JSON.stringify(_rcDetail)+')" title="'+(_rcEmail?'Gmail下書きを作成':'メール未取得のため宛先は空欄で作成')+'" style="font-size:9px;font-weight:600;color:#0079C0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 9px;cursor:pointer;white-space:nowrap">📧 下書き</button></td>';
+      h+='<td style="padding:6px 8px;white-space:nowrap"><button onclick="circuRcMailDraft('+_mi+')" title="'+(_rcEmail?'Gmail下書きを作成':'メール未取得のため宛先は空欄で作成')+'" style="font-size:9px;font-weight:600;color:#0079C0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 9px;cursor:pointer;white-space:nowrap">📧 下書き</button></td>';
       h+='</tr>';
     });
   } else {

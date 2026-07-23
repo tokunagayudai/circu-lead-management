@@ -2508,7 +2508,7 @@ function _escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function _escA(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
 function acpNormCo(name){return name.replace(/株式会社|㈱|\(株\)/g,'').replace(/(HD|ホールディングス|ホールディング|グループ|holdings)/gi,'').replace(/[（）()\s・]+/g,'').toLowerCase().trim();}
 // アカプラに残す企業（グループ会社含む・部分一致）
-var ACPLAN_KEEP_KEYWORDS=['ウーブン・バイ・トヨタ','サントリー','三菱電機','野村不動産','本田技研','日本電気','イオン'];
+var ACPLAN_KEEP_KEYWORDS=['ウーブン・バイ・トヨタ','サントリー','三菱電機','野村不動産','日本電気','イオン','クレディセゾン','アサヒグループ'];
 var ACPLAN_KEEP_NORM=ACPLAN_KEEP_KEYWORDS.map(acpNormCo);
 function isAcplanCo(co){
   var n=acpNormCo(co||'');

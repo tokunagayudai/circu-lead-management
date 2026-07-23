@@ -4606,24 +4606,32 @@ function circuRcExtractDiscussion(detail){
   var t=(''+detail).replace(/[■◆●▶◎※【】]/g,' ').replace(/　/g,' ').replace(/\s+/g,' ').trim();
   if(!t)return null;
   function findIdx(re){var m=re.exec(t);return m?m.index:-1;}
+  // 各セグメントを「見出し行＋"・"ごとの改行」に整形
+  function fmtSeg(seg){
+    if(seg.length>400)seg=seg.slice(0,400)+'…';
+    var parts=seg.split('・');
+    var lines=[];
+    var head=(parts.shift()||'').trim();
+    if(head)lines.push(head);
+    parts.forEach(function(b){b=b.trim();if(b)lines.push('・'+b);});
+    return lines.join('\n');
+  }
   var marks=[];
-  var iAs=findIdx(/as[\s\-]?is/i);if(iAs>=0)marks.push({k:'ASIS',i:iAs});
-  var iTo=findIdx(/to[\s\-]?be/i);if(iTo>=0)marks.push({k:'TOBE',i:iTo});
-  var iGap=findIdx(/gap/i);if(iGap>=0)marks.push({k:'GAP',i:iGap});
+  var iAs=findIdx(/as[\s\-]?is/i);if(iAs>=0)marks.push(iAs);
+  var iTo=findIdx(/to[\s\-]?be/i);if(iTo>=0)marks.push(iTo);
+  var iGap=findIdx(/gap/i);if(iGap>=0)marks.push(iGap);
   if(marks.length){
-    marks.sort(function(a,b){return a.i-b.i;});
+    marks.sort(function(a,b){return a-b;});
     var out=[];
     for(var m=0;m<marks.length;m++){
-      var st=marks[m].i,en=(m+1<marks.length)?marks[m+1].i:Math.min(t.length,st+400);
-      var seg=t.slice(st,en).trim();if(seg.length>300)seg=seg.slice(0,300)+'…';
-      out.push('・'+seg);
+      var st=marks[m],en=(m+1<marks.length)?marks[m+1]:Math.min(t.length,st+400);
+      var seg=t.slice(st,en).trim();if(seg)out.push(fmtSeg(seg));
     }
     return out.join('\n');
   }
   var mk=/経営課題|課題/.exec(t);
   var base=mk?t.slice(mk.index):t;
-  if(base.length>300)base=base.slice(0,300)+'…';
-  return '・'+base;
+  return fmtSeg(base);
 }
 // リサイクル案件の再アプローチメール下書きをGmailで開く（新規作成）
 // idx: window._rcMailData のインデックス（onclickの引用符崩れを避けるため配列参照）
@@ -4637,17 +4645,18 @@ function circuRcMailDraft(idx){
   // eeasyリンク: 主担当者の姓で選択（見つからなければプレースホルダ）
   var eeasy='＜eeasyリンク＞';
   Object.keys(CIRCU_EEASY).forEach(function(k){if(sender.indexOf(k)>=0)eeasy=CIRCU_EEASY[k];});
-  // 経過月数: 初回アポイント日 → 今日
-  var monthsStr='◯';
-  if(apDate){var ap=new Date(apDate.replace(/\//g,'-'));if(!isNaN(ap)){var now=new Date();var diff=(now.getFullYear()-ap.getFullYear())*12+(now.getMonth()-ap.getMonth());if(diff>=1)monthsStr=String(diff);}}
+  var surname=(cn.split(/[\s　]+/)[0]||cn);// 姓のみ（本文中の言及用）
+  // 経過月数: 初回アポイント日 → 今日 ／ 初回アポの月（「◯月は」用）
+  var monthsStr='◯';var apMonth='先日';
+  if(apDate){var ap=new Date(apDate.replace(/\//g,'-'));if(!isNaN(ap)){var now=new Date();var diff=(now.getFullYear()-ap.getFullYear())*12+(now.getMonth()-ap.getMonth());if(diff>=1)monthsStr=String(diff);apMonth=(ap.getMonth()+1)+'月';}}
   var subj='【お打ち合わせのご依頼/ご状況のお伺い】サーキュレーション'+sender;
   var body=coDisp+'\n'+cn+'様\n\n'
     +'お世話になっております。\n'
     +'株式会社サーキュレーションの'+sender+'でございます。\n\n'
-    +'先日はお打ち合わせの機会を頂戴し誠にありがとうございました。\n'
-    +'その後、'+cn+'様のご状況はいかがでしょうか。\n\n'
+    +apMonth+'はお打ち合わせの機会を頂戴し誠にありがとうございました。\n'
+    +'その後、'+surname+'様のご状況はいかがでしょうか。\n\n'
     +'前回のお打ち合わせでは下記についてお話しさせていただきました。\n'+disc+'\n\n'
-    +'前回より'+monthsStr+'ヶ月ほどお時間が経過しまして、現在の'+cn+'様や貴社のご状況や今後のお取り組みについてお伺いし、今後のご提案の可能性についてディスカッションさせていただきたく存じます。\n\n'
+    +'前回より'+monthsStr+'ヶ月ほどお時間が経過しまして、現在の'+surname+'様や貴社のご状況や今後のお取り組みについてお伺いし、今後のご提案の可能性についてディスカッションさせていただきたく存じます。\n\n'
     +'お手数ですが、下記よりご都合の良いお時間を30分ほどご調整いただけますと幸いです。\n'+eeasy+'\n\n'
     +'引き続き何卒よろしくお願い申し上げます。';
   var url='https://mail.google.com/mail/?view=cm&fs=1'

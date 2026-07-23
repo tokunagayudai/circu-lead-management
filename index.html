@@ -4641,7 +4641,10 @@ function circuRcMailDraft(idx){
   var cn=(d.contact||'').trim();
   var coDisp=(d.co||'').trim();
   var email=d.email||'';var apDate=d.ap||'';
-  var disc=circuRcExtractDiscussion(d.detail)||'・\n・';
+  // 前回内容: case-summaries.json に案件ID or 案件名で登録があれば最優先（SFの全文を手動でここに保存する運用）。無ければスプシ抜粋。
+  var cs=window.CASE_SUMMARIES||{};
+  var summ=(d.oppId&&cs[d.oppId])||(d.caseName&&cs[d.caseName])||'';
+  var disc=(summ&&(''+summ).trim())||circuRcExtractDiscussion(d.detail)||'・\n・';
   // eeasyリンク: 主担当者の姓で選択（見つからなければプレースホルダ）
   var eeasy='＜eeasyリンク＞';
   Object.keys(CIRCU_EEASY).forEach(function(k){if(sender.indexOf(k)>=0)eeasy=CIRCU_EEASY[k];});
@@ -4737,7 +4740,7 @@ function showRcDrawer(key){
       var _rcDetail=g(r,col.caseDetail);
       var _rcName1=(cc||'').split(/[,、；;\/・]/)[0].trim();
       var _rcEmail=_rcEmailMap[_rcCoRaw+'__'+_rcName1]||_rcEmailMap[_rcCoRaw+'__'+_rcName1.replace(/\s+/g,'')]||'';
-      var _mi=window._rcMailData.push({co:_rcCoRaw,contact:_rcName1,member:_rcMem,email:_rcEmail,ap:_rcAp,detail:_rcDetail})-1;
+      var _mi=window._rcMailData.push({co:_rcCoRaw,contact:_rcName1,member:_rcMem,email:_rcEmail,ap:_rcAp,detail:_rcDetail,oppId:oid,caseName:nm})-1;
       var cat=/FS/i.test(rt)?'FS':(/IS/i.test(rt)?'IS':null);
       var catBadge=cat?('<span style="font-size:9px;font-weight:700;color:#fff;background:'+(cat==='FS'?'#0891b2':'#db2777')+';padding:2px 7px;border-radius:10px;white-space:nowrap">'+cat+'</span>'):'<span style="font-size:9px;color:var(--ink3)">−</span>';
       h+='<tr style="border-bottom:1px solid rgba(0,0,0,.04);'+(idx%2===0?'background:var(--bg)':'')+'">';
@@ -4957,6 +4960,9 @@ function fetchFromGAS(){
   });
 }
 
+// 案件ごとの前回内容/要約（同一オリジンの静的ファイル。メール下書きで優先使用）
+window.CASE_SUMMARIES={};
+fetch('case-summaries.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){if(j&&typeof j==='object')window.CASE_SUMMARIES=j;}).catch(function(){});
 document.addEventListener('DOMContentLoaded', fetchFromGAS);
 </script>
 <!-- 関係線 SVGオーバーレイ（固定・全画面） -->

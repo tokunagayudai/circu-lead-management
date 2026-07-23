@@ -4641,10 +4641,11 @@ function circuRcMailDraft(idx){
   var cn=(d.contact||'').trim();
   var coDisp=(d.co||'').trim();
   var email=d.email||'';var apDate=d.ap||'';
-  // 前回内容: case-summaries.json に案件ID or 案件名で登録があれば最優先（SFの全文を手動でここに保存する運用）。無ければスプシ抜粋。
+  // 前回内容: case-summaries.json に案件ID or 案件名で登録があればそれを使用。無ければ空欄（・）で手入力。
+  // ※スプシの案件詳細は自由記述の羅列で機械抜粋すると不自然なため、自動差し込みはしない。
   var cs=window.CASE_SUMMARIES||{};
   var summ=(d.oppId&&cs[d.oppId])||(d.caseName&&cs[d.caseName])||'';
-  var disc=(summ&&(''+summ).trim())||circuRcExtractDiscussion(d.detail)||'・\n・';
+  var disc=(summ&&(''+summ).trim())||'・\n・';
   // eeasyリンク: 主担当者の姓で選択（見つからなければプレースホルダ）
   var eeasy='＜eeasyリンク＞';
   Object.keys(CIRCU_EEASY).forEach(function(k){if(sender.indexOf(k)>=0)eeasy=CIRCU_EEASY[k];});
